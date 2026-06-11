@@ -1,0 +1,10 @@
+{
+  "name": "aster-bay",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Cozy isometric browser city-builder. Single-file vanilla JS (Phase 1); Vite + Supabase + Railway planned.",
+  "scripts": {
+    "test": "node tests/run.js",
+    "dev": "npx -y serve -l 5173 ."
+  }
+}

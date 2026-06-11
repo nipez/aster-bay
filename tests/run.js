@@ -1,0 +1,224 @@
+#!/usr/bin/env node
+/* Aster Bay headless regression suite.
+   Usage: node tests/run.js
+   Extracts the <script> from index.html, stubs DOM/canvas, drives the
+   game loop manually, and asserts core systems behave. No browser needed. */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// ---------- DOM / canvas stubs ----------
+const noop = () => {};
+const ctxStub = new Proxy({}, {
+  get: (t, k) => {
+    if (k === 'measureText') return () => ({ width: 10 });
+    if (k === 'createLinearGradient' || k === 'createRadialGradient')
+      return () => ({ addColorStop: noop });
+    return typeof k === 'string' ? noop : undefined;
+  },
+  set: () => true,
+});
+const elStub = () => ({
+  textContent: '', innerHTML: '', style: {}, className: '',
+  classList: { add: noop, remove: noop, toggle: noop },
+  addEventListener: noop, setPointerCapture: noop,
+  dataset: { s: '1', t: 'inspect' }, onclick: null,
+  getContext: () => ctxStub, width: 0, height: 0,
+  appendChild: noop, remove: noop, click: noop, files: [],
+});
+global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop };
+global.document = {
+  getElementById: () => elStub(), querySelector: () => elStub(),
+  querySelectorAll: () => [elStub(), elStub(), elStub()], createElement: () => elStub(),
+};
+global.performance = { now: () => Date.now() };
+global.Blob = class { constructor(parts) { global.__blob = parts[0]; } };
+global.URL = { createObjectURL: () => 'x', revokeObjectURL: noop };
+global.FileReader = class { readAsText() {} };
+let rafCb = null;
+global.requestAnimationFrame = cb => { rafCb = cb; };
+
+// ---------- load game script with test hooks ----------
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
+const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildings,bldMap,tkey,
+  INTERS,peds,cars,stats,recompute,exportCity,importCity,getDay:()=>day,
+  igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,
+  getRank:()=>rankIdx,checkMilestones,
+  tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
+  setBlockColor:c=>{blockColor=c;}};`;
+const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
+fs.writeFileSync(tmp, js + hooks);
+require(tmp);
+const H = global.__h;
+
+// ---------- helpers ----------
+let t = Date.now();
+const run = n => { for (let i = 0; i < n; i++) { t += 33; if (rafCb) { const cb = rafCb; rafCb = null; cb(t); } } };
+let failures = 0;
+const A = (cond, msg) => {
+  if (cond) console.log('  ✓ ' + msg);
+  else { console.error('  ✗ FAIL: ' + msg); failures++; }
+};
+
+console.log('Aster Bay test suite\n');
+run(100);
+H.setEvents(false); // deterministic: disable random fires while testing
+
+// ---------- placement & road graph ----------
+console.log('placement & road graph');
+H.setTool('road');
+A(H.canPlace('road', 3, 10), 'fringe road placeable next to core road');
+const cash0 = H.getCash();
+H.tryPlace(3, 10);
+A(H.tileAt(3,10) === 'road', 'tile became road');
+A(H.getCash() === cash0 - 120, 'road cost charged');
+A(H.tileAt(2,10) === 'walk' || H.tileAt(3,9) === 'walk', 'sidewalks auto-grown alongside');
+A(!H.canPlace('road', -40, -40), 'disconnected road rejected (even far out)');
+
+H.setTool('house');
+let placedHouse = false;
+outer: for (let x = 1; x < 6; x++) for (let y = 8; y < 13; y++)
+  if (H.canPlace('house', x, y)) { const n = H.buildings.length; H.tryPlace(x, y); placedHouse = H.buildings.length === n + 1; break outer; }
+A(placedHouse, 'house placed near new road');
+
+// ---------- fire coverage ----------
+console.log('\nfires & coverage');
+H.setTool('fire');
+let station = null;
+outer2: for (let x = 1; x < 10; x++) for (let y = 6; y < 16; y++)
+  if (H.canPlace('fire', x, y)) { H.tryPlace(x, y); station = H.buildings[H.buildings.length - 1]; break outer2; }
+A(station && station.kind === 'fire', 'fire station placed');
+A(H.coveredBy('fire', station.x + 3, station.y + 3), 'coverage radius works');
+
+const victim = [...H.bldMap.values()].find(b => !b.landmark && b.use !== 'civic'
+  && Math.hypot(b.x - station.x, b.y - station.y) <= 7);
+A(!!victim, 'found a covered building');
+const nBefore = H.buildings.length;
+H.igniteAt(victim);
+A(!!victim.fire, 'covered building ignited');
+run(200);
+A(!victim.fire, 'covered fire extinguished in time');
+A(H.buildings.length === nBefore, 'covered building survived');
+
+const far = [...H.bldMap.values()].find(b => !b.landmark && b.use !== 'civic' && !H.coveredBy('fire', b.x, b.y));
+A(!!far, 'found an uncovered building');
+const fk = H.tkey(far.x, far.y), n2 = H.buildings.length;
+H.igniteAt(far);
+run(450);
+A(H.buildings.length < n2, 'uncovered building burned down');
+A(H.scorch.has(fk), 'scorch mark left behind');
+
+// ---------- school happiness ----------
+console.log('\nschools & happiness');
+const hap0 = H.stats.happy;
+H.setTool('school');
+let placedSchool = false;
+outer3: for (let x = 1; x < 32; x++) for (let y = 1; y < 32; y++)
+  if (H.canPlace('school', x, y)) { H.tryPlace(x, y); placedSchool = true; break outer3; }
+A(placedSchool, 'school placed');
+A(H.stats.happy > hap0, `school raised happiness (${hap0.toFixed(3)} → ${H.stats.happy.toFixed(3)})`);
+
+// ---------- economy day tick ----------
+console.log('\neconomy');
+const day0 = H.getDay();
+run(6000); // > 1 in-game day at 1×
+A(H.getDay() > day0, 'day advanced and economy ticked');
+A(H.peds.length > 0 && H.cars.length > 0, `agents alive (peds=${H.peds.length}, cars=${H.cars.length})`);
+
+// ---------- save round trips ----------
+console.log('\nsaves');
+H.exportCity();
+const data = JSON.parse(global.__blob);
+A(data.v === 4, 'export is v4 (sparse world)');
+H.importCity(data);
+A(H.getCash() === data.cash, 'v3 import restored cash');
+A(H.scorch.has(fk), 'scorch survived round trip');
+
+const v3 = { v: 3, grid: 33, cash: data.cash, day: data.day, simClock: data.simClock,
+  parks: data.parks, scorch: [], buildings: data.buildings, trees: data.trees, T: [] };
+for (let x = 0; x < 33; x++) { v3.T[x] = [];
+  for (let y = 0; y < 33; y++) {
+    const t = H.tileAt(x, y);
+    v3.T[x][y] = (t === 'forest' || t === 'water' && !H.edits.has(H.tkey(x,y))) ? 'edge' : (t==='forest'?'edge':t);
+  } }
+H.importCity(v3);
+A(H.getCash() === v3.cash, 'v3 (legacy dense-grid) save imports');
+
+// ---------- chaos run ----------
+console.log('\nchaos (random fires on, ~6 game days)');
+H.setEvents(true);
+run(12000);
+A(true, `survived: day=${H.getDay()} buildings=${H.buildings.length} cash=$${H.getCash()}`);
+
+// ---------- v0.5: infinite terrain ----------
+console.log('\ninfinite terrain');
+A(H.tileAt(500, -300) === H.tileAt(500, -300), 'terrain is deterministic');
+let foundWater = false, foundForest = false;
+for (let x = -60; x < 90 && !(foundWater && foundForest); x++)
+  for (let y = -60; y < 90; y++) {
+    const t = H.tileAt(x, y);
+    if (t === 'water') foundWater = true;
+    if (t === 'forest') foundForest = true;
+  }
+A(foundWater, 'lakes exist in the wilds');
+A(foundForest, 'forests exist in the wilds');
+A(H.tileAt(16, 16) !== 'water', 'town center is dry land');
+
+// road can extend far into the wilderness tile by tile
+// (south from the edge road at (10,28) — roads auto-fell forest trees)
+H.setMode('creative');
+H.setTool('road');
+let paved = 0;
+for (let y = 29; y <= 48; y++) {
+  if (H.canPlace('road', 10, y)) { H.tryPlace(10, y); paved++; }
+  else if (H.tileAt(10, y) === 'water') break; // hit a lake — fine
+}
+A(paved >= 8, `paved ${paved} tiles into the wilderness`);
+A([...H.edits.values()].filter(t=>t==='walk').length > 0, 'wilderness road grew sidewalks');
+
+// ---------- v0.5: blocks ----------
+console.log('\nblocks (creative)');
+const cashC = H.getCash();
+H.setTool('block');
+let bspot = null;
+outer4: for (let x = -10; x < 0; x++) for (let y = 5; y < 20; y++)
+  if (H.canPlace('block', x, y)) { bspot = [x, y]; break outer4; }
+A(!!bspot, 'found wilderness spot for blocks');
+H.setBlockColor('#e2574c');
+H.tryPlace(bspot[0], bspot[1]);
+H.setBlockColor('#ffd23e');
+H.tryPlace(bspot[0], bspot[1]);
+H.tryPlace(bspot[0], bspot[1]);
+const tower = H.blockMap.get(H.tkey(bspot[0], bspot[1]));
+A(tower && tower.colors.length === 3, 'blocks stack (3 high)');
+A(tower.colors[0] === '#e2574c' && tower.colors[2] === '#ffd23e', 'per-block colors kept');
+A(H.getCash() === cashC, 'creative mode is free');
+
+H.setTool('dozer');
+H.tryPlace(bspot[0], bspot[1]);
+A(tower.colors.length === 2, 'dozer pops one block at a time');
+H.tryPlace(bspot[0], bspot[1]); H.tryPlace(bspot[0], bspot[1]);
+A(!H.blockMap.has(H.tkey(bspot[0], bspot[1])), 'empty tower removed');
+
+// mayor mode charges for blocks
+H.setMode('mayor');
+H.setTool('block');
+const cashM = H.getCash();
+if (H.canPlace('block', bspot[0], bspot[1])) {
+  H.tryPlace(bspot[0], bspot[1]);
+  A(H.getCash() === cashM - 25, 'mayor mode charges $25 per block');
+}
+
+// ---------- v0.5: v4 save round trip ----------
+console.log('\nv4 saves');
+H.exportCity();
+const d4 = JSON.parse(global.__blob);
+A(d4.v === 4 && Array.isArray(d4.edits) && Array.isArray(d4.blocks), 'v4 sparse save shape');
+H.importCity(d4);
+A(H.getCash() === d4.cash, 'v4 import restored cash');
+A(H.blocks.length === d4.blocks.length, 'blocks survived round trip');
+
+console.log('\n' + (failures ? `${failures} FAILURE(S)` : 'ALL TESTS PASSED (v0.5)'));
+process.exit(failures ? 1 : 0);
