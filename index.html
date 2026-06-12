@@ -300,6 +300,7 @@
   <button id="bHome" title="Recenter view">⌖</button>
   <button id="bRotL" title="Rotate left (Q)">↺</button>
   <button id="bRotR" title="Rotate right (E)">↻</button>
+  <button id="bFs" title="Full screen (F)">⛶</button>
   <button id="bYou" title="Find or track a walker">📍 Walkers</button>
 </div>
 </div>
@@ -2044,6 +2045,28 @@ $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
 $('bHome').onclick=()=>{ setTrackWalker(null); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
 $('bRotL').onclick=()=> rotateView(-1);
 $('bRotR').onclick=()=> rotateView(1);
+const bFs=$('bFs');
+function fsActive(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+function syncFsBtn(){
+  const on=fsActive();
+  bFs.classList.toggle('on', on);
+  bFs.textContent=on?'⤡':'⛶';
+  bFs.title=on?'Exit full screen (F)':'Full screen (F)';
+  resize();
+}
+function toggleFullscreen(){
+  if(fsActive()){
+    (document.exitFullscreen||document.webkitExitFullscreen)?.call(document)?.catch?.(()=>{});
+    return;
+  }
+  const req=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+  if(!req){ toast('Full screen not supported on this device','err'); return; }
+  req.call(document.documentElement).catch(()=>toast('Could not enter full screen','err'));
+}
+bFs.onclick=()=> toggleFullscreen();
+document.addEventListener('fullscreenchange', syncFsBtn);
+document.addEventListener('webkitfullscreenchange', syncFsBtn);
+syncFsBtn();
 $('bYou').onclick=()=>{
   if(!walkers.length){ toast('Add a name in the stats panel first','err'); return; }
   const id=focusWalkerId!=null ? focusWalkerId : walkers[0].id;
@@ -2092,6 +2115,7 @@ window.addEventListener('keydown', e=>{
   if(e.key==='Escape') setTool('inspect');
   if(e.key==='q'||e.key==='Q') rotateView(-1);
   if(e.key==='e'||e.key==='E') rotateView(1);
+  if(e.key==='f'||e.key==='F') toggleFullscreen();
 });
 let pinchD=0;
 cv.addEventListener('touchstart', e=>{ if(e.touches.length===2){

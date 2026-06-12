@@ -32,6 +32,8 @@ global.location = { search: '' };
 global.document = {
   getElementById: () => elStub(), querySelector: () => elStub(),
   querySelectorAll: () => [elStub(), elStub(), elStub()], createElement: () => elStub(),
+  addEventListener: noop, documentElement: elStub(),
+  fullscreenElement: null, webkitFullscreenElement: null,
 };
 global.performance = { now: () => Date.now() };
 global.Blob = class { constructor(parts) { global.__blob = parts[0]; } };
