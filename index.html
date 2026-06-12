@@ -60,6 +60,27 @@
   .bfill{height:100%; border-radius:4px; transition:width .4s;}
   #dR .bfill{background:#67d18a;} #dC .bfill{background:#4f9dde;} #dG .bfill{background:#a3c9a8;}
 
+  .you-row{display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14; pointer-events:auto;}
+  .you-row input{
+    flex:1; min-width:0; appearance:none; border:1px solid #ffffff22; background:#ffffff10;
+    color:var(--ink); border-radius:9px; padding:6px 9px;
+    font:600 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-row input::placeholder{color:var(--dim);}
+  .you-row input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .you-row button,.you-status button{
+    appearance:none; border:none; cursor:pointer; color:#23201a; background:var(--accent);
+    border-radius:9px; padding:6px 10px; font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    white-space:nowrap;
+  }
+  .you-row button:active,.you-status button:active{transform:scale(.96);}
+  .you-status{
+    display:none; margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14;
+    font-size:11.5px; color:var(--dim); pointer-events:auto;
+  }
+  .you-status.show{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .you-status b{color:var(--accent); font-weight:800;}
+
   .dock{display:contents;}
 
   .tools{
@@ -204,6 +225,14 @@
       <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
       <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
     </div>
+    <div class="you-row" id="youRow">
+      <input id="youName" type="text" maxlength="18" placeholder="Your name" autocomplete="nickname" enterkeyhint="go">
+      <button type="button" id="youJoin">Walk</button>
+    </div>
+    <div class="you-status" id="youStatus">
+      <span>Walking as <b id="youStatusName"></b></span>
+      <button type="button" id="youLeave">Leave</button>
+    </div>
   </div>
 </div>
 
@@ -239,6 +268,7 @@
   <button id="bOut" title="Zoom out (−)">−</button>
   <button id="bIn" title="Zoom in (+)">＋</button>
   <button id="bHome" title="Recenter view">⌖</button>
+  <button id="bYou" title="Find or track your walker">📍 Me</button>
 </div>
 </div>
 
@@ -566,21 +596,82 @@ function spawnPed(){
   }
   return false;
 }
+function updateOnePed(p, dt){
+  if(p.idle>0){ p.idle-=dt; return; }
+  p.p += dt*p.speed/p.steps;
+  if(p.p<1) return;
+  p.fx=p.tx; p.fy=p.ty; p.p=0;
+  if(R()<0.06) p.idle=rand(.5,3);
+  const moves=pedMoves(p.fx,p.fy);
+  if(!moves.length){ p.idle=1; p.steps=1; p.tx=p.fx; p.ty=p.fy; return; }
+  const fwd=moves.find(m=>m.d[0]===p.d[0]&&m.d[1]===p.d[1]);
+  const m=(fwd&&R()<0.55)?fwd:pick(moves);
+  p.tx=m.x; p.ty=m.y; p.steps=m.steps; p.d=m.d;
+}
 function updatePeds(dt){
-  for(const p of peds){
-    if(p.idle>0){ p.idle-=dt; continue; }
-    p.p += dt*p.speed/p.steps;
-    if(p.p<1) continue;
-    p.fx=p.tx; p.fy=p.ty; p.p=0;
-    if(R()<0.06) p.idle=rand(.5,3);
-    const moves=pedMoves(p.fx,p.fy);
-    if(!moves.length){ p.idle=1; p.steps=1; p.tx=p.fx; p.ty=p.fy; continue; }
-    const fwd=moves.find(m=>m.d[0]===p.d[0]&&m.d[1]===p.d[1]);
-    const m=(fwd&&R()<0.55)?fwd:pick(moves);
-    p.tx=m.x; p.ty=m.y; p.steps=m.steps; p.d=m.d;
-  }
+  for(const p of peds) updateOnePed(p, dt);
+  if(playerPed) updateOnePed(playerPed, dt);
 }
 const pedPos=p=>({x:lerp(p.fx,p.tx,p.p)+0.5+p.ox, y:lerp(p.fy,p.ty,p.p)+0.5+p.oy});
+
+// ---------- you (player walker) ----------
+let playerName='', playerPed=null, trackYou=false, findYouPulse=0;
+function cleanPlayerName(raw){
+  return String(raw||'').replace(/[\s\u0000-\u001f\u007f]+/g,' ').trim().slice(0,18);
+}
+function findWalkSpawn(){
+  for(let tries=0;tries<80;tries++){
+    const spot=randomEditTile('walk'); if(spot) return spot;
+  }
+  for(let x=CORE0;x<=CORE1;x++) for(let y=CORE0;y<=CORE1;y++)
+    if(tileAt(x,y)==='walk') return [x,y];
+  return [16,10];
+}
+function makePlayerPed(name, x, y, state){
+  const base={fx:x,fy:y,tx:x,ty:y,p:1,steps:1,d:[1,0],
+    ox:0,oy:0,speed:rand(.62,.88),idle:0,bob:R()*9,
+    shirt:'#ffce6b',skin:pick(['#f4cba6','#e3a87c','#c98a5e','#9c6b43','#7a5236']),
+    name,flavor:'exploring the city',sx:0,sy:0,isYou:true};
+  return state ? Object.assign(base, state, {isYou:true,name}) : base;
+}
+function syncYouUI(){
+  const joined=!!playerPed;
+  $('youRow').style.display=joined?'none':'flex';
+  $('youStatus').classList.toggle('show', joined);
+  if(joined) $('youStatusName').textContent=playerName;
+  $('bYou').disabled=!joined;
+}
+function panToPlayer(){
+  if(!playerPed) return;
+  const pos=pedPos(playerPed), w=iso(pos.x,pos.y,0), s=worldToScreen(w.x,w.y);
+  cam.px += CW/2-s.x; cam.py += CH/2-s.y;
+}
+function setTrackYou(on){
+  trackYou=!!on && !!playerPed;
+  $('bYou').classList.toggle('on', trackYou);
+  $('bYou').textContent=trackYou?'📍 Track':'📍 Me';
+  if(trackYou) panToPlayer();
+}
+function joinCity(rawName){
+  const name=cleanPlayerName(rawName);
+  if(!name){ toast('Type a name first','err'); return false; }
+  const [x,y]=findWalkSpawn();
+  playerName=name;
+  playerPed=makePlayerPed(name,x,y);
+  syncYouUI();
+  findYouPulse=2.5;
+  panToPlayer();
+  toast('🚶 '+name+' is out for a stroll','ok');
+  return true;
+}
+function leaveCity(){
+  playerName=''; playerPed=null;
+  setTrackYou(false);
+  findYouPulse=0;
+  $('youName').value='';
+  syncYouUI();
+  toast('See you around!','ok');
+}
 
 // ---------- economy & demand ----------
 let cash=25000, day=1;
@@ -1225,6 +1316,17 @@ function drawPed(p, animT){
   ctx.beginPath(); ctx.arc(g.x,g.y-1-bh-2.6-bob,2.6,0,Math.PI*2); ctx.fill();
   p.sx=g.x; p.sy=g.y-16-bob;
 }
+function drawPlayerRing(p, animT){
+  const pos=pedPos(p), g=iso(pos.x,pos.y,0);
+  const bob=Math.abs(Math.sin(animT*7+p.bob))*(p.idle>0?0.3:1.6);
+  const pulse=findYouPulse>0 ? 1+0.22*Math.sin(animT*11) : 1;
+  const a=findYouPulse>0 ? 0.95 : (trackYou ? 0.78 : 0.55);
+  ctx.strokeStyle='rgba(255,206,107,'+a+')';
+  ctx.lineWidth=2.2;
+  ctx.beginPath();
+  ctx.ellipse(g.x,g.y-1-bob, 9*pulse, 4.8*pulse, 0,0,Math.PI*2);
+  ctx.stroke();
+}
 
 // ---------- sky ----------
 function drawSky(h, animT){
@@ -1323,22 +1425,27 @@ function render(animT){
   for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:it.x+it.y+0.2, f:()=>drawTrafficLight(it,simClock)});
   for(const c of cars){ const p=carPos(c); items.push({d:p.x+p.y, f:()=>drawCar(c,animT)}); }
   for(const p of peds){ const q=pedPos(p); items.push({d:q.x+q.y, f:()=>drawPed(p,animT)}); }
+  if(playerPed){
+    const q=pedPos(playerPed);
+    items.push({d:q.x+q.y+0.01, f:()=>{ drawPed(playerPed,animT); drawPlayerRing(playerPed,animT); }});
+  }
   items.sort((a,b)=>a.d-b.d);
   for(const it of items) it.f();
 
+  ctx.font='700 9px ui-rounded, "Segoe UI", sans-serif';
+  ctx.textAlign='center';
+  const label=(x,y,txt,gold)=>{
+    const w=ctx.measureText(txt).width+8;
+    ctx.fillStyle='rgba(18,21,38,.78)';
+    ctx.beginPath(); ctx.roundRect(x-w/2,y-9,w,12,6); ctx.fill();
+    ctx.fillStyle=gold?'#ffce6b':'#f4ede0'; ctx.fillText(txt,x,y);
+  };
+  if(playerPed) label(playerPed.sx, playerPed.sy-2, playerPed.name, true);
   if(cam.z>=1.7){
-    ctx.font='700 9px ui-rounded, "Segoe UI", sans-serif';
-    ctx.textAlign='center';
-    const label=(x,y,txt)=>{
-      const w=ctx.measureText(txt).width+8;
-      ctx.fillStyle='rgba(18,21,38,.78)';
-      ctx.beginPath(); ctx.roundRect(x-w/2,y-9,w,12,6); ctx.fill();
-      ctx.fillStyle='#f4ede0'; ctx.fillText(txt,x,y);
-    };
-    for(const c of cars) label(c.sx,c.sy-6,c.name);
-    for(const p of peds) label(p.sx,p.sy-2,p.name);
-    ctx.textAlign='start';
+    for(const c of cars) label(c.sx,c.sy-6,c.name,false);
+    for(const p of peds) label(p.sx,p.sy-2,p.name,false);
   }
+  ctx.textAlign='start';
   ctx.restore();
 
   if(hoverAgent&&tool==='inspect'){
@@ -1412,6 +1519,11 @@ function exportCity(){
     blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
     buildings:buildings.map(b=>{const o={...b}; o.fire=null; return o;}),
     trees:trees.map(t=>({x:t.x,y:t.y,s:t.s}))};
+  if(playerPed){
+    data.playerName=playerName;
+    const {isYou,...st}=playerPed;
+    data.playerPed=st;
+  }
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1448,9 +1560,14 @@ function importCity(data){
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
   rebuildLights();
   cars.length=0; peds.length=0;
+  playerName=''; playerPed=null; setTrackYou(false); findYouPulse=0;
+  if(data.playerName && data.playerPed){
+    playerName=cleanPlayerName(data.playerName);
+    playerPed=makePlayerPed(playerName, data.playerPed.fx|0, data.playerPed.fy|0, data.playerPed);
+  }
   recompute();
   rankIdx = data.rankIdx!==undefined ? data.rankIdx : currentRank();
-  adjustAgents(); updateHUD();
+  adjustAgents(); syncYouUI(); updateHUD();
   toast('City loaded — welcome back, Mayor','ok');
 }
 function currentRank(){
@@ -1534,12 +1651,14 @@ function nearestAgent(mx,my,maxD){
   };
   for(const c of cars) test(c,'car');
   for(const p of peds) test(p,'ped');
+  if(playerPed) test(playerPed,'ped');
   return best;
 }
 function agentTipHTML(best){
-  return best.kind==='car'
-    ? `🚗 <b>${best.a.name}</b> · ${best.a.kind}${best.a.wait>0?' · waiting at the light':''}`
-    : `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
+  if(best.kind==='car')
+    return `🚗 <b>${best.a.name}</b> · ${best.a.kind}${best.a.wait>0?' · waiting at the light':''}`;
+  if(best.a.isYou) return `🚶 <b>${best.a.name}</b> · that's you!`;
+  return `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
 }
 cv.addEventListener('pointerdown', e=>{
   if(hudExpanded()) collapseHud();
@@ -1550,7 +1669,10 @@ cv.addEventListener('pointerdown', e=>{
 cv.addEventListener('pointermove', e=>{
   if(dragging && activePtrs.size<=1){
     cam.px+=e.clientX-lx; cam.py+=e.clientY-ly;
-    if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3) dragMoved=true;
+    if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3){
+      dragMoved=true;
+      if(trackYou) setTrackYou(false);
+    }
     lx=e.clientX; ly=e.clientY;
   }
   hoverTile=screenToTile(e.clientX,e.clientY);
@@ -1603,7 +1725,17 @@ cv.addEventListener('wheel', e=>{
 
 $('bIn').onclick=()=>zoomAt(1.25,CW/2,CH/2);
 $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
-$('bHome').onclick=()=>{ cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+$('bHome').onclick=()=>{ setTrackYou(false); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+$('bYou').onclick=()=>{
+  if(!playerPed){ toast('Enter your name and tap Walk first','err'); return; }
+  setTrackYou(!trackYou);
+  findYouPulse=2.5;
+  panToPlayer();
+  toast(trackYou ? 'Tracking '+playerName : 'Found '+playerName,'ok');
+};
+$('youJoin').onclick=()=> joinCity($('youName').value);
+$('youName').addEventListener('keydown', e=>{ if(e.key==='Enter') joinCity($('youName').value); });
+$('youLeave').onclick=leaveCity;
 const bPause=$('bPause');
 function setPause(v){
   paused=v;
@@ -1647,17 +1779,24 @@ recompute();
 rankIdx=currentRank();
 adjustAgents();
 applyBootParams();
+syncYouUI();
 if(mode==='creative') toast('🎨 Creative mode — build anything, everything is free', 'ok');
 let prev=performance.now(), animT=0, hudTick=0;
 function frame(now){
   let dt=Math.min((now-prev)/1000,0.05); prev=now;
   animT+=dt;
+  if(findYouPulse>0) findYouPulse=Math.max(0, findYouPulse-dt);
   if(!paused){
     const sdt=dt*speed;
     simClock+=sdt;
     updateCars(sdt,simClock);
     updatePeds(sdt);
     updateFires(sdt);
+  }
+  if(trackYou && playerPed){
+    const pos=pedPos(playerPed), w=iso(pos.x,pos.y,0), s=worldToScreen(w.x,w.y);
+    cam.px += (CW/2-s.x)*0.14;
+    cam.py += (CH/2-s.y)*0.14;
   }
   render(animT);
   hudTick+=dt;

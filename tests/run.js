@@ -48,7 +48,9 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
-  setBlockColor:c=>{blockColor=c;},applyBootParams};`;
+  setBlockColor:c=>{blockColor=c;},applyBootParams,
+  joinCity,leaveCity,getPlayerPed:()=>playerPed,getPlayerName:()=>playerName,
+  setTrackYou,getTrackYou:()=>trackYou,updatePeds};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -195,6 +197,26 @@ global.location.search = '?mode=mayor';
 H.applyBootParams();
 A(H.getMode() === 'mayor', '?mode=mayor URL param');
 global.location.search = '';
+
+// ---------- player walker ----------
+console.log('\nplayer walker');
+A(!H.getPlayerPed(), 'no player before join');
+A(H.joinCity('  Alex  '), 'join city with trimmed name');
+A(H.getPlayerName() === 'Alex', 'player name stored');
+A(H.getPlayerPed() && H.getPlayerPed().isYou, 'player ped spawned');
+const px0 = H.getPlayerPed().fx, py0 = H.getPlayerPed().fy;
+for (let i = 0; i < 400; i++) run(1);
+A(H.getPlayerPed().fx !== px0 || H.getPlayerPed().fy !== py0 || H.getPlayerPed().tx !== px0 || H.getPlayerPed().ty !== py0,
+  'player walker moves around');
+H.setTrackYou(true);
+A(H.getTrackYou(), 'track mode toggles on');
+H.exportCity();
+const dPlayer = JSON.parse(global.__blob);
+A(dPlayer.playerName === 'Alex' && dPlayer.playerPed, 'player saved in export');
+H.leaveCity();
+A(!H.getPlayerPed(), 'leave city clears player');
+H.importCity(dPlayer);
+A(H.getPlayerName() === 'Alex' && H.getPlayerPed(), 'player restored from save');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
