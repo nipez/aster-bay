@@ -27,12 +27,14 @@ const elStub = () => ({
   getContext: () => ctxStub, width: 0, height: 0,
   appendChild: noop, remove: noop, click: noop, files: [],
 });
-global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop };
+global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop, scrollTo: noop,
+  visualViewport: { width: 1280, height: 800, addEventListener: noop } };
 global.location = { search: '' };
+const docEl = elStub();
 global.document = {
   getElementById: () => elStub(), querySelector: () => elStub(),
   querySelectorAll: () => [elStub(), elStub(), elStub()], createElement: () => elStub(),
-  addEventListener: noop, documentElement: elStub(),
+  addEventListener: noop, documentElement: docEl, body: docEl,
   fullscreenElement: null, webkitFullscreenElement: null,
 };
 global.performance = { now: () => Date.now() };
@@ -54,7 +56,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
-  rotateView,screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip};`;
+  rotateView,screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,
+  toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -261,6 +264,13 @@ A(H.getViewRot() === 1, 'view rotates 90°');
 A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing east');
 H.rotateView(3);
 A(H.getViewRot() === 0, 'rotation returns to north');
+
+// ---------- full screen ----------
+console.log('\nfull screen');
+H.setImmersive(true);
+A(H.isFsView(), 'immersive expanded view');
+H.setImmersive(false);
+A(!H.isFsView(), 'immersive exits');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
