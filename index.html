@@ -60,6 +60,8 @@
   .bfill{height:100%; border-radius:4px; transition:width .4s;}
   #dR .bfill{background:#67d18a;} #dC .bfill{background:#4f9dde;} #dG .bfill{background:#a3c9a8;}
 
+  .dock{display:contents;}
+
   .tools{
     position:fixed; left:14px; top:50%; transform:translateY(-42%);
     display:flex; flex-direction:column; gap:6px;
@@ -113,12 +115,6 @@
   }
   .palette button:active{transform:scale(.9);}
   .palette button.on{border-color:var(--ink); box-shadow:0 0 0 2px #00000055 inset;}
-  @media (max-width:760px){
-    .palette{
-      left:50%; top:auto; bottom:calc(118px + env(safe-area-inset-bottom));
-      transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
-    }
-  }
   #tip{
     position:fixed; pointer-events:none; background:#15182ae8; color:var(--ink);
     border:1px solid #ffffff1c; padding:6px 10px; border-radius:10px;
@@ -153,18 +149,30 @@
     .hud.expanded .hud-close{display:block; pointer-events:auto;}
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
-    #toasts{bottom:calc(118px + env(safe-area-inset-bottom));}
-    .tools{
-      top:auto; left:50%; bottom:calc(64px + env(safe-area-inset-bottom));
-      transform:translateX(-50%); flex-direction:row; max-width:96vw;
-      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+    #toasts{bottom:calc(132px + env(safe-area-inset-bottom));}
+    .dock{
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); width:max-content; max-width:96vw; z-index:6;
+      pointer-events:none;
     }
-    .tools button{min-width:0; padding:10px 12px;}
+    .dock > *{pointer-events:auto;}
+    .tools{
+      position:static; top:auto; left:auto; bottom:auto;
+      transform:none; flex-direction:row; max-width:96vw; width:100%;
+      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+      flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
+    }
+    .tools button{min-width:0; padding:10px 12px; flex-shrink:0;}
     .tools button .lbl{display:none;}
     .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
-      border-left:1px solid #ffffff18; margin:2px 3px;}
-    .bar{bottom:calc(10px + env(safe-area-inset-bottom)); padding:7px 9px;}
-    .bar button{padding:9px 12px;}
+      border-left:1px solid #ffffff18; margin:2px 3px; flex-shrink:0;}
+    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;}
+    .bar button{padding:9px 11px;}
+    .palette{
+      left:50%; top:auto; bottom:calc(132px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
+    }
   }
 </style>
 </head>
@@ -199,6 +207,7 @@
   </div>
 </div>
 
+<div class="dock">
 <div class="tools" role="toolbar" aria-label="Build tools">
   <button id="bMode"><span class="ico">🎮</span><span class="lbl" id="modeLbl">Mayor mode<small>tap for creative</small></span></button>
   <div class="gap"></div>
@@ -220,8 +229,6 @@
   <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
 </div>
 
-<div class="palette" id="palette" aria-label="Block colors"></div>
-
 <div class="bar" role="toolbar" aria-label="Simulation controls">
   <button id="bPause" title="Pause / resume (Space)">⏸ Pause</button>
   <span class="sep"></span>
@@ -233,6 +240,9 @@
   <button id="bIn" title="Zoom in (+)">＋</button>
   <button id="bHome" title="Recenter view">⌖</button>
 </div>
+</div>
+
+<div class="palette" id="palette" aria-label="Block colors"></div>
 
 <div id="tip"></div>
 <div id="toasts"></div>
