@@ -51,7 +51,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   setBlockColor:c=>{blockColor=c;},applyBootParams,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
-  updatePeds};`;
+  instructWalker,parseWalkerCommand,updatePeds};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -229,6 +229,26 @@ legacy.playerName = 'Jordan';
 legacy.playerPed = { fx: 12, fy: 10, tx: 12, ty: 10, p: 1, steps: 1, d: [1, 0] };
 H.importCity(legacy);
 A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Jordan', 'legacy single walker import');
+
+H.clearWalkers();
+H.addWalker('Nora');
+A(H.instructWalker('Nora - go to shop'), 'walker command accepted');
+const nora = H.getWalkers()[0];
+A(nora.path && nora.path.length > 0 && nora.goalLabel === 'shop', 'route assigned to shop');
+A(H.parseWalkerCommand('Nora go to fire station').dest.includes('fire'), 'parses go-to phrasing');
+H.clearWalkers();
+H.addWalker('Nora');
+H.setMode('creative');
+H.setTool('fire');
+let firePlaced = false;
+outer5: for (let x = 8; x < 24; x++) for (let y = 8; y < 24; y++)
+  if (H.canPlace('fire', x, y)) { H.tryPlace(x, y); firePlaced = true; break outer5; }
+A(firePlaced, 'fire station ready for walker command');
+A(H.instructWalker('Nora - go to fire station'), 'command to fire station accepted');
+A(H.getWalkers()[0].goalLabel === 'fire station', 'fire station goal set');
+let arriveSteps = 0;
+while (H.getWalkers()[0].path && arriveSteps < 2500) { run(1); arriveSteps++; }
+A(!H.getWalkers()[0].path, 'walker finishes route');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
