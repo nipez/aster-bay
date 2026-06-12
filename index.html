@@ -17,12 +17,34 @@
   canvas.building{cursor:crosshair;}
 
   .hud{
-    position:fixed; top:14px; left:14px; background:var(--panel); color:var(--ink);
+    position:fixed; top:14px; left:14px; z-index:10; pointer-events:none;
+  }
+  .hud-panel{
+    background:var(--panel); color:var(--ink);
     border-radius:14px; padding:12px 16px 12px; backdrop-filter:blur(8px);
-    box-shadow:0 6px 24px #0008; min-width:208px; pointer-events:none;
+    box-shadow:0 6px 24px #0008; min-width:208px;
     border:1px solid #ffffff14;
   }
-  .hud h1{font-size:15px; letter-spacing:3px; color:var(--accent); font-weight:800; margin-bottom:2px;}
+  .hud-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:2px;}
+  .hud-head h1{font-size:15px; letter-spacing:3px; color:var(--accent); font-weight:800; margin:0;}
+  .hud-close{
+    display:none; appearance:none; border:none; cursor:pointer;
+    background:#ffffff14; color:var(--dim); border-radius:8px;
+    width:28px; height:28px; font-size:12px; line-height:1; flex-shrink:0;
+  }
+  .hud-close:active{transform:scale(.94);}
+  .hud-chip{
+    display:none; appearance:none; border:1px solid #ffffff14; cursor:pointer;
+    background:var(--panel); color:var(--ink); border-radius:999px;
+    padding:7px 12px; backdrop-filter:blur(8px); box-shadow:0 4px 16px #0008;
+    font:700 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    align-items:center; gap:7px; pointer-events:auto;
+  }
+  .hud-chip:active{transform:scale(.97);}
+  .hud-chip .chip-cash{color:var(--good); font-size:14px;}
+  .hud-chip .chip-sep{color:#ffffff44; font-weight:600;}
+  .hud-chip .chip-clock{font-variant-numeric:tabular-nums;}
+  .hud-chip .chip-caret{color:var(--dim); font-size:10px; margin-left:2px;}
   .hud .sub{font-size:10px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
   #cash{font-size:20px; font-weight:800; color:var(--good); letter-spacing:.5px;}
   #cash.broke{color:var(--bad);}
@@ -120,9 +142,18 @@
   }
   @media (max-width:760px){
     .hint{display:none;}
-    .hud{min-width:0; padding:8px 12px 9px; transform:scale(.9); transform-origin:top left;}
+    .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
+    .hud-chip{display:flex;}
+    .hud.expanded .hud-chip{display:none;}
+    .hud:not(.expanded) .hud-panel{display:none;}
+    .hud.expanded .hud-panel{
+      display:block; pointer-events:auto; min-width:0; max-width:min(92vw, 280px);
+      padding:10px 12px 11px;
+    }
+    .hud.expanded .hud-close{display:block; pointer-events:auto;}
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
+    #toasts{bottom:calc(118px + env(safe-area-inset-bottom));}
     .tools{
       top:auto; left:50%; bottom:calc(64px + env(safe-area-inset-bottom));
       transform:translateX(-50%); flex-direction:row; max-width:96vw;
@@ -140,20 +171,31 @@
 <body>
 <canvas id="cv"></canvas>
 
-<div class="hud">
-  <h1>ASTER BAY</h1>
-  <div class="sub" id="rank">hamlet · mayor mode v0.5</div>
-  <div id="cash">$25,000</div>
-  <div id="clock">08:00</div>
-  <div id="phase">Morning · Day 1</div>
-  <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
-  <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
-  <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
-  <div class="stat"><span class="k">Vehicles on road</span><span class="v" id="sCars">0</span></div>
-  <div class="bars">
-    <div class="brow" id="dR"><span class="bl">R</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
-    <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
-    <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+<div class="hud" id="hud">
+  <button type="button" class="hud-chip" id="hudChip" aria-expanded="false" aria-controls="hudPanel" aria-label="Show city stats">
+    <span class="chip-cash" id="chipCash">$25,000</span>
+    <span class="chip-sep" aria-hidden="true">·</span>
+    <span class="chip-clock" id="chipClock">08:00</span>
+    <span class="chip-caret" aria-hidden="true">▾</span>
+  </button>
+  <div class="hud-panel" id="hudPanel">
+    <div class="hud-head">
+      <h1>ASTER BAY</h1>
+      <button type="button" class="hud-close" id="hudClose" aria-label="Hide stats">▴</button>
+    </div>
+    <div class="sub" id="rank">hamlet · mayor mode v0.5</div>
+    <div id="cash">$25,000</div>
+    <div id="clock">08:00</div>
+    <div id="phase">Morning · Day 1</div>
+    <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
+    <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
+    <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
+    <div class="stat"><span class="k">Vehicles on road</span><span class="v" id="sCars">0</span></div>
+    <div class="bars">
+      <div class="brow" id="dR"><span class="bl">R</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+      <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+      <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+    </div>
   </div>
 </div>
 
@@ -1299,6 +1341,21 @@ function render(animT){
 const $=id=>document.getElementById(id);
 const elCash=$('cash'), elClock=$('clock'), elPhase=$('phase'),
       elPop=$('sPop'), elJobs=$('sJobs'), elHap=$('sHap'), elCars=$('sCars'), tip=$('tip');
+const hud=$('hud'), hudChip=$('hudChip'), hudClose=$('hudClose'),
+      chipCash=$('chipCash'), chipClock=$('chipClock');
+const mqMobile=typeof window.matchMedia==='function'
+  ? window.matchMedia('(max-width:760px)')
+  : {matches:false, addEventListener:()=>{}};
+function hudExpanded(){ return hud.classList.contains('expanded'); }
+function setHudExpanded(open){
+  if(!mqMobile.matches){ hud.classList.remove('expanded'); return; }
+  hud.classList.toggle('expanded', open);
+  hudChip.setAttribute('aria-expanded', open?'true':'false');
+}
+function collapseHud(){ setHudExpanded(false); }
+hudChip.addEventListener('click', ()=> setHudExpanded(true));
+hudClose.addEventListener('click', ()=> collapseHud());
+mqMobile.addEventListener('change', e=>{ if(!e.matches) collapseHud(); });
 function phaseName(h){
   if(h<5)return'Deep night'; if(h<7)return'Dawn'; if(h<11)return'Morning';
   if(h<14)return'Midday'; if(h<17.5)return'Afternoon'; if(h<19.5)return'Dusk';
@@ -1310,11 +1367,15 @@ function updateHUD(){
   if(h<lastHour-12){ day++; economyTick(); }
   lastHour=h;
   const hh=String(h|0).padStart(2,'0'), mm=String(((h%1)*60)|0).padStart(2,'0');
-  elClock.textContent=hh+':'+mm;
+  const clockStr=hh+':'+mm;
+  elClock.textContent=clockStr;
+  chipClock.textContent=clockStr;
   elPhase.textContent=phaseName(h)+' · Day '+day;
   checkMilestones();
   document.getElementById('rank').textContent=RANKS[rankIdx][1]+(mode==='creative'?' · creative v0.5':' · mayor mode v0.5');
-  elCash.textContent = mode==='creative' ? '∞ creative' : '$'+cash.toLocaleString();
+  const cashStr=mode==='creative' ? '∞ creative' : '$'+cash.toLocaleString();
+  elCash.textContent=cashStr;
+  chipCash.textContent=mode==='creative' ? '∞' : '$'+cash.toLocaleString();
   elCash.classList.toggle('broke', mode!=='creative'&&cash<0);
   elPop.textContent=stats.pop.toLocaleString();
   elJobs.textContent=stats.jobs.toLocaleString();
@@ -1470,6 +1531,7 @@ function agentTipHTML(best){
     : `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
 }
 cv.addEventListener('pointerdown', e=>{
+  if(hudExpanded()) collapseHud();
   activePtrs.add(e.pointerId);
   dragging=true; dragMoved=false; lx=e.clientX; ly=e.clientY;
   cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId);
