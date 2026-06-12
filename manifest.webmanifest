@@ -1,0 +1,11 @@
+{
+  "name": "Aster Bay",
+  "short_name": "Aster Bay",
+  "description": "A cozy isometric city builder",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0f24",
+  "theme_color": "#0a0f24",
+  "orientation": "any"
+}

@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aster Bay">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Aster Bay — City Builder</title>
 <style>
   :root{
@@ -184,9 +190,10 @@
     letter-spacing:.5px; text-align:right; line-height:1.5; pointer-events:none;
   }
   html.immersive, html.immersive body{
-    width:100%; height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none;
+    width:100%; min-height:100vh; min-height:-webkit-fill-available; min-height:100dvh;
+    height:100%; overflow:hidden; overscroll-behavior:none;
   }
-  html.immersive canvas{width:100vw!important; height:100dvh!important;}
+  html.immersive canvas{width:100vw!important; height:100vh!important; height:100dvh!important;}
 
   @media (max-width:760px){
     .hint{display:none;}
@@ -2056,32 +2063,50 @@ $('bRotL').onclick=()=> rotateView(-1);
 $('bRotR').onclick=()=> rotateView(1);
 const bFs=$('bFs');
 let immersiveOn=false;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=()=>{
+  if(typeof window.matchMedia!=='function') return false;
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || !!navigator.standalone;
+};
 function isNativeFs(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
 function isFsView(){ return isNativeFs()||immersiveOn; }
+function fsHint(){
+  if(isStandalone()) return 'Full screen';
+  if(isIOS) return 'Expand view (Add to Home Screen to hide browser bars)';
+  return 'Full screen (F)';
+}
 function syncFsBtn(){
   const on=isFsView();
   bFs.classList.toggle('on', on);
   bFs.textContent=on?'⤡':'⛶';
-  bFs.title=on?'Exit full screen (F)':'Full screen (F)';
+  bFs.title=on?'Exit '+fsHint():fsHint();
   resize();
+}
+function nudgeMobileChrome(){
+  window.scrollTo(0, 1);
+  requestAnimationFrame(()=>window.scrollTo(0, 0));
 }
 function setImmersive(on){
   immersiveOn=!!on;
   document.documentElement.classList.toggle('immersive', immersiveOn);
-  if(immersiveOn) window.scrollTo(0,0);
+  if(immersiveOn) nudgeMobileChrome();
   syncFsBtn();
 }
+function requestElFs(el){
+  const req=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(!req) return Promise.resolve(false);
+  const run=opts=>Promise.resolve(req.call(el, opts)).then(()=>true).catch(()=>false);
+  return run({navigationUI:'hide'}).then(ok=>ok||run());
+}
 function tryNativeFs(){
-  const els=[document.body, $('cv'), document.documentElement];
+  const els=[document.documentElement, document.body, $('cv')];
   let chain=Promise.resolve(false);
   for(const el of els){
     if(!el) continue;
-    chain=chain.then(done=>{
-      if(done) return true;
-      const req=el.requestFullscreen||el.webkitRequestFullscreen;
-      if(!req) return false;
-      return Promise.resolve(req.call(el)).then(()=>true).catch(()=>false);
-    });
+    chain=chain.then(done=> done ? true : requestElFs(el));
   }
   return chain;
 }
@@ -2091,9 +2116,16 @@ function toggleFullscreen(){
     if(immersiveOn) setImmersive(false);
     return;
   }
+  if(isStandalone()){
+    setImmersive(true);
+    toast('Using the whole screen','ok');
+    return;
+  }
   tryNativeFs().then(ok=>{
-    if(!ok){ setImmersive(true); toast('Expanded view — tap ⤡ to exit','ok'); }
-    else syncFsBtn();
+    if(ok){ syncFsBtn(); return; }
+    setImmersive(true);
+    if(isIOS) toast('Share → Add to Home Screen to hide Safari/Chrome bars','ok');
+    else toast('Expanded view — tap ⤡ to exit','ok');
   });
 }
 bFs.onclick=()=> toggleFullscreen();
