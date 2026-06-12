@@ -750,8 +750,14 @@ function tryPlace(x,y){
     case 'block': {
       if(!spend(COST.block)) return;
       const k=tkey(x,y);
-      if(blockMap.has(k)) blockMap.get(k).colors.push(blockColor);
-      else { const bk={x,y,colors:[blockColor]}; blocks.push(bk); blockMap.set(k,bk); }
+      if(blockMap.has(k)){
+        const bk=blockMap.get(k);
+        bk.colors.push(blockColor);
+        toast('Block stacked · '+bk.colors.length+' high'+costTxt(COST.block), 'ok');
+      } else {
+        const bk={x,y,colors:[blockColor]}; blocks.push(bk); blockMap.set(k,bk);
+        toast('Block placed'+costTxt(COST.block), 'ok');
+      }
       break;
     }
     case 'dozer': {
@@ -1402,6 +1408,10 @@ document.getElementById('bMode').onclick=()=>{
     ? '🎨 Creative mode — build anything, everything is free'
     : '🏛️ Mayor mode — budgets are back on','ok');
 };
+function applyBootParams(){
+  const m=new URLSearchParams(location.search).get('mode');
+  if(m==='creative'||m==='mayor') setMode(m);
+}
 // block color palette
 (function buildPalette(){
   const pal=document.getElementById('palette');
@@ -1563,6 +1573,8 @@ cv.addEventListener('touchmove', e=>{ if(e.touches.length===2){
 recompute();
 rankIdx=currentRank();
 adjustAgents();
+applyBootParams();
+if(mode==='creative') toast('🎨 Creative mode — build anything, everything is free', 'ok');
 let prev=performance.now(), animT=0, hudTick=0;
 function frame(now){
   let dt=Math.min((now-prev)/1000,0.05); prev=now;

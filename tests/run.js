@@ -28,6 +28,7 @@ const elStub = () => ({
   appendChild: noop, remove: noop, click: noop, files: [],
 });
 global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop };
+global.location = { search: '' };
 global.document = {
   getElementById: () => elStub(), querySelector: () => elStub(),
   querySelectorAll: () => [elStub(), elStub(), elStub()], createElement: () => elStub(),
@@ -47,7 +48,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
-  setBlockColor:c=>{blockColor=c;}};`;
+  setBlockColor:c=>{blockColor=c;},applyBootParams};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -178,8 +179,20 @@ for (let y = 29; y <= 48; y++) {
 A(paved >= 8, `paved ${paved} tiles into the wilderness`);
 A([...H.edits.values()].filter(t=>t==='walk').length > 0, 'wilderness road grew sidewalks');
 
+// ---------- boot URL params ----------
+console.log('\nboot params');
+H.setMode('mayor');
+global.location.search = '?mode=creative';
+H.applyBootParams();
+A(H.getMode() === 'creative', '?mode=creative URL param');
+global.location.search = '?mode=mayor';
+H.applyBootParams();
+A(H.getMode() === 'mayor', '?mode=mayor URL param');
+global.location.search = '';
+
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
+H.setMode('creative');
 const cashC = H.getCash();
 H.setTool('block');
 let bspot = null;
