@@ -166,6 +166,12 @@ for (let x = -60; x < 90 && !(foundWater && foundForest); x++)
 A(foundWater, 'lakes exist in the wilds');
 A(foundForest, 'forests exist in the wilds');
 A(H.tileAt(16, 16) !== 'water', 'town center is dry land');
+let expWater = 0, expN = 0;
+for (let x = 30; x < 80; x++) for (let y = 30; y < 80; y++) {
+  expN++;
+  if (H.terrainAt(x, y) === 'water') expWater++;
+}
+A(expWater / expN < 0.18, `expansion ring stays mostly dry (${Math.round(expWater / expN * 100)}% water)`);
 
 // road can extend far into the wilderness tile by tile
 // (south from the edge road at (10,28) — roads auto-fell forest trees)

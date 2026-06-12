@@ -313,9 +313,10 @@ function noise2(x,y,s){
 function terrainAt(x,y){
   const cd=Math.max(Math.abs(x-16),Math.abs(y-16));   // distance from old town
   const e=noise2(x*0.085,y*0.085,21)*0.65 + noise2(x*0.21,y*0.21,22)*0.35;
-  const w=e + Math.max(0,(26-cd))*0.022;              // dry land near town
-  if(w<0.31) return 'water';
-  if(cd>16 && e>0.62) return 'forest';                // open meadow ring, then woods
+  const dry=Math.max(0,(38-cd))*0.024;                 // wide buildable meadow ring
+  const w=e + dry;
+  if(w<0.20) return 'water';                           // sparser lakes (was 0.31)
+  if(cd>14 && e>0.64) return 'forest';                 // woods beyond the meadow ring
   return 'grass';
 }
 function tileAt(x,y){
