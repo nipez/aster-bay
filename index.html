@@ -298,6 +298,8 @@
   <button id="bOut" title="Zoom out (−)">−</button>
   <button id="bIn" title="Zoom in (+)">＋</button>
   <button id="bHome" title="Recenter view">⌖</button>
+  <button id="bRotL" title="Rotate left (Q)">↺</button>
+  <button id="bRotR" title="Rotate right (E)">↻</button>
   <button id="bYou" title="Find or track a walker">📍 Walkers</button>
 </div>
 </div>
@@ -349,8 +351,28 @@ const DAY_LEN = 150;              // real seconds per in-game day at 1×
 const inB=()=>true;                // the world is unbounded now
 const isCoreLine = i => i>=CORE0 && i<=CORE1 && (i-CORE0)%6===0;
 const tkey=(x,y)=>x+','+y;
+const ROT_CX=GRID/2, ROT_CY=GRID/2;
+let viewRot=0;
 
-function iso(x,y,z){ return { x:(x-y)*TW, y:(x+y)*TH - (z||0) }; }
+function iso(x,y,z){
+  const r=viewRot&3;
+  let px=x, py=y;
+  if(r){
+    const dx=x-ROT_CX, dy=y-ROT_CY;
+    if(r===1){ px=ROT_CX+dy; py=ROT_CY-dx; }
+    else if(r===2){ px=ROT_CX-dx; py=ROT_CY-dy; }
+    else { px=ROT_CX-dy; py=ROT_CY+dx; }
+  }
+  return { x:(px-py)*TW, y:(px+py)*TH - (z||0) };
+}
+function unrotTile(x,y){
+  const r=viewRot&3;
+  if(!r) return {x,y};
+  const dx=x-ROT_CX, dy=y-ROT_CY;
+  if(r===1) return {x:ROT_CX-dy, y:ROT_CY+dx};
+  if(r===2) return {x:ROT_CX-dx, y:ROT_CY-dy};
+  return {x:ROT_CX+dy, y:ROT_CY-dx};
+}
 
 // ---------- infinite world: procedural terrain + edits overlay ----------
 // Terrain is deterministic from coordinates (meadow / forest / lakes).
@@ -1258,20 +1280,34 @@ const stars=[]; for(let i=0;i<110;i++) stars.push({x:R(),y:R()*0.62,s:rand(.6,1.
 const clouds=[]; for(let i=0;i<6;i++) clouds.push({x:R()*1.4-0.2,y:rand(.06,.3),s:rand(.6,1.4),v:rand(.004,.012)});
 
 // ---------- camera ----------
-const center=iso(GRID/2,GRID/2,0);
-const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7};
+function camCenter(){ return iso(GRID/2, GRID/2, 0); }
+const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7, rot:0};
 function applyCam(){
+  const center=camCenter();
   ctx.translate(CW/2+cam.px, CH/2+cam.py);
   ctx.scale(cam.z,cam.z);
   ctx.translate(-center.x,-center.y);
 }
 function worldToScreen(wx,wy){
+  const center=camCenter();
   return {x:(wx-center.x)*cam.z+CW/2+cam.px, y:(wy-center.y)*cam.z+CH/2+cam.py};
 }
 function screenToTile(mx,my){
+  const center=camCenter();
   const wx=(mx-CW/2-cam.px)/cam.z+center.x;
   const wy=(my-CH/2-cam.py)/cam.z+center.y;
-  return {x:Math.floor(wx/(2*TW)+wy/(2*TH)), y:Math.floor(wy/(2*TH)-wx/(2*TW))};
+  const rx=wx/(2*TW)+wy/(2*TH), ry=wy/(2*TH)-wx/(2*TW);
+  const p=unrotTile(rx, ry);
+  return {x:Math.floor(p.x), y:Math.floor(p.y)};
+}
+function rotateView(d){
+  viewRot=(viewRot+(d|0)+4)&3;
+  cam.rot=viewRot;
+  toast(['View: north','View: east','View: south','View: west'][viewRot],'ok');
+}
+function tilePickRoundtrip(x,y){
+  const p=iso(x,y,0), s=worldToScreen(p.x,p.y), t=screenToTile(s.x,s.y);
+  return t.x===x && t.y===y;
 }
 
 // ---------- drawing primitives ----------
@@ -1287,9 +1323,10 @@ function diamond(x,y,z,fill){
 // ---------- ground ----------
 function visibleRange(){
   const inv=(sx,sy)=>{
+    const center=camCenter();
     const wx=(sx-CW/2-cam.px)/cam.z+center.x;
     const wy=(sy-CH/2-cam.py)/cam.z+center.y;
-    return {x:wx/(2*TW)+wy/(2*TH), y:wy/(2*TH)-wx/(2*TW)};
+    return unrotTile(wx/(2*TW)+wy/(2*TH), wy/(2*TH)-wx/(2*TW));
   };
   const c=[inv(0,0),inv(CW,0),inv(0,CH),inv(CW,CH)];
   let x0=Math.floor(Math.min(c[0].x,c[1].x,c[2].x,c[3].x))-3;
@@ -1798,7 +1835,7 @@ function toast(msg, kind){
 
 // ---------- save / load ----------
 function exportCity(){
-  const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx,
+  const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
     edits:[...edits], removedTrees:[...removedTrees],
     parks:[...parkSet], scorch:[...scorch],
     blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
@@ -1839,6 +1876,7 @@ function importCity(data){
   scorch.clear(); for(const k of (data.scorch||[])) scorch.add(k);
   if(data.eventsOn!==undefined) setEvents(data.eventsOn);
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
+  if(data.camRot!=null){ viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
   rebuildLights();
   cars.length=0; peds.length=0;
   importWalkers(data);
@@ -2004,6 +2042,8 @@ cv.addEventListener('wheel', e=>{
 $('bIn').onclick=()=>zoomAt(1.25,CW/2,CH/2);
 $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
 $('bHome').onclick=()=>{ setTrackWalker(null); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+$('bRotL').onclick=()=> rotateView(-1);
+$('bRotR').onclick=()=> rotateView(1);
 $('bYou').onclick=()=>{
   if(!walkers.length){ toast('Add a name in the stats panel first','err'); return; }
   const id=focusWalkerId!=null ? focusWalkerId : walkers[0].id;
@@ -2050,6 +2090,8 @@ window.addEventListener('keydown', e=>{
   if(e.key==='+'||e.key==='=') zoomAt(1.2,CW/2,CH/2);
   if(e.key==='-'||e.key==='_') zoomAt(0.83,CW/2,CH/2);
   if(e.key==='Escape') setTool('inspect');
+  if(e.key==='q'||e.key==='Q') rotateView(-1);
+  if(e.key==='e'||e.key==='E') rotateView(1);
 });
 let pinchD=0;
 cv.addEventListener('touchstart', e=>{ if(e.touches.length===2){

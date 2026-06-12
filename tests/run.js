@@ -51,7 +51,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   setBlockColor:c=>{blockColor=c;},applyBootParams,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
-  instructWalker,parseWalkerCommand,updatePeds};`;
+  instructWalker,parseWalkerCommand,updatePeds,
+  rotateView,screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -249,6 +250,15 @@ A(H.getWalkers()[0].goalLabel === 'fire station', 'fire station goal set');
 let arriveSteps = 0;
 while (H.getWalkers()[0].path && arriveSteps < 2500) { run(1); arriveSteps++; }
 A(!H.getWalkers()[0].path, 'walker finishes route');
+
+// ---------- camera rotation ----------
+console.log('\ncamera rotation');
+A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing north');
+H.rotateView(1);
+A(H.getViewRot() === 1, 'view rotates 90°');
+A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing east');
+H.rotateView(3);
+A(H.getViewRot() === 0, 'rotation returns to north');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
