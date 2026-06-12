@@ -49,8 +49,9 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
   setBlockColor:c=>{blockColor=c;},applyBootParams,
-  joinCity,leaveCity,getPlayerPed:()=>playerPed,getPlayerName:()=>playerName,
-  setTrackYou,getTrackYou:()=>trackYou,updatePeds};`;
+  joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
+  getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
+  updatePeds};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -200,23 +201,34 @@ global.location.search = '';
 
 // ---------- player walker ----------
 console.log('\nplayer walker');
-A(!H.getPlayerPed(), 'no player before join');
-A(H.joinCity('  Alex  '), 'join city with trimmed name');
-A(H.getPlayerName() === 'Alex', 'player name stored');
-A(H.getPlayerPed() && H.getPlayerPed().isYou, 'player ped spawned');
-const px0 = H.getPlayerPed().fx, py0 = H.getPlayerPed().fy;
+A(!H.getWalkers().length, 'no walkers before add');
+A(H.addWalker('  Alex  '), 'add walker with trimmed name');
+A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Alex', 'walker name stored');
+A(H.getWalkers()[0].isYou, 'walker flagged as citizen');
+const px0 = H.getWalkers()[0].fx, py0 = H.getWalkers()[0].fy;
 for (let i = 0; i < 400; i++) run(1);
-A(H.getPlayerPed().fx !== px0 || H.getPlayerPed().fy !== py0 || H.getPlayerPed().tx !== px0 || H.getPlayerPed().ty !== py0,
-  'player walker moves around');
-H.setTrackYou(true);
-A(H.getTrackYou(), 'track mode toggles on');
+const w0 = H.getWalkers()[0];
+A(w0.fx !== px0 || w0.fy !== py0 || w0.tx !== px0 || w0.ty !== py0, 'walker moves around');
+A(H.addWalker('Sam'), 'second walker added');
+A(H.getWalkers().length === 2, 'multiple walkers supported');
+const sam = H.getWalkers().find(w => w.name === 'Sam');
+H.toggleTrackWalker(sam.id);
+A(H.getTrackWalkerId() === sam.id, 'can track a chosen walker');
 H.exportCity();
 const dPlayer = JSON.parse(global.__blob);
-A(dPlayer.playerName === 'Alex' && dPlayer.playerPed, 'player saved in export');
-H.leaveCity();
-A(!H.getPlayerPed(), 'leave city clears player');
+A(Array.isArray(dPlayer.walkers) && dPlayer.walkers.length === 2, 'all walkers saved in export');
+H.clearWalkers();
+A(!H.getWalkers().length, 'clear walkers');
 H.importCity(dPlayer);
-A(H.getPlayerName() === 'Alex' && H.getPlayerPed(), 'player restored from save');
+A(H.getWalkers().length === 2, 'walkers restored from save');
+A(H.getWalkers().some(w => w.name === 'Alex') && H.getWalkers().some(w => w.name === 'Sam'),
+  'restored walker names match');
+const legacy = JSON.parse(JSON.stringify(dPlayer));
+delete legacy.walkers;
+legacy.playerName = 'Jordan';
+legacy.playerPed = { fx: 12, fy: 10, tx: 12, ty: 10, p: 1, steps: 1, d: [1, 0] };
+H.importCity(legacy);
+A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Jordan', 'legacy single walker import');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
