@@ -40,7 +40,7 @@
   }
   .hud-close:active{transform:scale(.94);}
   .hud-chip{
-    display:none; appearance:none; border:1px solid #ffffff14; cursor:pointer;
+    display:flex; appearance:none; border:1px solid #ffffff14; cursor:pointer;
     background:var(--panel); color:var(--ink); border-radius:999px;
     padding:7px 12px; backdrop-filter:blur(8px); box-shadow:0 4px 16px #0008;
     font:700 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
@@ -51,6 +51,10 @@
   .hud-chip .chip-sep{color:#ffffff44; font-weight:600;}
   .hud-chip .chip-clock{font-variant-numeric:tabular-nums;}
   .hud-chip .chip-caret{color:var(--dim); font-size:10px; margin-left:2px;}
+  .hud:not(.expanded) .hud-panel{display:none;}
+  .hud.expanded .hud-panel{display:block; pointer-events:auto;}
+  .hud.expanded .hud-chip{display:none;}
+  .hud.expanded .hud-close{display:block; pointer-events:auto;}
   .hud .sub{font-size:10px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
   #cash{font-size:20px; font-weight:800; color:var(--good); letter-spacing:.5px;}
   #cash.broke{color:var(--bad);}
@@ -214,14 +218,10 @@
   @media (max-width:760px){
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
-    .hud-chip{display:flex;}
-    .hud.expanded .hud-chip{display:none;}
-    .hud:not(.expanded) .hud-panel{display:none;}
     .hud.expanded .hud-panel{
-      display:block; pointer-events:auto; min-width:0; max-width:min(92vw, 280px);
+      min-width:0; max-width:min(92vw, 280px);
       padding:10px 12px 11px;
     }
-    .hud.expanded .hud-close{display:block; pointer-events:auto;}
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
     #toasts{bottom:calc(132px + env(safe-area-inset-bottom));}
@@ -312,6 +312,7 @@
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · douses fires nearby</small></span></button>
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
+  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · add 4×4 grid</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · tap to stack</small></span></button>
@@ -387,11 +388,22 @@ function css(c){return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;}
 // ---------- world constants ----------
 const GRID = 33;                  // 0..32; original city core sits at 4..28
 const CORE0 = 4, CORE1 = 28;      // fringe meadow around the core is buildable
+const DIST_SPAN = CORE1 - CORE0;  // one 4×4 district is 25 tiles (4..28)
 const TW = 34, TH = 17;
 const STORY = 13;
 const DAY_LEN = 150;              // real seconds per in-game day at 1×
 const inB=()=>true;                // the world is unbounded now
-const isCoreLine = i => i>=CORE0 && i<=CORE1 && (i-CORE0)%6===0;
+const districts = new Set(['0,0']);
+function distOrigin(dgx,dgy){
+  return {x0:CORE0+dgx*DIST_SPAN, y0:CORE0+dgy*DIST_SPAN};
+}
+function distBounds(dgx,dgy){
+  const o=distOrigin(dgx,dgy);
+  return {x0:o.x0, x1:o.x0+DIST_SPAN, y0:o.y0, y1:o.y0+DIST_SPAN};
+}
+function isDistLine(i, origin){
+  return i>=origin && i<=origin+DIST_SPAN && (i-origin)%6===0;
+}
 const tkey=(x,y)=>x+','+y;
 const ROT_CX=GRID/2, ROT_CY=GRID/2;
 let viewRot=0;
@@ -491,20 +503,6 @@ function clearTile(x,y){ edits.delete(tkey(x,y)); }
 function hasProcTree(x,y){
   return tileAt(x,y)==='forest' && !removedTrees.has(tkey(x,y)) && hash(x,y,31)<0.85;
 }
-// seed the original town: roads + sidewalk/lot blocks at tiles 4..28
-for(let x=0;x<GRID;x++) for(let y=0;y<GRID;y++){
-  const rx = isCoreLine(x) && y>=CORE0 && y<=CORE1;
-  const ry = isCoreLine(y) && x>=CORE0 && x<=CORE1;
-  if(rx&&ry) setTile(x,y,'xing');
-  else if(rx||ry) setTile(x,y,'road');
-}
-for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
-  const x0=CORE0+bx*6+1, y0=CORE0+by*6+1;
-  for(let dx=0;dx<5;dx++) for(let dy=0;dy<5;dy++){
-    const x=x0+dx, y=y0+dy;
-    setTile(x,y,(dx===0||dy===0||dx===4||dy===4)?'walk':'lot');
-  }
-}
 const isRoadT = t => t==='road'||t==='xing';
 const roadAt=(x,y)=> isRoadT(tileAt(x,y));
 
@@ -548,10 +546,29 @@ function makeBuilding(x,y,stories,opts){
   return b;
 }
 
-for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
-  const key=bx+','+by, x0=CORE0+bx*6+1, y0=CORE0+by*6+1;
-
-  if(key===PARK_BLOCK){
+// ---------- district seeding (4×4 block grids, adjoinable) ----------
+function seedDistrictRoads(dgx,dgy){
+  const o=distOrigin(dgx,dgy);
+  for(let x=o.x0;x<=o.x0+DIST_SPAN;x++) for(let y=o.y0;y<=o.y0+DIST_SPAN;y++){
+    const rx=isDistLine(x,o.x0) && y>=o.y0 && y<=o.y0+DIST_SPAN;
+    const ry=isDistLine(y,o.y0) && x>=o.x0 && x<=o.x0+DIST_SPAN;
+    if(rx&&ry) setTile(x,y,'xing');
+    else if(rx||ry) setTile(x,y,'road');
+  }
+}
+function seedDistrictLots(dgx,dgy){
+  const o=distOrigin(dgx,dgy);
+  for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
+    const x0=o.x0+bx*6+1, y0=o.y0+by*6+1;
+    for(let dx=0;dx<5;dx++) for(let dy=0;dy<5;dy++){
+      const x=x0+dx, y=y0+dy;
+      setTile(x,y,(dx===0||dy===0||dx===4||dy===4)?'walk':'lot');
+    }
+  }
+}
+function fillDistrictBlock(x0,y0, opts){
+  opts=opts||{};
+  if(opts.park){
     for(let dx=0;dx<5;dx++) for(let dy=0;dy<5;dy++){
       setTile(x0+dx,y0+dy,'grass'); parkSet.add(tkey(x0+dx,y0+dy));
     }
@@ -559,20 +576,19 @@ for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
       if(hash(x0+dx,y0+dy,7)<0.55 && !(dx===2&&dy===2))
         addTree({x:x0+dx+rand(.3,.7), y:y0+dy+rand(.3,.7), s:rand(.8,1.3)});
     }
-    setTile(x0+2,y0+2,'water');
-    continue;
+    if(opts.pond) setTile(x0+2,y0+2,'water');
+    return;
   }
-  if(key===PLAZA_BLOCK){
-    fountain={x:x0+2.5, y:y0+2.5};
+  if(opts.plaza){
     for(let dx=1;dx<4;dx++) for(let dy=1;dy<4;dy++) setTile(x0+dx,y0+dy,'walk');
     [[.5,.5],[4.5,.5],[.5,4.5],[4.5,4.5]].forEach(([a,b])=>addTree({x:x0+a,y:y0+b,s:1}));
     benches.push({x:x0+1.5,y:y0+3.6},{x:x0+3.5,y:y0+1.4});
-    continue;
+    return;
   }
-  const cdist=Math.hypot(bx-1.5,by-1.5);
+  const cdist=Math.hypot((x0-distOrigin(0,0).x0)/6-1.5, (y0-distOrigin(0,0).y0)/6-1.5);
   for(let dx=1;dx<4;dx++) for(let dy=1;dy<4;dy++){
     const x=x0+dx, y=y0+dy;
-    if(key===TOWER_BLOCK&&dx===2&&dy===2){
+    if(opts.landmark&&dx===2&&dy===2){
       addBuilding(makeBuilding(x,y,11,{landmark:true,color:'#dfe6ef',inset:.06,exactH:true,use:'com'}));
       continue;
     }
@@ -585,13 +601,59 @@ for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
     }
   }
 }
-// streetlamps + sidewalk planters
-for(let x=0;x<GRID;x++) for(let y=0;y<GRID;y++){
-  if(tileAt(x,y)!=='walk') continue;
-  if(!(roadAt(x-1,y)||roadAt(x+1,y)||roadAt(x,y-1)||roadAt(x,y+1))) continue;
-  if((x*3+y*5)%7===0) lamps.push({x:x+0.5, y:y+0.5});
-  else if(hash(x,y,11)<0.08 && !treeMap.has(tkey(x,y))) addTree({x:x+0.5,y:y+0.5,s:0.65});
+function populateDistrict(dgx,dgy, isOrigin){
+  const o=distOrigin(dgx,dgy);
+  for(let bx=0;bx<4;bx++) for(let by=0;by<4;by++){
+    const key=bx+','+by, x0=o.x0+bx*6+1, y0=o.y0+by*6+1;
+    if(isOrigin && key===PARK_BLOCK) fillDistrictBlock(x0,y0,{park:true,pond:true});
+    else if(isOrigin && key===PLAZA_BLOCK){
+      fountain={x:x0+2.5, y:y0+2.5};
+      fillDistrictBlock(x0,y0,{plaza:true});
+    }
+    else if(isOrigin && key===TOWER_BLOCK) fillDistrictBlock(x0,y0,{landmark:true});
+    else if(!isOrigin && bx===1 && by===1) fillDistrictBlock(x0,y0,{park:true});
+    else fillDistrictBlock(x0,y0,{});
+  }
 }
+function seedDistrictDecor(dgx,dgy){
+  const o=distOrigin(dgx,dgy);
+  for(let x=o.x0;x<=o.x0+DIST_SPAN;x++) for(let y=o.y0;y<=o.y0+DIST_SPAN;y++){
+    if(tileAt(x,y)!=='walk') continue;
+    if(!(roadAt(x-1,y)||roadAt(x+1,y)||roadAt(x,y-1)||roadAt(x,y+1))) continue;
+    if((x*3+y*5)%7===0) lamps.push({x:x+0.5, y:y+0.5});
+    else if(hash(x,y,11)<0.08 && !treeMap.has(tkey(x,y))) addTree({x:x+0.5,y:y+0.5,s:0.65});
+  }
+}
+function seedDistrict(dgx,dgy, isOrigin){
+  seedDistrictRoads(dgx,dgy);
+  seedDistrictLots(dgx,dgy);
+  populateDistrict(dgx,dgy, isOrigin);
+  seedDistrictDecor(dgx,dgy);
+}
+function availableExpansions(){
+  const seen=new Set(), out=[];
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    for(const [dx,dy,label] of [[1,0,'east'],[-1,0,'west'],[0,1,'south'],[0,-1,'north']]){
+      const nk=`${dgx+dx},${dgy+dy}`;
+      if(districts.has(nk)||seen.has(nk)) continue;
+      seen.add(nk);
+      out.push({dgx:dgx+dx,dgy:dgy+dy,k:nk,label});
+    }
+  }
+  return out;
+}
+function nearestExpansion(x,y){
+  let best=null, bestD=1e9;
+  for(const e of availableExpansions()){
+    const b=distBounds(e.dgx,e.dgy);
+    const cx=clamp(x+0.5,b.x0,b.x1+1), cy=clamp(y+0.5,b.y0,b.y1+1);
+    const d=Math.hypot(x+0.5-cx,y+0.5-cy);
+    if(d<bestD){ bestD=d; best=e; }
+  }
+  return bestD<3.5 ? best : null;
+}
+seedDistrict(0,0,true);
 
 // ---------- traffic lights (dynamic) ----------
 let INTERS=[];
@@ -693,7 +755,14 @@ function carPos(c){
 
 // ---------- pedestrians ----------
 const peds=[];
-const inCore=(x,y)=>x>=CORE0&&x<=CORE1&&y>=CORE0&&y<=CORE1;
+const inCore=(x,y)=>{
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    const b=distBounds(dgx,dgy);
+    if(x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1) return true;
+  }
+  return false;
+};
 const isWalkable=(x,y)=>{
   const t=tileAt(x,y);
   return t==='walk' || (t==='grass' && (inCore(x,y)||parkSet.has(tkey(x,y))));
@@ -838,8 +907,12 @@ function findWalkSpawn(){
   for(let tries=0;tries<80;tries++){
     const spot=randomEditTile('walk'); if(spot) return spot;
   }
-  for(let x=CORE0;x<=CORE1;x++) for(let y=CORE0;y<=CORE1;y++)
-    if(tileAt(x,y)==='walk') return [x,y];
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    const b=distBounds(dgx,dgy);
+    for(let x=b.x0;x<=b.x1;x++) for(let y=b.y0;y<=b.y1;y++)
+      if(tileAt(x,y)==='walk') return [x,y];
+  }
   return [16,10];
 }
 function makeWalkerPed(name, x, y, state){
@@ -1058,7 +1131,22 @@ function exportWalkers(data){
 
 // ---------- economy & demand ----------
 let cash=25000, day=1;
-const COST={road:120,house:500,shop:900,park:200,tree:40,dozer:50,fire:1200,school:800,block:25};
+const COST={road:120,house:500,shop:900,park:200,tree:40,dozer:50,fire:1200,school:800,block:25,expand:4500};
+function tryExpand(dgx,dgy){
+  const k=`${dgx},${dgy}`;
+  if(districts.has(k)) return false;
+  const adj=[[dgx-1,dgy],[dgx+1,dgy],[dgx,dgy-1],[dgx,dgy+1]]
+    .some(([x,y])=>districts.has(`${x},${y}`));
+  if(!adj) return false;
+  if(!spend(COST.expand)) return false;
+  districts.add(k);
+  seedDistrict(dgx,dgy,false);
+  rebuildLights();
+  recompute();
+  adjustAgents();
+  toast('New 4×4 district added'+costTxt(COST.expand),'ok');
+  return true;
+}
 const stats={pop:0,cap:0,jobs:0,happy:.7,green:0,dR:.4,dC:.4,dG:.4};
 function recompute(){
   let cap=0, jobs=0;
@@ -1205,6 +1293,7 @@ function canPlace(t,x,y){
                          : (emptyGroundType(ty) && tileFree(x,y));
     case 'dozer': return blockMap.has(k) || bldMap.has(k) || treeMap.has(k)
                          || (ty==='grass'&&edits.has(k)) || hasProcTree(x,y) || scorch.has(k);
+    case 'expand': return !!nearestExpansion(x,y);
     default: return false;
   }
 }
@@ -1221,6 +1310,7 @@ function tryPlace(x,y){
     else if(tool==='house'||tool==='shop'||tool==='fire'||tool==='school') toast('Needs an empty lot next to a sidewalk or road','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
+    else if(tool==='expand') toast('Tap a glowing city edge to add a 4×4 district','err');
     else toast('Can\u2019t build there','err');
     return;
   }
@@ -1304,6 +1394,11 @@ function tryPlace(x,y){
       }
       else if(hasProcTree(x,y)){ removedTrees.add(k); toast('Tree felled','ok'); }
       else if(scorch.has(k)) toast('Rubble cleared','ok');
+      break;
+    }
+    case 'expand': {
+      const ex=nearestExpansion(x,y);
+      if(ex) tryExpand(ex.dgx,ex.dgy);
       break;
     }
   }
@@ -1799,7 +1894,7 @@ function render(animT){
 
   // build ghost
   if(tool!=='inspect'&&hoverTile&&inB(hoverTile.x,hoverTile.y)){
-    const ok=canPlace(tool,hoverTile.x,hoverTile.y);
+    const ok=tool==='expand' ? !!nearestExpansion(hoverTile.x,hoverTile.y) : canPlace(tool,hoverTile.x,hoverTile.y);
     const col=ok?'103,209,138':'255,107,94';
     diamond(hoverTile.x,hoverTile.y,0,`rgba(${col},.3)`);
     ctx.strokeStyle=`rgba(${col},.95)`; ctx.lineWidth=2;
@@ -1822,6 +1917,20 @@ function render(animT){
       ctx.strokeStyle=`rgba(${col},.8)`; ctx.setLineDash([6,5]);
       ctx.beginPath(); ctx.ellipse(c.x,c.y,Rr*TW*1.414,Rr*TH*1.414,0,0,Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
+    }
+  }
+  if(tool==='expand'){
+    const pulse=(Math.sin(animT*3)+1)*0.5;
+    for(const e of availableExpansions()){
+      const b=distBounds(e.dgx,e.dgy);
+      for(let x=b.x0;x<=b.x1;x++){
+        diamond(x,b.y0,0,`rgba(255,206,107,${0.12+0.18*pulse})`);
+        diamond(x,b.y1,0,`rgba(255,206,107,${0.12+0.18*pulse})`);
+      }
+      for(let y=b.y0;y<=b.y1;y++){
+        diamond(b.x0,y,0,`rgba(255,206,107,${0.12+0.18*pulse})`);
+        diamond(b.x1,y,0,`rgba(255,206,107,${0.12+0.18*pulse})`);
+      }
     }
   }
 
@@ -1879,14 +1988,12 @@ const mqMobile=typeof window.matchMedia==='function'
   : {matches:false, addEventListener:()=>{}};
 function hudExpanded(){ return hud.classList.contains('expanded'); }
 function setHudExpanded(open){
-  if(!mqMobile.matches){ hud.classList.remove('expanded'); return; }
   hud.classList.toggle('expanded', open);
   hudChip.setAttribute('aria-expanded', open?'true':'false');
 }
 function collapseHud(){ setHudExpanded(false); }
 hudChip.addEventListener('click', ()=> setHudExpanded(true));
 hudClose.addEventListener('click', ()=> collapseHud());
-mqMobile.addEventListener('change', e=>{ if(!e.matches) collapseHud(); });
 function phaseName(h){
   if(h<5)return'Deep night'; if(h<7)return'Dawn'; if(h<11)return'Morning';
   if(h<14)return'Midday'; if(h<17.5)return'Afternoon'; if(h<19.5)return'Dusk';
@@ -1927,6 +2034,7 @@ function toast(msg, kind){
 // ---------- save / load ----------
 function exportCity(){
   const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
+    districts:[...districts],
     edits:[...edits], removedTrees:[...removedTrees],
     parks:[...parkSet], scorch:[...scorch],
     blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
@@ -1968,6 +2076,8 @@ function importCity(data){
   if(data.eventsOn!==undefined) setEvents(data.eventsOn);
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
   if(data.camRot!=null){ finishViewRot(); viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
+  districts.clear();
+  for(const k of (data.districts||['0,0'])) districts.add(k);
   rebuildLights();
   cars.length=0; peds.length=0;
   importWalkers(data);
@@ -2266,6 +2376,7 @@ const TOOL_HINTS={
   park:'tap open ground for a park',
   tree:'tap open ground to plant',
   block:'tap to stack colored blocks',
+  expand:'tap a glowing edge to grow the city',
   dozer:'tap to remove one thing'
 };
 function updateMobCap(){

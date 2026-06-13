@@ -57,6 +57,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
+  tryExpand,availableExpansions,getDistricts:()=>districts,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
@@ -276,6 +277,16 @@ H.setImmersive(true);
 A(H.isFsView(), 'immersive expanded view');
 H.setImmersive(false);
 A(!H.isFsView(), 'immersive exits');
+
+// ---------- district expansion ----------
+console.log('\ndistrict expansion');
+A(H.getDistricts().has('0,0'), 'starts with one 4×4 district');
+A(H.availableExpansions().length === 4, 'four adjoining slots at start');
+A(H.tryExpand(1, 0), 'east district can be added');
+A(H.getDistricts().has('1,0'), 'east district tracked');
+H.exportCity();
+const dDist = JSON.parse(global.__blob);
+A(Array.isArray(dDist.districts) && dDist.districts.includes('1,0'), 'districts saved in export');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');
