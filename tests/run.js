@@ -57,8 +57,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
-  tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadTouchesSlot,
-  undoCreative,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
+  tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,
+  undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
@@ -283,19 +283,21 @@ A(!H.isFsView(), 'immersive exits');
 // ---------- district expansion ----------
 console.log('\ndistrict expansion');
 A(H.getDistricts().has('0,0'), 'starts with one 4×4 district');
-A(H.availableExpansions().length === 4, 'four adjoining slots at start');
+const exp0 = H.availableExpansions().length;
+A(!H.availableExpansions().some(e => e.dgx === 2 && e.dgy === 0), 'far east slot closed before road link');
 
-// road-linked district: skip (1,0), pave east, claim (2,0)
 H.setTool('road');
 const linkY = 16;
 for (let x = 29; x <= 51; x++) {
   if (H.canPlace('road', x, linkY)) H.tryPlace(x, linkY);
 }
-A(H.roadTouchesSlot(2, 0, H.computeRoadReach()), 'road reaches far district slot');
+A(H.roadReachesFrontier(2, 0, H.computeRoadReach()), 'road reaches far district slot');
+A(H.availableExpansions().length > exp0, 'road paving opens new district slots');
 A(H.availableExpansions().some(e => e.dgx === 2 && e.dgy === 0 && e.viaRoad), 'road-linked slot offered');
 A(H.tryExpand(2, 0), 'road-linked district can be added');
 A(H.getDistricts().has('2,0'), 'road-linked district tracked');
 
+A(H.availableExpansions().some(e => e.dgx === 1 && e.dgy === 0), 'adjacent slot opens once road enters');
 A(H.tryExpand(1, 0), 'east district can be added');
 A(H.getDistricts().has('1,0'), 'east district tracked');
 H.exportCity();
@@ -320,7 +322,7 @@ const tower = H.blockMap.get(H.tkey(bspot[0], bspot[1]));
 A(tower && tower.colors.length === 3, 'blocks stack (3 high)');
 A(tower.colors[0] === '#e2574c' && tower.colors[2] === '#ffd23e', 'per-block colors kept');
 A(H.getUndoLen() >= 3, 'creative builds push undo stack');
-H.undoCreative();
+H.undoLastBuild();
 A(tower.colors.length === 2, 'undo removes last block');
 A(H.getCash() === cashC, 'creative mode is free');
 

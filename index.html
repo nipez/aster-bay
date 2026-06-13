@@ -158,9 +158,7 @@
   .bar button.on{background:var(--accent); color:#23201a;}
   .bar .sep{width:1px; height:22px; background:#ffffff22;}
   .bar button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-  #bUndo{display:none;}
-  body.creative #bUndo{display:inline-block;}
-  body.creative #bUndo[disabled]{opacity:.42; cursor:default;}
+  #bUndo[disabled]{opacity:.42; cursor:default;}
 
   .palette{
     position:fixed; left:170px; top:50%; transform:translateY(-42%);
@@ -232,8 +230,8 @@
     body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
     .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
     body.bar-collapsed .dock .bar{display:none;}
-    body.creative .tools .adv{display:none;}
-    body.creative .tools .gap.adv{display:none;}
+    body.creative .tools .adv:not([data-t="expand"]){display:none;}
+    body.creative .tools .gap.adv:not(.expand-gap){display:none;}
     .bar .spd{display:none;}
     .dock{
       display:flex; flex-direction:column; align-items:center; gap:8px;
@@ -339,7 +337,7 @@
   <button id="bHome" title="Recenter view">⌖</button>
   <button id="bRotL" title="Rotate left (Q)">↺</button>
   <button id="bRotR" title="Rotate right (E)">↻</button>
-  <button id="bUndo" title="Undo last build (Ctrl+Z)" disabled>↩ Undo</button>
+  <button id="bUndo" title="Undo last build (Ctrl+Z / ⌘Z)" disabled>↩ Undo</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
   <button id="bYou" title="Find or track a walker">📍 Walkers</button>
 </div>
@@ -669,16 +667,45 @@ function tileInAnyDistrict(x,y){
   }
   return false;
 }
-function roadTouchesSlot(dgx,dgy,reach){
+function roadEntersSlot(dgx,dgy,reach){
   const b=distBounds(dgx,dgy);
   const hit=(x,y)=>reach.has(tkey(x,y))&&!tileInAnyDistrict(x,y);
-  for(let x=b.x0;x<=b.x1;x++){
-    if(hit(x,b.y0)||hit(x,b.y1)||hit(x,b.y0-1)||hit(x,b.y1+1)) return true;
+  for(let x=b.x0;x<=b.x1;x++) for(let y=b.y0;y<=b.y1;y++) if(hit(x,y)) return true;
+  for(let x=b.x0-1;x<=b.x1+1;x++){
+    if(hit(x,b.y0-1)||hit(x,b.y1+1)) return true;
   }
   for(let y=b.y0;y<=b.y1;y++){
-    if(hit(b.x0,y)||hit(b.x1,y)||hit(b.x0-1,y)||hit(b.x1+1,y)) return true;
+    if(hit(b.x0-1,y)||hit(b.x1+1,y)) return true;
   }
   return false;
+}
+function slotFrontierSide(dgx,dgy){
+  const sides=[];
+  if(!districts.has(`${dgx-1},${dgy}`)) sides.push('west');
+  if(!districts.has(`${dgx+1},${dgy}`)) sides.push('east');
+  if(!districts.has(`${dgx},${dgy-1}`)) sides.push('north');
+  if(!districts.has(`${dgx},${dgy+1}`)) sides.push('south');
+  return sides;
+}
+function roadReachesFrontier(dgx,dgy,reach){
+  const b=distBounds(dgx,dgy);
+  const hit=(x,y)=>reach.has(tkey(x,y))&&!tileInAnyDistrict(x,y);
+  for(const side of slotFrontierSide(dgx,dgy)){
+    if(side==='west'){
+      for(let y=b.y0;y<=b.y1;y++) if(hit(b.x0-1,y)||hit(b.x0,y)) return true;
+    } else if(side==='east'){
+      for(let y=b.y0;y<=b.y1;y++) if(hit(b.x1+1,y)||hit(b.x1,y)) return true;
+    } else if(side==='north'){
+      for(let x=b.x0;x<=b.x1;x++) if(hit(x,b.y0-1)||hit(x,b.y0)) return true;
+    } else if(side==='south'){
+      for(let x=b.x0;x<=b.x1;x++) if(hit(x,b.y1+1)||hit(x,b.y1)) return true;
+    }
+  }
+  return false;
+}
+function roadUnlocksSlot(dgx,dgy,reach){
+  if(districtGridAdj(dgx,dgy)) return roadEntersSlot(dgx,dgy,reach);
+  return roadReachesFrontier(dgx,dgy,reach);
 }
 function districtGridAdj(dgx,dgy){
   return [[dgx-1,dgy],[dgx+1,dgy],[dgx,dgy-1],[dgx,dgy+1]]
@@ -717,8 +744,8 @@ function availableExpansions(){
   for(const c of districtCandidates()){
     if(seen.has(c.k)) continue;
     const adj=districtGridAdj(c.dgx,c.dgy);
-    const viaRoad=roadTouchesSlot(c.dgx,c.dgy,reach);
-    if(!adj&&!viaRoad) continue;
+    const viaRoad=roadUnlocksSlot(c.dgx,c.dgy,reach);
+    if(!viaRoad) continue;
     seen.add(c.k);
     out.push({...c, label:expansionLabel(c.dgx,c.dgy, viaRoad&&!adj), viaRoad:viaRoad&&!adj});
   }
@@ -1364,8 +1391,8 @@ function tryExpand(dgx,dgy){
   if(districts.has(k)) return false;
   const reach=computeRoadReach();
   const adj=districtGridAdj(dgx,dgy);
-  const viaRoad=roadTouchesSlot(dgx,dgy,reach);
-  if(!adj&&!viaRoad) return false;
+  const viaRoad=roadUnlocksSlot(dgx,dgy,reach);
+  if(!viaRoad) return false;
   if(!spend(COST.expand)) return false;
   const firstExpand=districts.size===1;
   districts.add(k);
@@ -1373,8 +1400,8 @@ function tryExpand(dgx,dgy){
   rebuildLights();
   recompute();
   adjustAgents();
-  const link=viaRoad&&!adj?' · linked by your road':'';
-  toast('New 4×4 district added'+costTxt(COST.expand)+link+(firstExpand?' · tap glowing edges or road links':'')+'','ok');
+  const link=viaRoad&&!adj?' · linked by your road':' · connected by road';
+  toast('New 4×4 district added'+costTxt(COST.expand)+link+(firstExpand?' · pave roads to reach glowing zones':'')+'','ok');
   return true;
 }
 const stats={pop:0,cap:0,jobs:0,happy:.7,green:0,dR:.4,dC:.4,dG:.4,cong:0};
@@ -1544,7 +1571,38 @@ const costTxt=n=> mode==='creative' ? '' : ' · −$'+n;
 // ---------- creative undo (last 20 build actions) ----------
 const UNDO_MAX=20;
 let undoStack=[];
-function makeUndoSnap(){ return {tiles:new Map(), building:null, buildingRemoved:null, tree:null, treeRemoved:null, block:null, parks:[], scorch:null, removedTree:null}; }
+function makeUndoSnap(){ return {tiles:new Map(), building:null, buildingRemoved:null, tree:null, treeRemoved:null, block:null, parks:[], scorch:null, removedTree:null, refund:0}; }
+function makeExpandSnap(dgx,dgy){
+  const snap=makeUndoSnap();
+  const env=districtEnvelope(dgx,dgy);
+  snap.expand={dgx,dgy};
+  for(let x=env.x0;x<=env.x1;x++) for(let y=env.y0;y<=env.y1;y++) snapTile(snap,tkey(x,y));
+  return snap;
+}
+function purgeDistrict(dgx,dgy){
+  const b=distBounds(dgx,dgy), env=districtEnvelope(dgx,dgy);
+  districts.delete(`${dgx},${dgy}`);
+  for(let i=buildings.length-1;i>=0;i--){
+    const bl=buildings[i];
+    if(bl.x>=b.x0&&bl.x<=b.x1&&bl.y>=b.y0&&bl.y<=b.y1) removeBuildingAt(bl.x,bl.y);
+  }
+  for(let i=trees.length-1;i>=0;i--){
+    const tr=trees[i];
+    if(tr.tx>=b.x0&&tr.tx<=b.x1&&tr.ty>=b.y0&&tr.ty<=b.y1) removeTreeAt(tr.tx,tr.ty);
+  }
+  for(let i=lamps.length-1;i>=0;i--){
+    const l=lamps[i];
+    if(l.x>=env.x0&&l.x<=env.x1&&l.y>=env.y0&&l.y<=env.y1) lamps.splice(i,1);
+  }
+  for(let i=benches.length-1;i>=0;i--){
+    const bn=benches[i];
+    if(bn.x>=env.x0&&bn.x<=env.x1&&bn.y>=env.y0&&bn.y<=env.y1) benches.splice(i,1);
+  }
+  if(fountain){
+    const fx=fountain.x|0, fy=fountain.y|0;
+    if(fx>=b.x0&&fx<=b.x1&&fy>=b.y0&&fy<=b.y1) fountain=null;
+  }
+}
 function snapTile(snap,k){
   if(!snap.tiles.has(k)) snap.tiles.set(k, edits.has(k)?edits.get(k):'__terrain__');
 }
@@ -1553,12 +1611,16 @@ function restoreTile(k,before){
   else edits.set(k,before);
 }
 function pushUndo(snap){
-  if(mode!=='creative'||!snap) return;
+  if(!snap) return;
   undoStack.push(snap);
   if(undoStack.length>UNDO_MAX) undoStack.shift();
   updateUndoBtn();
 }
 function applyUndo(snap){
+  if(snap.expand){
+    purgeDistrict(snap.expand.dgx,snap.expand.dgy);
+    if(snap.refund) cash+=snap.refund;
+  }
   if(snap.building) removeBuildingAt(snap.building.x,snap.building.y);
   if(snap.buildingRemoved){ const b=snap.buildingRemoved; b.fire=null; addBuilding(b); }
   if(snap.block){
@@ -1588,9 +1650,9 @@ function applyUndo(snap){
   }
   for(const [k,before] of snap.tiles) restoreTile(k,before);
   rebuildLights();
+  if(snap.refund && !snap.expand) cash+=snap.refund;
 }
-function undoCreative(){
-  if(mode!=='creative'){ toast('Undo is for creative mode','err'); return; }
+function undoLastBuild(){
   if(!undoStack.length){ toast('Nothing to undo','err'); return; }
   applyUndo(undoStack.pop());
   updateUndoBtn();
@@ -1599,7 +1661,7 @@ function undoCreative(){
 }
 function updateUndoBtn(){
   const b=$('bUndo');
-  if(b) b.disabled=!undoStack.length||mode!=='creative';
+  if(b) b.disabled=!undoStack.length;
 }
 
 function tryPlace(x,y){
@@ -1615,11 +1677,11 @@ function tryPlace(x,y){
     else if(tool==='house'||tool==='shop'||tool==='fire'||tool==='school') toast('Needs an empty lot next to a sidewalk or road','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
-    else if(tool==='expand') toast('Tap a glowing district — beside the city or at the end of a road','err');
+    else if(tool==='expand') toast('Pave roads to a glowing zone first, then tap it','err');
     else toast('Can\u2019t build there','err');
     return;
   }
-  const snap=mode==='creative'&&tool!=='expand'?makeUndoSnap():null;
+  const snap=tool!=='expand'?makeUndoSnap():null;
   let done=false;
   switch(tool){
     case 'road': {
@@ -1754,11 +1816,20 @@ function tryPlace(x,y){
     }
     case 'expand': {
       const ex=nearestExpansion(x,y);
-      if(ex) tryExpand(ex.dgx,ex.dgy);
+      if(ex){
+        const es=makeExpandSnap(ex.dgx,ex.dgy);
+        if(tryExpand(ex.dgx,ex.dgy)){
+          if(mode!=='creative') es.refund=COST.expand;
+          pushUndo(es);
+        }
+      }
       break;
     }
   }
-  if(snap&&done) pushUndo(snap);
+  if(snap&&done){
+    if(mode!=='creative'&&COST[tool]) snap.refund=COST[tool];
+    pushUndo(snap);
+  }
   scorch.delete(tkey(x,y));
   recompute();
 }
@@ -2658,7 +2729,7 @@ $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
 $('bHome').onclick=()=>{ setTrackWalker(null); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
 $('bRotL').onclick=()=> rotateView(-1);
 $('bRotR').onclick=()=> rotateView(1);
-$('bUndo').onclick=()=> undoCreative();
+$('bUndo').onclick=()=> undoLastBuild();
 const bFs=$('bFs');
 let immersiveOn=false;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -2778,7 +2849,7 @@ function setTool(t){
   document.getElementById('palette').classList.toggle('show', t==='block');
   if(t==='expand'&&!expandToolHinted){
     expandToolHinted=true;
-    toast('Glowing districts grow beside the city or where roads connect — tap one','ok');
+    toast('Pave roads to a glowing zone — beside the city or at a road end','ok');
   }
   if(t==='road'&&!roadToolHinted){
     roadToolHinted=true;
@@ -2798,7 +2869,7 @@ const TOOL_HINTS={
   park:'tap open ground for a park',
   tree:'tap open ground to plant',
   block:'tap to stack colored blocks',
-  expand:'tap a glowing district edge or road link',
+  expand:'pave roads to a glowing zone, then tap it',
   dozer:'tap to remove one thing'
 };
 function updateMobCap(){
@@ -2835,7 +2906,7 @@ window.addEventListener('keydown', e=>{
   if(e.key==='Escape') setTool('inspect');
   if(e.key==='q'||e.key==='Q') rotateView(-1);
   if(e.key==='e'||e.key==='E') rotateView(1);
-  if((e.ctrlKey||e.metaKey)&&e.key==='z'){ e.preventDefault(); undoCreative(); }
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); undoLastBuild(); }
   if(e.key==='f'||e.key==='F') toggleFullscreen();
 });
 let pinchD=0;
