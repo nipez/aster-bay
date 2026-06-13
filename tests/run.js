@@ -26,6 +26,9 @@ const elStub = () => ({
   dataset: { s: '1', t: 'inspect' }, onclick: null,
   getContext: () => ctxStub, width: 0, height: 0,
   appendChild: noop, remove: noop, click: noop, files: [],
+  querySelectorAll: () => [],
+  querySelector: () => null,
+  setAttribute: noop,
 });
 global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop, scrollTo: noop,
   visualViewport: { width: 1280, height: 800, addEventListener: noop } };
@@ -61,7 +64,9 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
-  toggleFullscreen,isFsView,setImmersive};`;
+  toggleFullscreen,isFsView,setImmersive,
+  enterInterior,exitInterior,placeInteriorRoom,clearInteriorRoom,getRoom,canEnterBuilding,countRooms,
+  nudgeMobCursor,mobPlaceAction,syncMobCursor,getMobCursor:()=>mobCursor,setInteriorFloor};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -353,6 +358,36 @@ H.roadCong.set('12,12', 4);
 A(H.congestionPenalty() > 0.3, 'congestion detected on busy roads');
 H.recompute();
 A(H.getHappy() < happyClear, 'congestion lowers happiness');
+
+// ---------- interior rooms & mobile build cursor ----------
+console.log('\ninterior rooms');
+const house = H.buildings.find(b => H.canEnterBuilding(b));
+A(!!house, 'found enterable building');
+A(H.enterInterior(house.x, house.y), 'enter interior');
+A(H.placeInteriorRoom(0, 1, 1, 'bed'), 'place bedroom');
+A(H.getRoom(house, 0, 1, 1) === 'bed', 'bedroom stored on building');
+A(H.countRooms(house) === 1, 'room count updated');
+H.setInteriorFloor(1);
+A(H.placeInteriorRoom(1, 2, 2, 'office'), 'place office on floor 2');
+A(H.getRoom(house, 1, 2, 2) === 'office', 'office on upper floor');
+H.exportCity();
+const dRooms = JSON.parse(global.__blob);
+const savedHouse = dRooms.buildings.find(b => b.x === house.x && b.y === house.y);
+A(savedHouse.rooms && savedHouse.rooms['0,1,1'] === 'bed', 'rooms saved in export');
+A(savedHouse.rooms['1,2,2'] === 'office', 'multi-floor rooms saved');
+H.clearInteriorRoom(0, 1, 1);
+A(!H.getRoom(house, 0, 1, 1), 'room cleared');
+H.exitInterior();
+H.importCity(dRooms);
+const restored = H.buildings.find(b => b.x === house.x && b.y === house.y);
+A(H.getRoom(restored, 0, 1, 1) === 'bed', 'rooms restored from save');
+H.setMode('creative');
+H.setTool('block');
+H.syncMobCursor();
+const x0 = H.getMobCursor().x;
+A(x0 != null, 'build cursor syncs for tools');
+H.nudgeMobCursor(1, 0);
+A(H.getMobCursor().x === x0 + 1, 'build cursor nudges with arrows/d-pad');
 
 // ---------- v0.5: v4 save round trip ----------
 console.log('\nv4 saves');

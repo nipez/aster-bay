@@ -180,6 +180,11 @@
     box-shadow:0 4px 14px #0009;
   }
   #tip b{color:var(--accent);}
+  #tip button{
+    pointer-events:auto; margin-top:8px; appearance:none; border:none; cursor:pointer;
+    background:var(--good); color:#132018; border-radius:10px; padding:7px 12px;
+    font:800 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
 
   #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:74px;
     display:flex; flex-direction:column-reverse; gap:6px; align-items:center; pointer-events:none; z-index:8;}
@@ -207,6 +212,56 @@
     font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009;
     white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis;
   }
+  .mob-ctrl{
+    display:none; position:fixed; z-index:7; pointer-events:none;
+    left:calc(10px + env(safe-area-inset-left));
+    bottom:calc(132px + env(safe-area-inset-bottom));
+    gap:10px; align-items:flex-end;
+  }
+  .mob-ctrl.show{display:flex; pointer-events:auto;}
+  body.bar-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+  .mob-dpad{display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .mob-row{display:flex; gap:4px;}
+  .mob-dir,.mob-actions button{
+    appearance:none; border:1px solid #ffffff22; cursor:pointer;
+    background:#15182af0; color:var(--ink); border-radius:12px;
+    width:46px; height:46px; font-size:17px; font-weight:800;
+    box-shadow:0 4px 14px #0009; backdrop-filter:blur(8px);
+  }
+  .mob-dir:active,.mob-actions button:active{transform:scale(.94); background:#ffffff18;}
+  .mob-actions{display:flex; flex-direction:column; gap:6px;}
+  .mob-actions button{width:auto; min-width:88px; padding:0 12px; font-size:13px;}
+  #mobPlace{background:#67d18a22; border-color:#67d18a66; color:#dff7e8;}
+  #mobClear{background:#ff6b5e22; border-color:#ff6b5e66; color:#ffd4cf;}
+  body.interior-mode .dock{display:none;}
+  body.interior-mode .hint{display:none;}
+  body.interior-mode .palette{display:none!important;}
+  .interior-bar{
+    display:none; position:fixed; z-index:8; pointer-events:auto;
+    left:50%; transform:translateX(-50%);
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    max-width:96vw; background:var(--panel); color:var(--ink);
+    border:1px solid #ffffff18; border-radius:14px; padding:8px 10px;
+    box-shadow:0 6px 24px #0009; backdrop-filter:blur(8px);
+    flex-direction:column; gap:8px; align-items:stretch;
+  }
+  body.interior-mode .interior-bar.show{display:flex;}
+  .int-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .int-head button{
+    appearance:none; border:1px solid #ffffff22; cursor:pointer;
+    background:#ffffff10; color:var(--ink); border-radius:10px;
+    padding:6px 10px; font:800 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .int-head button:active{transform:scale(.96);}
+  #intTitle{flex:1; font-size:13px; font-weight:800; text-align:center;}
+  .int-rooms{display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .int-rooms button{
+    appearance:none; border:2px solid transparent; cursor:pointer;
+    border-radius:11px; padding:7px 10px; min-width:52px;
+    font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    color:#23201a; flex-shrink:0;
+  }
+  .int-rooms button.on{border-color:var(--accent); box-shadow:0 0 0 2px #ffce6b44;}
   .bar-peek{
     display:none; position:fixed; right:calc(10px + env(safe-area-inset-right)); z-index:7;
     appearance:none; border:1px solid #ffffff1c; cursor:pointer;
@@ -349,6 +404,29 @@
 <div class="palette" id="palette" aria-label="Block colors"></div>
 
 <div id="mobCap" class="mob-cap"></div>
+<div id="mobCtrl" class="mob-ctrl" aria-hidden="true">
+  <div class="mob-dpad">
+    <button type="button" class="mob-dir" data-dx="0" data-dy="-1" aria-label="Move up">▲</button>
+    <div class="mob-row">
+      <button type="button" class="mob-dir" data-dx="-1" data-dy="0" aria-label="Move left">◀</button>
+      <button type="button" class="mob-dir" data-dx="0" data-dy="1" aria-label="Move down">▼</button>
+      <button type="button" class="mob-dir" data-dx="1" data-dy="0" aria-label="Move right">▶</button>
+    </div>
+  </div>
+  <div class="mob-actions">
+    <button type="button" id="mobPlace">✓ Place</button>
+    <button type="button" id="mobClear">✕ Clear</button>
+  </div>
+</div>
+<div id="interiorBar" class="interior-bar" aria-hidden="true">
+  <div class="int-head">
+    <button type="button" id="intExit">← City</button>
+    <span id="intTitle">Floor 1</span>
+    <button type="button" id="intUp" title="Floor up">▲ Fl</button>
+    <button type="button" id="intDown" title="Floor down">▼ Fl</button>
+  </div>
+  <div id="intRooms" class="int-rooms" aria-label="Room types"></div>
+</div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
 <div id="tip"></div>
 <div id="toasts"></div>
@@ -1652,6 +1730,7 @@ function applyUndo(snap){
     else removedTrees.delete(snap.removedTree.k);
   }
   for(const [k,before] of snap.tiles) restoreTile(k,before);
+  if(snap.interior) applyInteriorUndo(snap);
   rebuildLights();
   if(snap.refund && !snap.expand) cash+=snap.refund;
 }
@@ -1665,6 +1744,217 @@ function undoLastBuild(){
 function updateUndoBtn(){
   const b=$('bUndo');
   if(b) b.disabled=!undoStack.length;
+}
+
+// ---------- interior rooms (enter buildings · Minecraft-style grid) ----------
+const INTERIOR_W=5, INTERIOR_H=5;
+const ROOM_TYPES={
+  living:{name:'Living', icon:'🛋', color:'#a3c9a8', cost:90},
+  bed:{name:'Bedroom', icon:'🛏', color:'#c9a8d4', cost:80},
+  kitchen:{name:'Kitchen', icon:'🍳', color:'#f3cf7a', cost:120},
+  bath:{name:'Bath', icon:'🚿', color:'#8fb3c7', cost:100},
+  office:{name:'Office', icon:'💼', color:'#9fc4bd', cost:110},
+  hall:{name:'Hall', icon:'🚪', color:'#f1e3c8', cost:40},
+};
+let roomType='living';
+let interior=null; // {x,y,b,floor,cx,cy}
+let mobCursor=null;
+
+function roomKey(f,rx,ry){ return f+','+rx+','+ry; }
+function canEnterBuilding(b){
+  return !!b && !b.landmark && b.use!=='civic' && b.stories>=1;
+}
+function countRooms(b){
+  if(!b||!b.rooms) return 0;
+  return Object.keys(b.rooms).length;
+}
+function getRoom(b,f,rx,ry){
+  return b.rooms && b.rooms[roomKey(f,rx,ry)] || null;
+}
+function interiorFloors(b){ return clamp(b.stories|0, 1, 12); }
+function enterInterior(x,y){
+  const b=bldMap.get(tkey(x,y));
+  if(!canEnterBuilding(b)){ toast('You can only enter houses and shops','err'); return false; }
+  interior={x,y,b,floor:0,cx:2,cy:2};
+  if(document.body) document.body.classList.add('interior-mode');
+  setTool('inspect');
+  mobCursor=null;
+  updateInteriorUI();
+  updateMobUI();
+  toast('🏠 Inside — pick a room · D-pad or arrows to move · Place to build','ok');
+  return true;
+}
+function exitInterior(){
+  if(!interior) return;
+  interior=null;
+  if(document.body) document.body.classList.remove('interior-mode');
+  updateInteriorUI();
+  updateMobUI();
+  toast('Back in Aster Bay','ok');
+}
+function setInteriorFloor(f){
+  if(!interior) return;
+  interior.floor=clamp(f|0, 0, interiorFloors(interior.b)-1);
+  updateInteriorUI();
+}
+function nudgeInteriorCursor(dx,dy){
+  if(!interior) return;
+  interior.cx=clamp(interior.cx+dx, 0, INTERIOR_W-1);
+  interior.cy=clamp(interior.cy+dy, 0, INTERIOR_H-1);
+}
+function interiorAtScreen(sx,sy){
+  if(!interior) return null;
+  const maxW=CW-48, maxH=CH-210;
+  const cell=Math.floor(Math.min(maxW/INTERIOR_W, maxH/INTERIOR_H));
+  const gw=cell*INTERIOR_W, gh=cell*INTERIOR_H;
+  const ox=(CW-gw)/2, oy=(CH-gh)/2+10;
+  const rx=Math.floor((sx-ox)/cell), ry=Math.floor((sy-oy)/cell);
+  if(rx<0||ry<0||rx>=INTERIOR_W||ry>=INTERIOR_H) return null;
+  return {rx,ry,cell,ox,oy,gw,gh};
+}
+function placeInteriorRoom(f,rx,ry,type){
+  if(!interior) return false;
+  const b=interior.b, rt=ROOM_TYPES[type];
+  if(!rt){ toast('Unknown room type','err'); return false; }
+  const prev=getRoom(b,f,rx,ry);
+  if(prev===type) return true;
+  if(!spend(rt.cost)) return false;
+  const snap=makeUndoSnap();
+  snap.interior={x:b.x,y:b.y,f,rx,ry,before:prev,refund:prev?0:rt.cost};
+  if(!b.rooms) b.rooms={};
+  b.rooms[roomKey(f,rx,ry)]=type;
+  pushUndo(snap);
+  recompute();
+  updateInteriorUI();
+  toast(rt.icon+' '+rt.name+' placed'+costTxt(rt.cost),'ok');
+  return true;
+}
+function clearInteriorRoom(f,rx,ry){
+  if(!interior) return false;
+  const b=interior.b, prev=getRoom(b,f,rx,ry);
+  if(!prev) return false;
+  const snap=makeUndoSnap();
+  snap.interior={x:b.x,y:b.y,f,rx,ry,before:prev,refund:0};
+  delete b.rooms[roomKey(f,rx,ry)];
+  if(!Object.keys(b.rooms).length) delete b.rooms;
+  pushUndo(snap);
+  recompute();
+  updateInteriorUI();
+  toast('Room cleared','ok');
+  return true;
+}
+function applyInteriorUndo(snap){
+  if(!snap.interior) return;
+  const b=bldMap.get(tkey(snap.interior.x,snap.interior.y));
+  if(!b) return;
+  const i=snap.interior, k=roomKey(i.f,i.rx,i.ry);
+  if(i.before) b.rooms=(b.rooms||{}), b.rooms[k]=i.before;
+  else if(b.rooms){ delete b.rooms[k]; if(!Object.keys(b.rooms).length) delete b.rooms; }
+}
+function drawInterior(){
+  if(!interior) return;
+  const b=interior.b, f=interior.floor;
+  const maxW=CW-48, maxH=CH-210;
+  const cell=Math.floor(Math.min(maxW/INTERIOR_W, maxH/INTERIOR_H));
+  const gw=cell*INTERIOR_W, gh=cell*INTERIOR_H;
+  const ox=(CW-gw)/2, oy=(CH-gh)/2+10;
+  ctx.fillStyle='#12182a';
+  ctx.fillRect(0,0,CW,CH);
+  const g=ctx.createLinearGradient(0,0,0,CH);
+  g.addColorStop(0,'#1a2240'); g.addColorStop(1,'#0e1224');
+  ctx.fillStyle=g; ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.font='800 16px ui-rounded,system-ui,sans-serif';
+  ctx.textAlign='center';
+  const kind=b.use==='res'?'House':'Shop';
+  ctx.fillText(kind+' · floor '+(f+1)+' / '+interiorFloors(b), CW/2, oy-18);
+  ctx.textAlign='start';
+  for(let ry=0;ry<INTERIOR_H;ry++) for(let rx=0;rx<INTERIOR_W;rx++){
+    const x=ox+rx*cell, y=oy+ry*cell;
+    const rm=getRoom(b,f,rx,ry);
+    ctx.fillStyle=rm ? ROOM_TYPES[rm].color : '#ffffff10';
+    ctx.fillRect(x+2,y+2,cell-4,cell-4);
+    ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1;
+    ctx.strokeRect(x+1.5,y+1.5,cell-3,cell-3);
+    if(rm){
+      ctx.font=(cell*0.34|0)+'px ui-rounded,system-ui,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(ROOM_TYPES[rm].icon, x+cell/2, y+cell/2);
+      ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    }
+  }
+  const cx=ox+interior.cx*cell, cy=oy+interior.cy*cell;
+  ctx.strokeStyle='#ffce6b'; ctx.lineWidth=3;
+  ctx.strokeRect(cx+3,cy+3,cell-6,cell-6);
+  const rt=ROOM_TYPES[roomType];
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.font='600 12px ui-rounded,system-ui,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('Cursor: '+rt.icon+' '+rt.name+' · Place to build · Clear to remove', CW/2, oy+gh+28);
+  ctx.textAlign='start';
+}
+function updateInteriorUI(){
+  const bar=$('interiorBar'), title=$('intTitle'), rooms=$('intRooms');
+  if(!bar) return;
+  const on=!!interior;
+  bar.classList.toggle('show', on);
+  bar.setAttribute('aria-hidden', on?'false':'true');
+  if(!on) return;
+  if(title) title.textContent='Floor '+(interior.floor+1)+' · '+countRooms(interior.b)+' rooms';
+  if(rooms && !rooms.dataset.ready){
+    rooms.dataset.ready='1';
+    for(const [id,rt] of Object.entries(ROOM_TYPES)){
+      const btn=document.createElement('button');
+      btn.type='button'; btn.dataset.room=id;
+      btn.style.background=rt.color;
+      btn.textContent=rt.icon+' '+rt.name;
+      btn.onclick=()=>{
+        roomType=id;
+        rooms.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===btn));
+      };
+      rooms.appendChild(btn);
+    }
+    rooms.querySelector('[data-room="living"]')?.classList.add('on');
+  }
+  if(rooms) rooms.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.room===roomType));
+}
+function syncMobCursor(){
+  if(interior) return;
+  if(tool==='inspect'){ mobCursor=null; return; }
+  if(!mobCursor){
+    const t=hoverTile || screenToTile(CW/2, CH/2);
+    mobCursor={x:t.x, y:t.y};
+  }
+}
+function nudgeMobCursor(dx,dy){
+  if(interior) nudgeInteriorCursor(dx,dy);
+  else{
+    syncMobCursor();
+    if(!mobCursor) return;
+    mobCursor.x+=dx; mobCursor.y+=dy;
+    hoverTile={x:mobCursor.x, y:mobCursor.y};
+  }
+}
+function mobPlaceAction(){
+  if(interior) placeInteriorRoom(interior.floor, interior.cx, interior.cy, roomType);
+  else{
+    syncMobCursor();
+    if(mobCursor) tryPlace(mobCursor.x, mobCursor.y);
+  }
+}
+function mobClearAction(){
+  if(interior) clearInteriorRoom(interior.floor, interior.cx, interior.cy);
+  else if(mobCursor && tool==='dozer') tryPlace(mobCursor.x, mobCursor.y);
+  else toast('Switch to bulldoze to clear outdoors','err');
+}
+function ghostTile(){
+  if(interior) return null;
+  if(tool!=='inspect'){
+    if(mobCursor) return mobCursor;
+    if(mqMobile.matches) syncMobCursor();
+    if(mobCursor) return mobCursor;
+  }
+  return hoverTile;
 }
 
 function tryPlace(x,y){
@@ -2385,6 +2675,7 @@ function drawRoadHints(rng, animT){
 }
 function render(animT){
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(interior){ drawInterior(); return; }
   const h=hourNow();
   night=nightAt(h);
   warm=clamp(bell(h,6.3,1.0)+bell(h,18.7,1.1),0,1);
@@ -2400,13 +2691,14 @@ function render(animT){
   if(tool==='road') drawRoadHints(rng, animT);
 
   // build ghost
-  if(tool!=='inspect'&&hoverTile&&inB(hoverTile.x,hoverTile.y)){
-    const ok=tool==='expand' ? !!nearestExpansion(hoverTile.x,hoverTile.y) : canPlace(tool,hoverTile.x,hoverTile.y);
+  const gt=ghostTile();
+  if(tool!=='inspect'&&gt&&inB(gt.x,gt.y)){
+    const ok=tool==='expand' ? !!nearestExpansion(gt.x,gt.y) : canPlace(tool,gt.x,gt.y);
     const col=ok?'103,209,138':'255,107,94';
-    diamond(hoverTile.x,hoverTile.y,0,`rgba(${col},.3)`);
+    diamond(gt.x,gt.y,0,`rgba(${col},.3)`);
     ctx.strokeStyle=`rgba(${col},.95)`; ctx.lineWidth=2;
-    const p1=iso(hoverTile.x,hoverTile.y,0),p2=iso(hoverTile.x+1,hoverTile.y,0),
-          p3=iso(hoverTile.x+1,hoverTile.y+1,0),p4=iso(hoverTile.x,hoverTile.y+1,0);
+    const p1=iso(gt.x,gt.y,0),p2=iso(gt.x+1,gt.y,0),
+          p3=iso(gt.x+1,gt.y+1,0),p4=iso(gt.x,gt.y+1,0);
     ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.lineTo(p3.x,p3.y);ctx.lineTo(p4.x,p4.y);ctx.closePath();ctx.stroke();
   }
   // service coverage rings
@@ -2601,6 +2893,7 @@ function importCity(data){
   for(const k of (data.districts||['0,0'])) districts.add(k);
   undoStack.length=0;
   updateUndoBtn();
+  exitInterior();
   rebuildLights();
   cars.length=0; fireTrucks.length=0; peds.length=0;
   importWalkers(data);
@@ -2678,11 +2971,19 @@ function showTip(html,x,y){
 }
 function bldLabel(b){
   const burn=b.fire?' · 🔥 on fire!':'';
+  const rooms=countRooms(b);
+  const furn=rooms?(' · '+rooms+' room'+(rooms>1?'s':'')):'';
   if(b.landmark) return '🗼 <b>Aster Spire</b> · city landmark'+burn;
-  if(b.use==='res') return `🏠 <b>Housing</b> · ${b.stories} ${b.stories>1?'storeys':'storey'} · ${b.capacity} residents${burn}`;
-  if(b.use==='com') return `🏬 <b>Shop</b> · ${b.jobs} jobs${burn}`;
+  if(b.use==='res') return `🏠 <b>Housing</b> · ${b.stories} ${b.stories>1?'storeys':'storey'} · ${b.capacity} residents${furn}${burn}`;
+  if(b.use==='com') return `🏬 <b>Shop</b> · ${b.jobs} jobs${furn}${burn}`;
   if(b.kind==='fire') return '🚒 <b>Fire station</b> · trucks dispatch within '+FIRE_R+' tiles'+burn;
   return '🏫 <b>School</b> · happier residents within '+SCHOOL_R+' tiles'+burn;
+}
+function bldTipHTML(b){
+  let html=bldLabel(b);
+  if(canEnterBuilding(b))
+    html+=`<br><button type="button" data-enter-bld data-x="${b.x}" data-y="${b.y}">🏠 Enter & build rooms</button>`;
+  return html;
 }
 function nearestAgent(mx,my,maxD){
   let best=null, bd=maxD;
@@ -2704,12 +3005,19 @@ function agentTipHTML(best){
   return `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
 }
 cv.addEventListener('pointerdown', e=>{
+  if(interior){
+    dragging=true; dragMoved=false; lx=e.clientX; ly=e.clientY;
+    const cell=interiorAtScreen(e.clientX,e.clientY);
+    if(cell){ interior.cx=cell.rx; interior.cy=cell.ry; }
+    return;
+  }
   if(hudExpanded()) collapseHud();
   activePtrs.add(e.pointerId);
   dragging=true; dragMoved=false; lx=e.clientX; ly=e.clientY;
   cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId);
 });
 cv.addEventListener('pointermove', e=>{
+  if(interior) return;
   if(dragging && activePtrs.size<=1){
     cam.px+=e.clientX-lx; cam.py+=e.clientY-ly;
     if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3){
@@ -2733,15 +3041,26 @@ cv.addEventListener('pointermove', e=>{
 cv.addEventListener('pointerup', e=>{
   activePtrs.delete(e.pointerId);
   cv.classList.remove('dragging');
+  if(interior){
+    if(!dragMoved){
+      const cell=interiorAtScreen(e.clientX,e.clientY);
+      if(cell){
+        interior.cx=cell.rx; interior.cy=cell.ry;
+        placeInteriorRoom(interior.floor, cell.rx, cell.ry, roomType);
+      }
+    }
+    dragging=false;
+    return;
+  }
   if(dragging&&!dragMoved){
     const t=screenToTile(e.clientX,e.clientY);
     if(tool!=='inspect'){
-      tryPlace(t.x,t.y);
+      if(!mqMobile.matches) tryPlace(t.x,t.y);
     } else {
       const best=nearestAgent(e.clientX,e.clientY,26);
       if(best) showTip(agentTipHTML(best), e.clientX, e.clientY);
       else if(bldMap.has(tkey(t.x,t.y)))
-        showTip(bldLabel(bldMap.get(tkey(t.x,t.y))), e.clientX, e.clientY);
+        showTip(bldTipHTML(bldMap.get(tkey(t.x,t.y))), e.clientX, e.clientY);
       else if(blockMap.has(tkey(t.x,t.y))){
         const bk=blockMap.get(tkey(t.x,t.y));
         showTip('🧱 <b>Block tower</b> · '+bk.colors.length+' block'+(bk.colors.length>1?'s':'')+' high', e.clientX, e.clientY);
@@ -2886,6 +3205,7 @@ document.querySelectorAll('.spd').forEach(b=>{
 let expandToolHinted=false, roadToolHinted=false;
 function setTool(t){
   tool=t;
+  mobCursor=null;
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   cv.classList.toggle('building',t!=='inspect');
   document.getElementById('palette').classList.toggle('show', t==='block');
@@ -2897,10 +3217,10 @@ function setTool(t){
     roadToolHinted=true;
     toast('Green tiles beside roads are valid — extend one piece at a time','ok');
   }
-  updateMobCap();
+  updateMobUI();
 }
 document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
-const mobCap=$('mobCap');
+const mobCap=$('mobCap'), mobCtrl=$('mobCtrl');
 const TOOL_HINTS={
   inspect:'tap things to learn about them',
   road:'tap a green tile beside a road',
@@ -2914,15 +3234,41 @@ const TOOL_HINTS={
   expand:'pave roads to a glowing zone, then tap it',
   dozer:'tap to remove one thing'
 };
-function updateMobCap(){
+function updateMobUI(){
+  syncMobCursor();
+  const showCtrl=!!interior || (mqMobile.matches && tool!=='inspect');
+  if(mobCtrl){
+    mobCtrl.classList.toggle('show', showCtrl);
+    mobCtrl.setAttribute?.('aria-hidden', showCtrl?'false':'true');
+  }
+  const clearBtn=$('mobClear');
+  if(clearBtn) clearBtn.style.display=interior?'block':(tool==='dozer'?'block':'none');
   if(!mobCap||!mqMobile.matches){ mobCap?.classList.remove('show'); return; }
-  if(tool==='inspect'){ mobCap.classList.remove('show'); return; }
+  if(tool==='inspect' && !interior){ mobCap.classList.remove('show'); return; }
+  if(interior){
+    const rt=ROOM_TYPES[roomType];
+    mobCap.textContent=rt.icon+' '+rt.name+' · D-pad moves · Place / Clear';
+    mobCap.classList.add('show');
+    return;
+  }
   const btn=document.querySelector('.tool[data-t="'+tool+'"]');
   const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||tool;
   const ico=btn?.querySelector('.ico')?.textContent||'';
-  mobCap.textContent=ico+' '+name+' — '+TOOL_HINTS[tool];
+  mobCap.textContent=ico+' '+name+' — D-pad moves cursor · tap Place';
   mobCap.classList.add('show');
 }
+mobCtrl?.querySelectorAll('.mob-dir').forEach(btn=>{
+  btn.addEventListener('click', ()=> nudgeMobCursor(+btn.dataset.dx, +btn.dataset.dy));
+});
+$('mobPlace')?.addEventListener('click', ()=> mobPlaceAction());
+$('mobClear')?.addEventListener('click', ()=> mobClearAction());
+$('intExit')?.addEventListener('click', ()=> exitInterior());
+$('intUp')?.addEventListener('click', ()=> setInteriorFloor((interior?.floor|0)+1));
+$('intDown')?.addEventListener('click', ()=> setInteriorFloor((interior?.floor|0)-1));
+tip?.addEventListener('click', e=>{
+  const btn=e.target.closest('[data-enter-bld]');
+  if(btn) enterInterior(+btn.dataset.x, +btn.dataset.y);
+});
 const barPeek=$('barPeek');
 function setBarCollapsed(v){
   if(!document.body) return;
@@ -2939,13 +3285,29 @@ barPeek?.addEventListener('click', ()=>{
 mqMobile.addEventListener('change', e=>{
   if(e.matches) setBarCollapsed(true);
   else setBarCollapsed(false);
-  updateMobCap();
+  updateMobUI();
 });
 window.addEventListener('keydown', e=>{
+  if(interior){
+    if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){ e.preventDefault(); nudgeInteriorCursor(0,-1); return; }
+    if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){ e.preventDefault(); nudgeInteriorCursor(0,1); return; }
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){ e.preventDefault(); nudgeInteriorCursor(-1,0); return; }
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){ e.preventDefault(); nudgeInteriorCursor(1,0); return; }
+    if(e.key==='PageUp'||e.key==='q'||e.key==='Q'){ e.preventDefault(); setInteriorFloor(interior.floor+1); return; }
+    if(e.key==='PageDown'||e.key==='e'||e.key==='E'){ e.preventDefault(); setInteriorFloor(interior.floor-1); return; }
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); placeInteriorRoom(interior.floor,interior.cx,interior.cy,roomType); return; }
+    if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); clearInteriorRoom(interior.floor,interior.cx,interior.cy); return; }
+    if(e.key==='Escape'){ e.preventDefault(); exitInterior(); return; }
+    return;
+  }
   if(e.code==='Space'){ e.preventDefault(); setPause(!paused); }
   if(e.key==='+'||e.key==='=') zoomAt(1.2,CW/2,CH/2);
   if(e.key==='-'||e.key==='_') zoomAt(0.83,CW/2,CH/2);
   if(e.key==='Escape') setTool('inspect');
+  if(!interior && (e.key==='ArrowUp'||e.key==='w'||e.key==='W')){ nudgeMobCursor(0,-1); e.preventDefault(); }
+  if(!interior && (e.key==='ArrowDown'||e.key==='s'||e.key==='S')){ nudgeMobCursor(0,1); e.preventDefault(); }
+  if(!interior && (e.key==='ArrowLeft'||e.key==='a'||e.key==='A')){ nudgeMobCursor(-1,0); e.preventDefault(); }
+  if(!interior && (e.key==='ArrowRight'||e.key==='d'||e.key==='D')){ nudgeMobCursor(1,0); e.preventDefault(); }
   if(e.key==='q'||e.key==='Q') rotateView(-1);
   if(e.key==='e'||e.key==='E') rotateView(1);
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); undoLastBuild(); }
