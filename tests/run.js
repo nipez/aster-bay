@@ -49,7 +49,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildings,bldMap,tkey,
   INTERS,peds,cars,stats,recompute,exportCity,importCity,getDay:()=>day,
-  igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,
+  igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,fireTrucks,findFireDispatch,
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
   setBlockColor:c=>{blockColor=c;},applyBootParams,
@@ -106,12 +106,13 @@ A(station && station.kind === 'fire', 'fire station placed');
 A(H.coveredBy('fire', station.x + 3, station.y + 3), 'coverage radius works');
 
 const victim = [...H.bldMap.values()].find(b => !b.landmark && b.use !== 'civic'
-  && Math.hypot(b.x - station.x, b.y - station.y) <= 7);
+  && H.findFireDispatch(b));
 A(!!victim, 'found a covered building');
 const nBefore = H.buildings.length;
 H.igniteAt(victim);
 A(!!victim.fire, 'covered building ignited');
-run(200);
+A(H.fireTrucks.length > 0, 'fire truck dispatched');
+run(700);
 A(!victim.fire, 'covered fire extinguished in time');
 A(H.buildings.length === nBefore, 'covered building survived');
 

@@ -313,7 +313,7 @@
   <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · must touch a road</small></span></button>
   <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
-  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · douses fires nearby</small></span></button>
+  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · trucks roll on roads</small></span></button>
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
   <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · add 4×4 grid</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
@@ -698,9 +698,11 @@ const CARKIND=['hatchback','sedan','little van','pickup','coupe','wagon'];
 const PEDFLAVOR=['off to work','out for a stroll','late for brunch','headed to the park','people-watching','on a coffee run','window shopping','thinking big thoughts','enjoying the weather','admiring your zoning choices'];
 let nameI=0, carI=0;
 
-// ---------- cars ----------
+// ---------- cars & fire trucks ----------
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 const cars=[];
+const fireTrucks=[];
+let fireTruckI=0;
 const roadCong=new Map(); // tile key -> cars currently on that road tile
 const CONG_SLOW=0.38;     // min speed multiplier on packed roads
 function tileCong(x,y){ return roadCong.get(tkey(x,y))||0; }
@@ -784,6 +786,121 @@ function carPos(c){
   const ox1=-c.pdy*LANE, oy1=c.pdx*LANE, ox2=-c.dy*LANE, oy2=c.dx*LANE;
   const t=clamp(c.p*2,0,1);
   return {x:lerp(c.fx,c.tx,c.p)+0.5+lerp(ox1,ox2,t), y:lerp(c.fy,c.ty,c.p)+0.5+lerp(oy1,oy2,t)};
+}
+function roadTileNeighbors(x,y){
+  const out=[];
+  for(const d of DIRS){
+    const nx=x+d[0], ny=y+d[1];
+    if(roadAt(nx,ny)) out.push([nx,ny]);
+  }
+  return out;
+}
+function nearestRoadTile(x,y,maxR=6){
+  let best=null, bestD=1e9;
+  for(let dx=-maxR;dx<=maxR;dx++) for(let dy=-maxR;dy<=maxR;dy++){
+    const nx=x+dx, ny=y+dy;
+    if(!roadAt(nx,ny)) continue;
+    const d=Math.hypot(dx,dy);
+    if(d<bestD){ bestD=d; best=[nx,ny]; }
+  }
+  return best;
+}
+function roadPath(sx,sy,gx,gy,limit=600){
+  if(sx===gx&&sy===gy) return [];
+  const start=tkey(sx,sy), goal=tkey(gx,gy);
+  const q=[[sx,sy]], prev=new Map();
+  prev.set(start,null);
+  let head=0, found=false;
+  while(head<q.length&&!found){
+    if(head>=limit) break;
+    const [x,y]=q[head++];
+    for(const [nx,ny] of roadTileNeighbors(x,y)){
+      const k=tkey(nx,ny);
+      if(prev.has(k)) continue;
+      prev.set(k,[x,y]);
+      if(k===goal){ found=true; break; }
+      q.push([nx,ny]);
+    }
+  }
+  if(!found) return null;
+  const path=[];
+  let cx=gx, cy=gy;
+  while(tkey(cx,cy)!==start){
+    path.unshift([cx,cy]);
+    const p=prev.get(tkey(cx,cy));
+    cx=p[0]; cy=p[1];
+  }
+  return path;
+}
+function findFireDispatch(b){
+  let best=null, bestD=1e9;
+  for(const s of stationsOf('fire')){
+    const d=Math.hypot(s.x-b.x, s.y-b.y);
+    if(d>FIRE_R) continue;
+    const from=nearestRoadTile(s.x,s.y), to=nearestRoadTile(b.x,b.y);
+    if(!from||!to) continue;
+    const path=roadPath(from[0],from[1],to[0],to[1]);
+    if(!path) continue;
+    if(d<bestD){ bestD=d; best={station:s, from, to, path}; }
+  }
+  return best;
+}
+function spawnFireTruck(info,b){
+  const [sx,sy]=info.from;
+  let tx=sx, ty=sy, dx=1, dy=0;
+  if(info.path.length){
+    tx=info.path[0][0]; ty=info.path[0][1];
+    dx=tx-sx; dy=ty-sy;
+  }
+  const phase=info.path.length?'enroute':'fighting';
+  fireTrucks.push({
+    fx:sx, fy:sy, tx, ty, p:0,
+    dx:Math.sign(dx)||1, dy:Math.sign(dy)||0,
+    pdx:Math.sign(dx)||1, pdy:Math.sign(dy)||0,
+    path:info.path, pathStep:0,
+    speed:3.4, phase, fightT:0, target:b,
+    color:'#d6453c', name:'Engine '+(++fireTruckI),
+    wait:0, sx:0, sy:0, kind:'firetruck',
+  });
+}
+function fireTruckOnScene(b){
+  return fireTrucks.some(t=>t.target===b && t.phase==='fighting');
+}
+function clearFireTrucksFor(b){
+  for(let i=fireTrucks.length-1;i>=0;i--) if(fireTrucks[i].target===b) fireTrucks.splice(i,1);
+}
+function updateFireTrucks(dt){
+  for(let i=fireTrucks.length-1;i>=0;i--){
+    const t=fireTrucks[i];
+    if(!t.target||!t.target.fire){
+      fireTrucks.splice(i,1);
+      continue;
+    }
+    if(t.phase==='fighting'){
+      t.fightT+=dt;
+      if(t.fightT>=4){
+        t.target.fire=null;
+        toast('Fire out — crew saved the day','ok');
+        fireTrucks.splice(i,1);
+      }
+      continue;
+    }
+    t.p+=dt*t.speed;
+    while(t.p>=1){
+      t.p-=1;
+      t.fx=t.tx; t.fy=t.ty;
+      if(t.pathStep>=t.path.length){
+        t.phase='fighting';
+        t.p=0;
+        break;
+      }
+      const step=t.path[t.pathStep++];
+      t.tx=step[0]; t.ty=step[1];
+      t.pdx=t.dx; t.pdy=t.dy;
+      t.dx=Math.sign(t.tx-t.fx)||t.dx;
+      t.dy=Math.sign(t.ty-t.fy)||t.dy;
+    }
+  }
 }
 
 // ---------- pedestrians ----------
@@ -1227,7 +1344,7 @@ function economyTick(){
 // ---------- civic coverage · fires · milestones ----------
 let eventsOn=true, fireRollT=0;
 const scorch=new Set();
-const FIRE_R=7, SCHOOL_R=6;
+const FIRE_R=12, SCHOOL_R=6, FIRE_FIGHT=4;
 function stationsOf(kind){ return buildings.filter(b=>b.use==='civic'&&b.kind===kind); }
 function coveredBy(kind,x,y){
   const Rr=kind==='fire'?FIRE_R:SCHOOL_R;
@@ -1235,8 +1352,17 @@ function coveredBy(kind,x,y){
 }
 function igniteAt(b){
   if(!b||b.fire||b.landmark||(b.use==='civic'&&b.kind==='fire')) return;
-  b.fire={t:0,covered:coveredBy('fire',b.x,b.y),spreadT:0};
-  toast(b.fire.covered?'🔥 Fire! Crews are already rolling':'🔥 Fire! No station in range…', b.fire.covered?'ok':'err');
+  const dispatch=findFireDispatch(b);
+  b.fire={t:0,spreadT:0};
+  if(dispatch){
+    spawnFireTruck(dispatch,b);
+    toast('🔥 Fire! Truck rolling from the station','ok');
+    return;
+  }
+  const near=stationsOf('fire').some(s=>Math.hypot(s.x-b.x,s.y-b.y)<=FIRE_R);
+  toast(near
+    ? '🔥 Fire! Station nearby but no road route — pave a connection'
+    : '🔥 Fire! No fire station in range','err');
 }
 function updateFires(sdt){
   if(eventsOn && mode!=='creative'){
@@ -1244,33 +1370,30 @@ function updateFires(sdt){
     const HOUR=DAY_LEN/24;
     while(fireRollT>HOUR){
       fireRollT-=HOUR;
-      if(R()<clamp(buildings.length*0.0009,0.02,0.12)) igniteAt(pick(buildings));
+      if(R()<clamp(buildings.length*0.0002,0.003,0.018)) igniteAt(pick(buildings));
     }
   }
+  updateFireTrucks(sdt);
   for(let i=buildings.length-1;i>=0;i--){
     const b=buildings[i];
     if(!b.fire) continue;
     b.fire.t+=sdt;
-    b.fire.covered=coveredBy('fire',b.x,b.y);
-    if(b.fire.covered && b.fire.t>4){
-      b.fire=null; toast('Fire out — nice coverage, Mayor','ok'); continue;
+    if(fireTruckOnScene(b)) continue;
+    b.fire.spreadT+=sdt;
+    if(b.fire.spreadT>3){
+      b.fire.spreadT=0;
+      if(R()<0.3){
+        const n=[bldMap.get(tkey(b.x+1,b.y)),bldMap.get(tkey(b.x-1,b.y)),
+                 bldMap.get(tkey(b.x,b.y+1)),bldMap.get(tkey(b.x,b.y-1))].filter(Boolean);
+        if(n.length) igniteAt(pick(n));
+      }
     }
-    if(!b.fire.covered){
-      b.fire.spreadT+=sdt;
-      if(b.fire.spreadT>3){
-        b.fire.spreadT=0;
-        if(R()<0.3){
-          const n=[bldMap.get(tkey(b.x+1,b.y)),bldMap.get(tkey(b.x-1,b.y)),
-                   bldMap.get(tkey(b.x,b.y+1)),bldMap.get(tkey(b.x,b.y-1))].filter(Boolean);
-          if(n.length) igniteAt(pick(n));
-        }
-      }
-      if(b.fire.t>12){
-        scorch.add(tkey(b.x,b.y));
-        removeBuildingAt(b.x,b.y);
-        toast('💥 Building lost to fire','err');
-        recompute();
-      }
+    if(b.fire.t>12){
+      scorch.add(tkey(b.x,b.y));
+      clearFireTrucksFor(b);
+      removeBuildingAt(b.x,b.y);
+      toast('💥 Building lost to fire','err');
+      recompute();
     }
   }
 }
@@ -1950,19 +2073,25 @@ function drawCar(c, animT){
   if(night>0.3&&c.wait<=0){
     const hx=pos.x+along[0]*L, hy=pos.y+along[1]*L;
     const h1=iso(hx-bx_*0.6,hy-by_*0.6,6), h2=iso(hx+bx_*0.6,hy+by_*0.6,6);
-    ctx.fillStyle='#fff3c4';
-    ctx.beginPath(); ctx.arc(h1.x,h1.y,1.6,0,Math.PI*2); ctx.arc(h2.x,h2.y,1.6,0,Math.PI*2); ctx.fill();
-    const fx=pos.x+along[0]*1.0, fy=pos.y+along[1]*1.0;
-    const t1=iso(fx-bx_*2.2,fy-by_*2.2,1), t2=iso(fx+bx_*2.2,fy+by_*2.2,1);
-    const mid=iso(hx,hy,5);
-    const g=ctx.createLinearGradient(mid.x,mid.y,(t1.x+t2.x)/2,(t1.y+t2.y)/2);
-    g.addColorStop(0,`rgba(255,240,180,${0.32*night})`); g.addColorStop(1,'rgba(255,240,180,0)');
-    quad(iso(hx-bx_,hy-by_,4),iso(hx+bx_,hy+by_,4),t2,t1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.fill();
-    const tx_=pos.x-along[0]*L, ty_=pos.y-along[1]*L;
-    const tl=iso(tx_,ty_,6);
-    ctx.fillStyle='rgba(255,80,80,.8)';
-    ctx.beginPath(); ctx.arc(tl.x,tl.y,1.4,0,Math.PI*2); ctx.fill();
+    if(c.kind==='firetruck'){
+      const flash=Math.sin(animT*14)>0;
+      ctx.fillStyle=flash?'#ff5a52':'#4f9dde';
+      ctx.beginPath(); ctx.arc(h1.x,h1.y,2,0,Math.PI*2); ctx.arc(h2.x,h2.y,2,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle='#fff3c4';
+      ctx.beginPath(); ctx.arc(h1.x,h1.y,1.6,0,Math.PI*2); ctx.arc(h2.x,h2.y,1.6,0,Math.PI*2); ctx.fill();
+      const fx=pos.x+along[0]*1.0, fy=pos.y+along[1]*1.0;
+      const t1=iso(fx-bx_*2.2,fy-by_*2.2,1), t2=iso(fx+bx_*2.2,fy+by_*2.2,1);
+      const mid=iso(hx,hy,5);
+      const g=ctx.createLinearGradient(mid.x,mid.y,(t1.x+t2.x)/2,(t1.y+t2.y)/2);
+      g.addColorStop(0,`rgba(255,240,180,${0.32*night})`); g.addColorStop(1,'rgba(255,240,180,0)');
+      quad(iso(hx-bx_,hy-by_,4),iso(hx+bx_,hy+by_,4),t2,t1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fill();
+      const tx_=pos.x-along[0]*L, ty_=pos.y-along[1]*L;
+      const tl=iso(tx_,ty_,6);
+      ctx.fillStyle='rgba(255,80,80,.8)';
+      ctx.beginPath(); ctx.arc(tl.x,tl.y,1.4,0,Math.PI*2); ctx.fill();
+    }
   }
   c.sx=p0.x; c.sy=p0.y-12;
 }
@@ -2114,6 +2243,7 @@ function render(animT){
   if(fountain) items.push({d:sortD(fountain.x,fountain.y), f:()=>drawFountain(animT)});
   for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:sortD(it.x,it.y,0.2), f:()=>drawTrafficLight(it,simClock)});
   for(const c of cars){ const p=carPos(c); items.push({d:sortD(p.x,p.y), f:()=>drawCar(c,animT)}); }
+  for(const t of fireTrucks){ const p=carPos(t); items.push({d:sortD(p.x,p.y,0.05), f:()=>drawCar(t,animT)}); }
   for(const p of peds){ const q=pedPos(p); items.push({d:sortD(q.x,q.y), f:()=>drawPed(p,animT)}); }
   for(const w of walkers){
     const q=pedPos(w);
@@ -2133,6 +2263,7 @@ function render(animT){
   for(const w of walkers) label(w.sx, w.sy-2, w.name, true);
   if(cam.z>=1.7){
     for(const c of cars) label(c.sx,c.sy-6,c.name,false);
+    for(const t of fireTrucks) label(t.sx,t.sy-6,t.name,true);
     for(const p of peds) label(p.sx,p.sy-2,p.name,false);
   }
   ctx.textAlign='start';
@@ -2249,7 +2380,7 @@ function importCity(data){
   undoStack.length=0;
   updateUndoBtn();
   rebuildLights();
-  cars.length=0; peds.length=0;
+  cars.length=0; fireTrucks.length=0; peds.length=0;
   importWalkers(data);
   recompute();
   rankIdx = data.rankIdx!==undefined ? data.rankIdx : currentRank();
@@ -2328,7 +2459,7 @@ function bldLabel(b){
   if(b.landmark) return '🗼 <b>Aster Spire</b> · city landmark'+burn;
   if(b.use==='res') return `🏠 <b>Housing</b> · ${b.stories} ${b.stories>1?'storeys':'storey'} · ${b.capacity} residents${burn}`;
   if(b.use==='com') return `🏬 <b>Shop</b> · ${b.jobs} jobs${burn}`;
-  if(b.kind==='fire') return '🚒 <b>Fire station</b> · douses fires within '+FIRE_R+' tiles'+burn;
+  if(b.kind==='fire') return '🚒 <b>Fire station</b> · trucks dispatch within '+FIRE_R+' tiles'+burn;
   return '🏫 <b>School</b> · happier residents within '+SCHOOL_R+' tiles'+burn;
 }
 function nearestAgent(mx,my,maxD){
