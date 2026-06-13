@@ -58,6 +58,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
   tryExpand,availableExpansions,getDistricts:()=>districts,
+  undoCreative,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
@@ -305,12 +306,15 @@ H.tryPlace(bspot[0], bspot[1]);
 const tower = H.blockMap.get(H.tkey(bspot[0], bspot[1]));
 A(tower && tower.colors.length === 3, 'blocks stack (3 high)');
 A(tower.colors[0] === '#e2574c' && tower.colors[2] === '#ffd23e', 'per-block colors kept');
+A(H.getUndoLen() >= 3, 'creative builds push undo stack');
+H.undoCreative();
+A(tower.colors.length === 2, 'undo removes last block');
 A(H.getCash() === cashC, 'creative mode is free');
 
 H.setTool('dozer');
 H.tryPlace(bspot[0], bspot[1]);
-A(tower.colors.length === 2, 'dozer pops one block at a time');
-H.tryPlace(bspot[0], bspot[1]); H.tryPlace(bspot[0], bspot[1]);
+A(tower.colors.length === 1, 'dozer pops one block at a time');
+H.tryPlace(bspot[0], bspot[1]);
 A(!H.blockMap.has(H.tkey(bspot[0], bspot[1])), 'empty tower removed');
 
 // mayor mode charges for blocks
@@ -321,6 +325,15 @@ if (H.canPlace('block', bspot[0], bspot[1])) {
   H.tryPlace(bspot[0], bspot[1]);
   A(H.getCash() === cashM - 25, 'mayor mode charges $25 per block');
 }
+
+// ---------- traffic congestion ----------
+console.log('\ntraffic congestion');
+H.recompute();
+const happyClear = H.getHappy();
+H.roadCong.set('12,12', 4);
+A(H.congestionPenalty() > 0.3, 'congestion detected on busy roads');
+H.recompute();
+A(H.getHappy() < happyClear, 'congestion lowers happiness');
 
 // ---------- v0.5: v4 save round trip ----------
 console.log('\nv4 saves');
