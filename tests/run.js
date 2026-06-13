@@ -62,7 +62,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
   fitCityView,cityBounds,getCamZ:()=>cam.z,
-  tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,
+  tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,roadNeighbors,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive,
@@ -207,6 +207,31 @@ for (let y = 29; y <= 48; y++) {
 }
 A(paved >= 8, `paved ${paved} tiles into the wilderness`);
 A([...H.edits.values()].filter(t=>t==='walk').length > 0, 'wilderness road grew sidewalks');
+
+// ---------- bridges on water ----------
+console.log('\nbridges');
+H.setMode('mayor');
+H.setTool('road');
+let bridgeSpot = null;
+for (let y = 29; y <= 80; y++) {
+  if (H.tileAt(10, y) === 'water') {
+    if (H.roadNeighbors(10, y).length > 0) { bridgeSpot = [10, y]; break; }
+    continue;
+  }
+  if (H.canPlace('road', 10, y)) H.tryPlace(10, y);
+}
+A(!!bridgeSpot, 'found water tile beside a road');
+if (bridgeSpot) {
+  const cashB = H.getCash();
+  A(H.canPlace('road', bridgeSpot[0], bridgeSpot[1]), 'bridge spot is placeable');
+  H.tryPlace(bridgeSpot[0], bridgeSpot[1]);
+  A(H.tileAt(bridgeSpot[0], bridgeSpot[1]) === 'bridge', 'water tile became bridge');
+  A(H.getCash() === cashB - 360, 'bridge costs 3× road price');
+  A(H.roadNeighbors(bridgeSpot[0], bridgeSpot[1]).length > 0, 'bridge connects to road graph');
+  const nCars0 = H.cars.length;
+  run(400);
+  A(H.cars.length >= nCars0, 'cars still spawn with bridge roads');
+}
 
 // ---------- boot URL params ----------
 console.log('\nboot params');
