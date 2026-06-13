@@ -3736,6 +3736,12 @@ mqCompact.addEventListener('change', e=>{
   updateMobUI();
 });
 $('findMin')?.addEventListener('click', ()=> setTool('inspect'));
+function typingInField(){
+  const el=document.activeElement;
+  if(!el||el===document.body) return false;
+  const tag=el.tagName;
+  return tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||el.isContentEditable;
+}
 window.addEventListener('keydown', e=>{
   if(interior){
     if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){ e.preventDefault(); nudgeInteriorCursor(0,-1); return; }
@@ -3749,6 +3755,7 @@ window.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ e.preventDefault(); exitInterior(); return; }
     return;
   }
+  if(typingInField()) return;
   if(e.code==='Space'){ e.preventDefault(); setPause(!paused); }
   if(e.key==='+'||e.key==='=') zoomAt(1.2,CW/2,CH/2);
   if(e.key==='-'||e.key==='_') zoomAt(0.83,CW/2,CH/2);
