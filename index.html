@@ -124,7 +124,20 @@
     display:flex; flex-direction:column; gap:6px;
     background:var(--panel); padding:9px; border-radius:16px;
     backdrop-filter:blur(8px); box-shadow:0 6px 24px #0008; border:1px solid #ffffff14;
+    z-index:6;
+    transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .25s ease;
   }
+  body.dock-collapsed .tools{
+    transform:translate(calc(-100% - 36px), -42%);
+    opacity:0; pointer-events:none;
+  }
+  .dock-hide{
+    appearance:none; border:1px solid #ffffff22; cursor:pointer;
+    background:#ffffff10; color:var(--dim); border-radius:9px;
+    padding:4px 8px; font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    align-self:flex-end; margin:-2px 0 2px;
+  }
+  .dock-hide:active{transform:scale(.94);}
   .tools button{
     appearance:none; border:none; cursor:pointer; color:var(--ink);
     background:#ffffff10; border-radius:11px; padding:7px 10px;
@@ -272,8 +285,57 @@
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .bar-peek.on{background:var(--accent); color:#23201a;}
+  .dock-peek{
+    display:none; position:fixed; z-index:8; appearance:none;
+    border:1px solid #ffffff1c; cursor:pointer;
+    background:var(--panel); color:var(--ink); border-radius:12px;
+    padding:8px 11px; font-size:15px; font-weight:800;
+    box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
+  }
+  .dock-peek.on{background:var(--accent); color:#23201a;}
+  body:not(.dock-collapsed) .dock-peek.side{display:none;}
+  .dock-peek.side{
+    left:calc(6px + env(safe-area-inset-left)); top:50%;
+    transform:translateY(-50%); border-radius:0 12px 12px 0; padding:10px 8px;
+  }
+  .find-panel{
+    display:none; position:fixed; z-index:10; pointer-events:auto;
+    right:calc(10px + env(safe-area-inset-right));
+    top:calc(10px + env(safe-area-inset-top));
+    width:min(92vw, 248px); max-height:min(52vh, 360px);
+    background:var(--panel); color:var(--ink);
+    border:1px solid #ffffff18; border-radius:14px; padding:10px 12px;
+    box-shadow:0 6px 24px #0009; backdrop-filter:blur(8px);
+    flex-direction:column; gap:8px;
+  }
+  body.find-mode .find-panel.show{display:flex;}
+  .find-head{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800;}
+  .find-head span:first-child{flex:1;}
+  #findScore{color:var(--accent); font-variant-numeric:tabular-nums;}
+  .find-head button{
+    appearance:none; border:1px solid #ffffff22; cursor:pointer;
+    background:#ffffff10; color:var(--ink); border-radius:8px;
+    width:28px; height:28px; font-size:12px;
+  }
+  .find-list{margin:0; padding:0; list-style:none; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .find-item{
+    padding:6px 8px; margin-bottom:4px; border-radius:9px;
+    background:#ffffff08; border:1px solid transparent; font-size:11.5px; line-height:1.35;
+  }
+  .find-item.found{opacity:.55; border-color:#67d18a44;}
+  .find-item.found .find-lbl{text-decoration:line-through;}
+  .find-item .find-lbl{font-weight:800; display:block;}
+  .find-item .find-hint{color:var(--dim); font-size:10.5px;}
+  .find-item.found .find-hint::after{content:' ✓ found!';}
+  body.find-mode canvas{cursor:crosshair;}
 
-  @media (max-width:760px){
+  body.dock-collapsed .dock-hide{display:none;}
+
+  @media (max-width:1024px){
+    body:not(.dock-collapsed) .dock-hide::after{content:' hide';}
+    .dock-hide::before{content:'▼';}
+    .dock-hide{font-size:0; padding:6px 10px;}
+    .dock-hide::before,.dock-hide::after{font-size:11px;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -287,7 +349,22 @@
     .mob-ctrl.show{bottom:calc(132px + env(safe-area-inset-bottom));}
     body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
     .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
+    .dock-peek.bottom{display:block; bottom:calc(10px + env(safe-area-inset-left)); left:calc(10px + env(safe-area-inset-left)); transform:none;}
+    body.dock-collapsed .dock{
+      transform:translateX(-50%) translateY(calc(100% + 36px));
+      pointer-events:none;
+    }
+    body.dock-collapsed .tools{
+      transform:none; opacity:1; pointer-events:auto;
+    }
+    body.dock-collapsed .dock .tools,
+    body.dock-collapsed .dock .bar{pointer-events:none;}
+    body.dock-collapsed .dock-peek.bottom{pointer-events:auto;}
+    body.dock-collapsed .mob-ctrl.show,
+    body.dock-collapsed .mob-cap.show{bottom:calc(56px + env(safe-area-inset-bottom));}
+    body.dock-collapsed .bar-peek{display:none;}
     body.bar-collapsed .dock .bar{display:none;}
+    body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
     body.creative .tools .adv:not([data-t="expand"]){display:none;}
     body.creative .tools .gap.adv:not(.expand-gap){display:none;}
     .bar .spd{display:none;}
@@ -296,6 +373,7 @@
       position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom));
       transform:translateX(-50%); width:max-content; max-width:96vw; z-index:6;
       pointer-events:none;
+      transition:transform .32s cubic-bezier(.4,0,.2,1);
     }
     .dock > *{pointer-events:auto;}
     .tools{
@@ -364,9 +442,11 @@
 
 <div class="dock">
 <div class="tools" role="toolbar" aria-label="Build tools">
+  <button type="button" id="dockHide" class="dock-hide" aria-label="Hide build tools">◀ hide</button>
   <button id="bMode"><span class="ico">🎮</span><span class="lbl" id="modeLbl">Mayor mode<small>tap for creative</small></span></button>
   <div class="gap"></div>
   <button class="tool on" data-t="inspect"><span class="ico">🖐</span><span class="lbl">Inspect<small>hover the city</small></span></button>
+  <button class="tool" data-t="find"><span class="ico">🔍</span><span class="lbl">Find<small>spot people & pets</small></span></button>
   <div class="gap"></div>
   <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · tap green tiles</small></span></button>
   <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
@@ -431,6 +511,16 @@
   <div id="intRooms" class="int-rooms" aria-label="Room types"></div>
 </div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
+<button type="button" id="dockPeek" class="dock-peek side" aria-label="Show build tools">🛠</button>
+<button type="button" id="dockPeekMob" class="dock-peek bottom" aria-label="Show build tools">🛠</button>
+<div id="findPanel" class="find-panel" aria-hidden="true">
+  <div class="find-head">
+    <span>🔍 Find game</span>
+    <span id="findScore">0/0</span>
+    <button type="button" id="findMin" aria-label="Hide checklist">▴</button>
+  </div>
+  <ul id="findList" class="find-list"></ul>
+</div>
 <div id="tip"></div>
 <div id="toasts"></div>
 <div class="hint">pick a tool · D-pad + Place to build (or click on desktop)<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
@@ -846,6 +936,137 @@ function nearestExpansion(x,y){
   return bestD<3.5 ? best : null;
 }
 seedDistrict(0,0,true);
+
+// ---------- find game (Where's Waldo) ----------
+const findHidden=[], findGoals=[];
+const FIND_NAMES={
+  squirrel:['Nutkin','Pip','Acorn'],
+  cat:['Marmalade','Whiskers','Tofu'],
+  bird:['Peep','Skye','Chirp'],
+  butterfly:['Brite','Flutter'],
+  balloon:['Bob the balloon','Lulu'],
+};
+function seedFindHidden(){
+  findHidden.length=0;
+  const kinds=[
+    {k:'squirrel',icon:'🐿',hint:'Tiny friend in the grass or park'},
+    {k:'cat',icon:'🐱',hint:'Napping somewhere sunny'},
+    {k:'bird',icon:'🐦',hint:'Perched near trees or roofs'},
+    {k:'butterfly',icon:'🦋',hint:'Fluttering over flowers'},
+    {k:'balloon',icon:'🎈',hint:'Floating near sidewalks'},
+  ];
+  for(let i=0;i<12;i++){
+    const x=8+((hash(i,3,900)*40)|0), y=8+((hash(i,7,901)*40)|0);
+    const t=tileAt(x,y);
+    if(t!=='grass'&&t!=='walk'&&t!=='lot'&&t!=='park'&&!parkSet.has(tkey(x,y))) continue;
+    const kind=kinds[i%kinds.length];
+    const names=FIND_NAMES[kind.k];
+    findHidden.push({
+      id:'critter-'+i, x:x+0.35+hash(x,y,i)*0.3, y:y+0.35+hash(y,x,i)*0.3,
+      icon:kind.icon, label:kind.icon+' '+names[(hash(x,y,i)*names.length)|0],
+      hint:kind.hint, found:false,
+    });
+    if(findHidden.length>=8) break;
+  }
+}
+function rebuildFindGoals(){
+  findGoals.length=0;
+  const add=(id,kind,label,hint,extra={})=>findGoals.push({id,kind,label,hint,found:findFound.has(id),...extra});
+  add('spire','spire','🗼 Aster Spire','The tallest downtown landmark');
+  add('fountain','fountain','⛲ Plaza fountain','Splashing water in the square');
+  add('fire_truck','fire_truck','🚒 Fire truck','Rolling on the roads');
+  add('red_car','car_red','🔴 Red car','Look for a ruby-colored sedan');
+  add('walker','walker','📍 Named walker','Someone you added in stats');
+  add('bench','bench','🪑 Park bench','A seat in the greenery');
+  add('block','block','🧱 Block tower','Colorful stacked cubes');
+  add('ped','ped','🚶 A local','Any person out for a stroll');
+  for(const h of findHidden){
+    h.found=findFound.has(h.id);
+    add(h.id,'hidden',h.label,h.hint,{ref:h});
+  }
+}
+const findFound=new Set();
+function findScore(){ return findGoals.filter(g=>g.found).length; }
+function markFound(id){
+  const g=findGoals.find(x=>x.id===id);
+  if(!g||g.found) return false;
+  g.found=true;
+  findFound.add(id);
+  if(g.ref) g.ref.found=true;
+  updateFindPanel();
+  toast('Found: '+g.label.replace(/^[^\s]+\s/,'')+' 🎉','ok');
+  if(findScore()===findGoals.length) toast('🏆 You found everything in Aster Bay!','ok');
+  return true;
+}
+function screenDist(mx,my,sx,sy){ return Math.hypot(mx-sx, my-sy); }
+function tryFindAt(mx,my){
+  let hit=null, bestD=34;
+  for(const h of findHidden){
+    if(h.found) continue;
+    const s=worldToScreen(iso(h.x,h.y,0).x, iso(h.x,h.y,0).y);
+    const d=screenDist(mx,my,s.x,s.y);
+    if(d<bestD){ bestD=d; hit={id:h.id}; }
+  }
+  if(fountain){
+    const s=worldToScreen(iso(fountain.x,fountain.y,0).x, iso(fountain.x,fountain.y,0).y);
+    if(screenDist(mx,my,s.x,s.y)<36) hit={id:'fountain'};
+  }
+  for(const b of buildings){
+    if(!b.landmark) continue;
+    const s=worldToScreen(iso(b.x+0.5,b.y+0.5,1).x, iso(b.x+0.5,b.y+0.5,1).y);
+    if(screenDist(mx,my,s.x,s.y)<40) hit={id:'spire'};
+  }
+  for(const bn of benches){
+    const s=worldToScreen(iso(bn.x,bn.y,0).x, iso(bn.x,bn.y,0).y);
+    if(screenDist(mx,my,s.x,s.y)<28) hit={id:'bench'};
+  }
+  for(const [k,bk] of blockMap){
+    const s=worldToScreen(iso(bk.x+0.5,bk.y+0.5,1).x, iso(bk.x+0.5,bk.y+0.5,1).y);
+    if(screenDist(mx,my,s.x,s.y)<32) hit={id:'block'};
+  }
+  const ag=nearestAgent(mx,my,30);
+  if(ag){
+    if(ag.kind==='car'&&ag.a.kind==='firetruck') hit={id:'fire_truck'};
+    else if(ag.kind==='car'&&ag.a.color==='#e2574c') hit={id:'red_car'};
+    else if(ag.a.isYou) hit={id:'walker'};
+    else if(ag.kind==='ped') hit={id:'ped'};
+  }
+  if(hit) return markFound(hit.id);
+  toast('Keep looking — tap what you spot!','err');
+  return false;
+}
+function drawFindHidden(h, animT){
+  if(h.found) return;
+  const g=iso(h.x,h.y,0);
+  const bob=Math.sin(animT*3+h.x)*1.2;
+  ctx.font=(11+Math.sin(animT*2+h.y)*1)+'px ui-rounded,system-ui,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(h.icon, g.x, g.y-10+bob);
+  ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+}
+function updateFindPanel(){
+  const panel=$('findPanel'), list=$('findList'), score=$('findScore');
+  if(!panel||!list) return;
+  const on=tool==='find';
+  panel.classList.toggle('show', on);
+  panel.setAttribute('aria-hidden', on?'false':'true');
+  if(score) score.textContent=findScore()+'/'+findGoals.length;
+  list.innerHTML='';
+  for(const g of findGoals){
+    const li=document.createElement('li');
+    li.className='find-item'+(g.found?' found':'');
+    li.innerHTML='<span class="find-lbl">'+g.label+'</span><span class="find-hint">'+g.hint+'</span>';
+    list.appendChild(li);
+  }
+}
+function importFindFound(arr){
+  findFound.clear();
+  for(const id of (arr||[])) findFound.add(id);
+  for(const h of findHidden) h.found=findFound.has(h.id);
+  rebuildFindGoals();
+}
+seedFindHidden();
+rebuildFindGoals();
 
 // ---------- traffic lights (dynamic) ----------
 let INTERS=[];
@@ -2747,6 +2968,7 @@ function render(animT){
   const inR=(x,y)=>x>=rng.x0&&x<=rng.x1&&y>=rng.y0&&y<=rng.y1;
   for(let x=rng.x0;x<=rng.x1;x++) for(let y=rng.y0;y<=rng.y1;y++)
     if(hasProcTree(x,y)){ const tr=procTreeObj(x,y); items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)}); }
+  for(const h of findHidden) if(inR(h.x|0,h.y|0)) items.push({d:sortD(h.x,h.y,0.05), f:()=>drawFindHidden(h,animT)});
   for(const b of buildings) if(inR(b.x,b.y)) items.push({d:sortD(b.x,b.y,1), f:()=>drawBuilding(b,animT)});
   for(const bk of blocks)   if(inR(bk.x,bk.y)) items.push({d:sortD(bk.x,bk.y,1), f:()=>drawBlock(bk)});
   for(const tr of trees)    if(inR(tr.x,tr.y)) items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)});
@@ -2795,8 +3017,9 @@ const elCash=$('cash'), elClock=$('clock'), elPhase=$('phase'),
 const hud=$('hud'), hudChip=$('hudChip'), hudClose=$('hudClose'),
       chipCash=$('chipCash'), chipClock=$('chipClock');
 const mqMobile=typeof window.matchMedia==='function'
-  ? window.matchMedia('(max-width:760px)')
+  ? window.matchMedia('(max-width:1024px)')
   : {matches:false, addEventListener:()=>{}};
+const mqCompact=mqMobile;
 const mqCoarse=typeof window.matchMedia==='function'
   ? window.matchMedia('(pointer: coarse)')
   : {matches:false};
@@ -2805,8 +3028,8 @@ function prefersMobPlace(){
 }
 function showMobBuildUI(){
   if(interior) return true;
-  if(tool==='inspect') return false;
-  return true; // any build tool — desktop, tablet, and phone
+  if(tool==='inspect'||tool==='find') return false;
+  return true;
 }
 function hudExpanded(){ return hud.classList.contains('expanded'); }
 function setHudExpanded(open){
@@ -2865,7 +3088,8 @@ function exportCity(){
     parks:[...parkSet], scorch:[...scorch],
     blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
     buildings:buildings.map(b=>{const o={...b}; o.fire=null; return o;}),
-    trees:trees.map(t=>({x:t.x,y:t.y,s:t.s}))};
+    trees:trees.map(t=>({x:t.x,y:t.y,s:t.s})),
+    findFound:[...findFound]};
   exportWalkers(data);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
@@ -2910,6 +3134,7 @@ function importCity(data){
   rebuildLights();
   cars.length=0; fireTrucks.length=0; peds.length=0;
   importWalkers(data);
+  importFindFound(data.findFound);
   recompute();
   rankIdx = data.rankIdx!==undefined ? data.rankIdx : currentRank();
   adjustAgents(); updateHUD();
@@ -3040,6 +3265,11 @@ cv.addEventListener('pointermove', e=>{
     lx=e.clientX; ly=e.clientY;
   }
   hoverTile=screenToTile(e.clientX,e.clientY);
+  if(tool==='find'){
+    hoverAgent=null;
+    if(!tipTimer) tip.style.display='none';
+    return;
+  }
   if(tool!=='inspect'){ hoverAgent=null; if(!tipTimer) tip.style.display='none'; return; }
   if(e.pointerType!=='mouse') return; // touch uses tap-to-inspect
   const best=nearestAgent(e.clientX,e.clientY,20);
@@ -3067,7 +3297,8 @@ cv.addEventListener('pointerup', e=>{
   }
   if(dragging&&!dragMoved){
     const t=screenToTile(e.clientX,e.clientY);
-    if(tool!=='inspect'){
+    if(tool==='find') tryFindAt(e.clientX,e.clientY);
+    else if(tool!=='inspect'){
       if(!prefersMobPlace()) tryPlace(t.x,t.y);
     } else {
       const best=nearestAgent(e.clientX,e.clientY,26);
@@ -3219,9 +3450,15 @@ let expandToolHinted=false, roadToolHinted=false;
 function setTool(t){
   tool=t;
   mobCursor=null;
+  document.body.classList.toggle('find-mode', t==='find');
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
-  cv.classList.toggle('building',t!=='inspect');
+  cv.classList.toggle('building',t!=='inspect'&&t!=='find');
   document.getElementById('palette').classList.toggle('show', t==='block');
+  if(t==='find'){
+    rebuildFindGoals();
+    updateFindPanel();
+    toast('🔍 Find mode — tap people, pets & landmarks','ok');
+  } else updateFindPanel();
   if(t==='expand'&&!expandToolHinted){
     expandToolHinted=true;
     toast('Pave roads to a glowing zone — beside the city or at a road end','ok');
@@ -3236,6 +3473,7 @@ document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.
 const mobCap=$('mobCap'), mobCtrl=$('mobCtrl');
 const TOOL_HINTS={
   inspect:'tap things to learn about them',
+  find:'tap hidden critters, people & landmarks',
   road:'tap a green tile beside a road',
   house:'tap an empty lot by a sidewalk',
   shop:'tap an empty lot by a sidewalk',
@@ -3282,7 +3520,23 @@ tip?.addEventListener('click', e=>{
   const btn=e.target.closest('[data-enter-bld]');
   if(btn) enterInterior(+btn.dataset.x, +btn.dataset.y);
 });
-const barPeek=$('barPeek');
+const barPeek=$('barPeek'), dockPeek=$('dockPeek'), dockPeekMob=$('dockPeekMob');
+let dockCollapsed=false;
+function syncDockPeekBtns(collapsed){
+  const label=collapsed?'🛠':'▼';
+  if(dockPeek){ dockPeek.classList.toggle('on', collapsed); dockPeek.textContent=label; }
+  if(dockPeekMob){ dockPeekMob.classList.toggle('on', collapsed); dockPeekMob.textContent=label; }
+  if(barPeek && mqCompact.matches){
+    barPeek.classList.toggle('on', !collapsed && document.body.classList.contains('bar-collapsed'));
+  }
+}
+function setDockCollapsed(v){
+  if(!document.body) return;
+  dockCollapsed=!!v;
+  document.body.classList.toggle('dock-collapsed', dockCollapsed);
+  syncDockPeekBtns(dockCollapsed);
+  updateMobUI();
+}
 function setBarCollapsed(v){
   if(!document.body) return;
   document.body.classList.toggle('bar-collapsed', v);
@@ -3291,15 +3545,24 @@ function setBarCollapsed(v){
     barPeek.textContent=v?'⏸':'▾';
   }
 }
-if(mqMobile.matches) setBarCollapsed(true);
+function toggleDockCollapsed(){
+  if(!document.body) return;
+  setDockCollapsed(!document.body.classList.contains('dock-collapsed'));
+}
+if(mqCompact.matches) setDockCollapsed(true);
+$('dockHide')?.addEventListener('click', ()=> setDockCollapsed(true));
+dockPeek?.addEventListener('click', toggleDockCollapsed);
+dockPeekMob?.addEventListener('click', toggleDockCollapsed);
+if(mqCompact.matches) setBarCollapsed(true);
 barPeek?.addEventListener('click', ()=>{
   if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
 });
-mqMobile.addEventListener('change', e=>{
-  if(e.matches) setBarCollapsed(true);
-  else setBarCollapsed(false);
+mqCompact.addEventListener('change', e=>{
+  if(e.matches){ setDockCollapsed(true); setBarCollapsed(true); }
+  else{ setDockCollapsed(false); setBarCollapsed(false); }
   updateMobUI();
 });
+$('findMin')?.addEventListener('click', ()=> setTool('inspect'));
 window.addEventListener('keydown', e=>{
   if(interior){
     if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){ e.preventDefault(); nudgeInteriorCursor(0,-1); return; }

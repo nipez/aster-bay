@@ -21,7 +21,7 @@ const ctxStub = new Proxy({}, {
 });
 const elStub = () => ({
   textContent: '', innerHTML: '', style: {}, className: '',
-  classList: { add: noop, remove: noop, toggle: noop },
+  classList: { add: noop, remove: noop, toggle: noop, contains: () => false },
   addEventListener: noop, setPointerCapture: noop,
   dataset: { s: '1', t: 'inspect' }, onclick: null,
   getContext: () => ctxStub, width: 0, height: 0,
@@ -66,7 +66,10 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive,
   enterInterior,exitInterior,placeInteriorRoom,clearInteriorRoom,getRoom,canEnterBuilding,countRooms,
-  nudgeMobCursor,mobPlaceAction,syncMobCursor,getMobCursor:()=>mobCursor,setInteriorFloor};`;
+  nudgeMobCursor,mobPlaceAction,syncMobCursor,getMobCursor:()=>mobCursor,setInteriorFloor,
+  setDockCollapsed,getDockCollapsed:()=>dockCollapsed,
+  setTool,getTool:()=>tool,markFound,getFindScore:()=>findScore(),getFindGoals:()=>findGoals,
+  getFindHidden:()=>findHidden,rebuildFindGoals,importFindFound};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -388,6 +391,27 @@ const x0 = H.getMobCursor().x;
 A(x0 != null, 'build cursor syncs for tools');
 H.nudgeMobCursor(1, 0);
 A(H.getMobCursor().x === x0 + 1, 'build cursor nudges with arrows/d-pad');
+
+// ---------- collapsible dock & find mode ----------
+console.log('\ndock & find mode');
+H.setDockCollapsed(true);
+A(H.getDockCollapsed(), 'dock collapses for more screen space');
+H.setDockCollapsed(false);
+A(!H.getDockCollapsed(), 'dock expands again');
+A(H.getFindHidden().length >= 4, 'hidden critters seeded in the city');
+A(H.getFindGoals().length >= 8, 'find checklist built');
+H.setTool('find');
+A(H.getTool() === 'find', 'find mode tool');
+A(H.markFound('spire'), 'can mark spire found');
+A(H.getFindScore() >= 1, 'find score updates');
+H.exportCity();
+const dFind = JSON.parse(global.__blob);
+A(Array.isArray(dFind.findFound) && dFind.findFound.includes('spire'), 'find progress saved');
+H.importFindFound([]);
+A(H.getFindScore() === 0, 'find progress can reset');
+H.importFindFound(dFind.findFound);
+A(H.getFindScore() >= 1, 'find progress restored');
+H.setTool('inspect');
 
 // ---------- v0.5: v4 save round trip ----------
 console.log('\nv4 saves');
