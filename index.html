@@ -135,8 +135,21 @@
     transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .25s ease;
   }
   body.dock-collapsed .tools{
-    transform:translate(calc(-100% - 36px), -42%);
-    opacity:0; pointer-events:none;
+    transform:translate(calc(-100% + 54px), -42%);
+    opacity:1; pointer-events:auto;
+    width:54px; min-width:54px; padding:8px 5px;
+    border-radius:0 16px 16px 0;
+    overflow:hidden;
+  }
+  body.dock-collapsed .tools button{
+    min-width:0; width:42px; padding:8px 6px; justify-content:center;
+  }
+  body.dock-collapsed .tools button .lbl,
+  body.dock-collapsed .tools button small,
+  body.dock-collapsed .tools .gap{display:none!important;}
+  body.dock-collapsed .dock-hide{
+    display:block; align-self:center; width:42px; padding:6px 0;
+    color:var(--accent); border-color:#ffce6b44; background:#ffce6b18;
   }
   .dock-hide{
     appearance:none; border:1px solid #ffffff22; cursor:pointer;
@@ -300,11 +313,12 @@
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .dock-peek.on{background:var(--accent); color:#23201a;}
-  body:not(.dock-collapsed) .dock-peek.side{display:none;}
-  .dock-peek.side{
+  body.dock-collapsed .dock-peek.side{
+    display:block; z-index:11;
     left:calc(6px + env(safe-area-inset-left)); top:50%;
     transform:translateY(-50%); border-radius:0 12px 12px 0; padding:10px 8px;
   }
+  body:not(.dock-collapsed) .dock-peek.side{display:none;}
   .find-panel{
     display:none; position:fixed; z-index:10; pointer-events:auto;
     right:calc(10px + env(safe-area-inset-right));
@@ -336,13 +350,15 @@
   .find-item.found .find-hint::after{content:' ✓ found!';}
   body.find-mode canvas{cursor:crosshair;}
 
-  body.dock-collapsed .dock-hide{display:none;}
+  body.dock-collapsed .dock-hide{display:block;}
 
   @media (max-width:1024px){
     body:not(.dock-collapsed) .dock-hide::after{content:' hide';}
-    .dock-hide::before{content:'▼';}
+    body:not(.dock-collapsed) .dock-hide::before{content:'▼';}
+    body.dock-collapsed .dock-hide::before{content:'▲';}
+    body.dock-collapsed .dock-hide::after{content:' tools';}
     .dock-hide{font-size:0; padding:6px 10px;}
-    .dock-hide::before,.dock-hide::after{font-size:11px;}
+    .dock-hide::before,.dock-hide::after{font-size:11px; font-weight:800;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -355,21 +371,33 @@
     .mob-cap.show{display:block; bottom:calc(132px + env(safe-area-inset-bottom));}
     .mob-ctrl.show{bottom:calc(132px + env(safe-area-inset-bottom));}
     body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
-    .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
-    .dock-peek.bottom{display:block; bottom:calc(10px + env(safe-area-inset-left)); left:calc(10px + env(safe-area-inset-left)); transform:none;}
-    body.dock-collapsed .dock{
-      transform:translateX(-50%) translateY(calc(100% + 36px));
-      pointer-events:none;
+    .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:11;}
+    .dock-peek.bottom{display:none;}
+    body.dock-collapsed .dock-peek.bottom{
+      display:block; z-index:12;
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      right:calc(58px + env(safe-area-inset-right));
+      left:auto; transform:none;
+      padding:10px 13px; font-size:14px;
+      background:var(--accent); color:#23201a; border-color:#ffce6b66;
     }
+    body.dock-collapsed .dock{
+      transform:translateX(-50%) translateY(calc(100% - 58px));
+      pointer-events:auto;
+    }
+    body.dock-collapsed .dock .bar{display:none;}
     body.dock-collapsed .tools{
       transform:none; opacity:1; pointer-events:auto;
+      position:static; flex-direction:row; max-width:96vw;
+      overflow-x:auto; padding:6px 8px; border-radius:14px 14px 0 0;
+      width:max-content; min-width:0;
     }
     body.dock-collapsed .dock .tools,
-    body.dock-collapsed .dock .bar{pointer-events:none;}
+    body.dock-collapsed .dock .bar{pointer-events:auto;}
     body.dock-collapsed .dock-peek.bottom{pointer-events:auto;}
     body.dock-collapsed .mob-ctrl.show,
-    body.dock-collapsed .mob-cap.show{bottom:calc(56px + env(safe-area-inset-bottom));}
-    body.dock-collapsed .bar-peek{display:none;}
+    body.dock-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+    body.dock-collapsed .bar-peek{display:block;}
     body.bar-collapsed .dock .bar{display:none;}
     body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
     body.creative .tools .adv:not([data-t="expand"]){display:none;}
@@ -3544,11 +3572,24 @@ tip?.addEventListener('click', e=>{
 const barPeek=$('barPeek'), dockPeek=$('dockPeek'), dockPeekMob=$('dockPeekMob');
 let dockCollapsed=false;
 function syncDockPeekBtns(collapsed){
-  const label=collapsed?'🛠':'▼';
-  if(dockPeek){ dockPeek.classList.toggle('on', collapsed); dockPeek.textContent=label; }
-  if(dockPeekMob){ dockPeekMob.classList.toggle('on', collapsed); dockPeekMob.textContent=label; }
+  const hide=$('dockHide');
+  if(hide){
+    if(mqCompact.matches){
+      hide.textContent='';
+      hide.setAttribute('aria-label', collapsed?'Show full tools':'Hide tools');
+    } else {
+      hide.textContent=collapsed?'▶':'◀ hide';
+      hide.setAttribute('aria-label', collapsed?'Show full tools':'Hide tools');
+    }
+  }
+  if(dockPeek){ dockPeek.classList.toggle('on', collapsed); dockPeek.textContent='🛠'; dockPeek.title='Show full tools'; }
+  if(dockPeekMob){
+    dockPeekMob.classList.toggle('on', collapsed);
+    dockPeekMob.textContent=collapsed?'▲ Tools':'';
+    dockPeekMob.title='Show full tools';
+  }
   if(barPeek && mqCompact.matches){
-    barPeek.classList.toggle('on', !collapsed && document.body.classList.contains('bar-collapsed'));
+    barPeek.classList.toggle('on', document.body.classList.contains('bar-collapsed'));
   }
 }
 function setDockCollapsed(v){
@@ -3567,13 +3608,12 @@ function setBarCollapsed(v){
   }
 }
 function toggleDockCollapsed(){
-  if(!document.body) return;
-  setDockCollapsed(!document.body.classList.contains('dock-collapsed'));
+  setDockCollapsed(!dockCollapsed);
 }
 if(mqCompact.matches) setDockCollapsed(true);
-$('dockHide')?.addEventListener('click', ()=> setDockCollapsed(true));
-dockPeek?.addEventListener('click', toggleDockCollapsed);
-dockPeekMob?.addEventListener('click', toggleDockCollapsed);
+$('dockHide')?.addEventListener('click', toggleDockCollapsed);
+dockPeek?.addEventListener('click', ()=> setDockCollapsed(false));
+dockPeekMob?.addEventListener('click', ()=> setDockCollapsed(false));
 if(mqCompact.matches) setBarCollapsed(true);
 barPeek?.addEventListener('click', ()=>{
   if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
