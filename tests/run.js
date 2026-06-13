@@ -56,7 +56,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
-  rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
+  rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
+  fitCityView,cityBounds,getCamZ:()=>cam.z,
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
@@ -303,6 +304,9 @@ A(H.getDistricts().has('1,0'), 'east district tracked');
 H.exportCity();
 const dDist = JSON.parse(global.__blob);
 A(Array.isArray(dDist.districts) && dDist.districts.includes('1,0'), 'districts saved in export');
+
+H.fitCityView();
+A(H.getCamZ() <= 0.55, 'fit city zooms out for multi-district view');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');

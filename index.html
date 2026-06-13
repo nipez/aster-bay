@@ -334,7 +334,7 @@
   <span class="sep"></span>
   <button id="bOut" title="Zoom out (−)">−</button>
   <button id="bIn" title="Zoom in (+)">＋</button>
-  <button id="bHome" title="Recenter view">⌖</button>
+  <button id="bHome" title="Fit entire city in view">⌖</button>
   <button id="bRotL" title="Rotate left (Q)">↺</button>
   <button id="bRotR" title="Rotate right (E)">↻</button>
   <button id="bUndo" title="Undo last build (Ctrl+Z / ⌘Z)" disabled>↩ Undo</button>
@@ -1881,8 +1881,47 @@ const stars=[]; for(let i=0;i<110;i++) stars.push({x:R(),y:R()*0.62,s:rand(.6,1.
 const clouds=[]; for(let i=0;i<6;i++) clouds.push({x:R()*1.4-0.2,y:rand(.06,.3),s:rand(.6,1.4),v:rand(.004,.012)});
 
 // ---------- camera ----------
+const ZOOM_MIN=0.15, ZOOM_MAX=3.2;
 function camCenter(){ return iso(GRID/2, GRID/2, 0); }
 const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7, rot:0};
+function cityBounds(){
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    const b=distBounds(dgx,dgy);
+    x0=Math.min(x0,b.x0); x1=Math.max(x1,b.x1+1);
+    y0=Math.min(y0,b.y0); y1=Math.max(y1,b.y1+1);
+  }
+  for(const [k,t] of edits){
+    if(!isRoadT(t)) continue;
+    const [x,y]=k.split(',').map(Number);
+    x0=Math.min(x0,x); x1=Math.max(x1,x+1);
+    y0=Math.min(y0,y); y1=Math.max(y1,y+1);
+  }
+  if(!isFinite(x0)){
+    const b=distBounds(0,0);
+    return {x0:b.x0,y0:b.y0,x1:b.x1+1,y1:b.y1+1};
+  }
+  return {x0,y0,x1,y1};
+}
+function fitCityView(){
+  setTrackWalker(null);
+  const b=cityBounds(), pad=3;
+  const corners=[
+    iso(b.x0-pad,b.y0-pad,0), iso(b.x1+pad,b.y0-pad,0),
+    iso(b.x1+pad,b.y1+pad,0), iso(b.x0-pad,b.y1+pad,0),
+  ];
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const p of corners){
+    minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x);
+    minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y);
+  }
+  const worldW=Math.max(maxX-minX, TW*4), worldH=Math.max(maxY-minY, TH*8);
+  cam.z=clamp(Math.min(CW*0.9/worldW, CH*0.78/worldH), ZOOM_MIN, ZOOM_MAX);
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2, center=camCenter();
+  cam.px=(center.x-cx)*cam.z;
+  cam.py=(center.y-cy)*cam.z;
+}
 function applyCam(){
   const center=camCenter();
   ctx.translate(CW/2+cam.px, CH/2+cam.py);
@@ -2713,7 +2752,7 @@ cv.addEventListener('pointercancel', e=>{ activePtrs.delete(e.pointerId); draggi
 cv.addEventListener('pointerleave', ()=>{ if(!tipTimer) tip.style.display='none'; hoverAgent=null; hoverTile=null; });
 
 function zoomAt(factor,sx,sy){
-  const nz=clamp(cam.z*factor,0.4,3.2);
+  const nz=clamp(cam.z*factor, ZOOM_MIN, ZOOM_MAX);
   const k=nz/cam.z;
   cam.px=sx-CW/2-(sx-CW/2-cam.px)*k;
   cam.py=sy-CH/2-(sy-CH/2-cam.py)*k;
@@ -2726,7 +2765,7 @@ cv.addEventListener('wheel', e=>{
 
 $('bIn').onclick=()=>zoomAt(1.25,CW/2,CH/2);
 $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
-$('bHome').onclick=()=>{ setTrackWalker(null); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+$('bHome').onclick=()=> fitCityView();
 $('bRotL').onclick=()=> rotateView(-1);
 $('bRotR').onclick=()=> rotateView(1);
 $('bUndo').onclick=()=> undoLastBuild();
