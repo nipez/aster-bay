@@ -56,7 +56,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
-  rotateView,screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
+  rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
+  screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
@@ -258,12 +259,15 @@ A(!H.getWalkers()[0].path, 'walker finishes route');
 
 // ---------- camera rotation ----------
 console.log('\ncamera rotation');
+H.resetCam();
 A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing north');
 H.rotateView(1);
+H.finishViewRot();
 A(H.getViewRot() === 1, 'view rotates 90°');
 A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing east');
 A(H.sortD(21, 12) < H.sortD(12, 20), 'east view depth uses rotated axes');
 H.rotateView(3);
+H.finishViewRot();
 A(H.getViewRot() === 0, 'rotation returns to north');
 
 // ---------- full screen ----------

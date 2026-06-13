@@ -395,33 +395,48 @@ const isCoreLine = i => i>=CORE0 && i<=CORE1 && (i-CORE0)%6===0;
 const tkey=(x,y)=>x+','+y;
 const ROT_CX=GRID/2, ROT_CY=GRID/2;
 let viewRot=0;
+const ROT_DUR=0.85; // seconds for a 90° spin
+let rotAnimating=false, rotAnimT=0, rotAnimFrom=0, rotAnimTo=0, rotAnimTarget=0;
+
+function rotAngle(){
+  if(!rotAnimating) return -viewRot*Math.PI/2;
+  const t=rotAnimT<0.5 ? 2*rotAnimT*rotAnimT : 1-Math.pow(-2*rotAnimT+2,2)/2;
+  return rotAnimFrom+(rotAnimTo-rotAnimFrom)*t;
+}
+function visRot(){
+  if(!rotAnimating) return viewRot&3;
+  return (Math.round(-rotAngle()/(Math.PI/2)))&3;
+}
+function finishViewRot(){
+  if(!rotAnimating) return;
+  viewRot=rotAnimTarget&3;
+  cam.rot=viewRot;
+  rotAnimating=false;
+  rotAnimT=1;
+}
 
 function rotTile(x,y){
-  const r=viewRot&3;
-  if(!r) return {x,y};
-  const dx=x-ROT_CX, dy=y-ROT_CY;
-  if(r===1) return {x:ROT_CX+dy, y:ROT_CY-dx};
-  if(r===2) return {x:ROT_CX-dx, y:ROT_CY-dy};
-  return {x:ROT_CX-dy, y:ROT_CY+dx};
+  const ang=rotAngle();
+  if(Math.abs(ang)<1e-9) return {x,y};
+  const dx=x-ROT_CX, dy=y-ROT_CY, cos=Math.cos(ang), sin=Math.sin(ang);
+  return {x:ROT_CX+dx*cos-dy*sin, y:ROT_CY+dx*sin+dy*cos};
 }
 function iso(x,y,z){
   const p=rotTile(x,y);
   return { x:(p.x-p.y)*TW, y:(p.x+p.y)*TH - (z||0) };
 }
 function unrotTile(x,y){
-  const r=viewRot&3;
-  if(!r) return {x,y};
-  const dx=x-ROT_CX, dy=y-ROT_CY;
-  if(r===1) return {x:ROT_CX-dy, y:ROT_CY+dx};
-  if(r===2) return {x:ROT_CX-dx, y:ROT_CY-dy};
-  return {x:ROT_CX+dy, y:ROT_CY-dx};
+  const ang=rotAngle();
+  if(Math.abs(ang)<1e-9) return {x,y};
+  const dx=x-ROT_CX, dy=y-ROT_CY, cos=Math.cos(ang), sin=Math.sin(ang);
+  return {x:ROT_CX+dx*cos+dy*sin, y:ROT_CY-dx*sin+dy*cos};
 }
 function sortD(x,y,off=0){
   const p=rotTile(x,y);
   return p.x+p.y+off;
 }
 function visFaces(){
-  const r=viewRot&3;
+  const r=visRot();
   return [{y:1,x:1},{y:1,x:0},{y:0,x:0},{y:0,x:1}][r]; // y:1=south,0=north; x:1=east,0=west
 }
 function faceCoords(x0,y0,x1,y1){
@@ -435,7 +450,7 @@ function wallX(x,y0,y1,z0,z1,col){
   quad(iso(x,y0,z1),iso(x,y1,z1),iso(x,y1,z0),iso(x,y0,z0),col);
 }
 function roadRunsNS(x,y){ return roadAt(x,y-1)||roadAt(x,y+1); }
-function roadMarkVert(x,y){ return (viewRot&1) ? !roadRunsNS(x,y) : roadRunsNS(x,y); }
+function roadMarkVert(x,y){ return (visRot()&1) ? !roadRunsNS(x,y) : roadRunsNS(x,y); }
 
 // ---------- infinite world: procedural terrain + edits overlay ----------
 // Terrain is deterministic from coordinates (meadow / forest / lakes).
@@ -1364,9 +1379,18 @@ function screenToTile(mx,my){
   return {x:Math.floor(p.x), y:Math.floor(p.y)};
 }
 function rotateView(d){
-  viewRot=(viewRot+(d|0)+4)&3;
-  cam.rot=viewRot;
-  toast(['View: north','View: east','View: south','View: west'][viewRot],'ok');
+  if(rotAnimating) return;
+  const from=viewRot&3, to=(from+(d|0)+4)&3;
+  if(from===to) return;
+  rotAnimFrom=-from*Math.PI/2;
+  rotAnimTo=rotAnimFrom;
+  let diff=-to*Math.PI/2-rotAnimFrom;
+  while(diff>Math.PI/2+1e-6) diff-=2*Math.PI;
+  while(diff<-Math.PI/2-1e-6) diff+=2*Math.PI;
+  rotAnimTo=rotAnimFrom+diff;
+  rotAnimTarget=to;
+  rotAnimating=true;
+  rotAnimT=0;
 }
 function tilePickRoundtrip(x,y){
   const p=iso(x,y,0), s=worldToScreen(p.x,p.y), t=screenToTile(s.x,s.y);
@@ -1469,7 +1493,7 @@ function drawBuilding(b, animT){
   wallY(fc.y,x0,x1,0,h,shade(b.color,0.78));
   wallX(fc.x,y0,y1,0,h,shade(b.color,0.6));
 
-  if(b.roof==='pitch' && !viewRot){
+  if(b.roof==='pitch' && !visRot()){
     const ridge=h+9, mx=(x0+x1)/2;
     const rA=iso(mx,y0,ridge), rB=iso(mx,y1,ridge);
     quad(iso(x0,y0,h),rA,rB,iso(x0,y1,h), shade(b.roofCol,1.04));
@@ -1943,7 +1967,7 @@ function importCity(data){
   scorch.clear(); for(const k of (data.scorch||[])) scorch.add(k);
   if(data.eventsOn!==undefined) setEvents(data.eventsOn);
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
-  if(data.camRot!=null){ viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
+  if(data.camRot!=null){ finishViewRot(); viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
   rebuildLights();
   cars.length=0; peds.length=0;
   importWalkers(data);
@@ -2303,6 +2327,13 @@ function frame(now){
   let dt=Math.min((now-prev)/1000,0.05); prev=now;
   animT+=dt;
   if(walkerPulseT>0) walkerPulseT=Math.max(0, walkerPulseT-dt);
+  if(rotAnimating){
+    rotAnimT+=dt/ROT_DUR;
+    if(rotAnimT>=1){
+      finishViewRot();
+      toast(['View: north','View: east','View: south','View: west'][viewRot],'ok');
+    }
+  }
   if(!paused){
     const sdt=dt*speed;
     simClock+=sdt;
