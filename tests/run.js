@@ -57,7 +57,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
-  tryExpand,availableExpansions,getDistricts:()=>districts,
+  tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadTouchesSlot,
   undoCreative,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive};`;
@@ -284,6 +284,18 @@ A(!H.isFsView(), 'immersive exits');
 console.log('\ndistrict expansion');
 A(H.getDistricts().has('0,0'), 'starts with one 4×4 district');
 A(H.availableExpansions().length === 4, 'four adjoining slots at start');
+
+// road-linked district: skip (1,0), pave east, claim (2,0)
+H.setTool('road');
+const linkY = 16;
+for (let x = 29; x <= 51; x++) {
+  if (H.canPlace('road', x, linkY)) H.tryPlace(x, linkY);
+}
+A(H.roadTouchesSlot(2, 0, H.computeRoadReach()), 'road reaches far district slot');
+A(H.availableExpansions().some(e => e.dgx === 2 && e.dgy === 0 && e.viaRoad), 'road-linked slot offered');
+A(H.tryExpand(2, 0), 'road-linked district can be added');
+A(H.getDistricts().has('2,0'), 'road-linked district tracked');
+
 A(H.tryExpand(1, 0), 'east district can be added');
 A(H.getDistricts().has('1,0'), 'east district tracked');
 H.exportCity();

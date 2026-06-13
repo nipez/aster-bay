@@ -315,7 +315,7 @@
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · trucks roll on roads</small></span></button>
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
-  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · add 4×4 grid</small></span></button>
+  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · edge or road link</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · tap to stack</small></span></button>
@@ -634,16 +634,93 @@ function seedDistrict(dgx,dgy, isOrigin){
   populateDistrict(dgx,dgy, isOrigin);
   seedDistrictDecor(dgx,dgy);
 }
-function availableExpansions(){
-  const seen=new Set(), out=[];
+function districtEnvelope(dgx,dgy){
+  const b=distBounds(dgx,dgy);
+  return {x0:b.x0-1,x1:b.x1+1,y0:b.y0-1,y1:b.y1+1};
+}
+function computeRoadReach(){
+  const seen=new Set(), q=[];
   for(const dk of districts){
     const [dgx,dgy]=dk.split(',').map(Number);
-    for(const [dx,dy,label] of [[1,0,'east'],[-1,0,'west'],[0,1,'south'],[0,-1,'north']]){
-      const nk=`${dgx+dx},${dgy+dy}`;
-      if(districts.has(nk)||seen.has(nk)) continue;
-      seen.add(nk);
-      out.push({dgx:dgx+dx,dgy:dgy+dy,k:nk,label});
+    const env=districtEnvelope(dgx,dgy);
+    for(const [k,t] of edits){
+      if(!isRoadT(t)) continue;
+      const [x,y]=k.split(',').map(Number);
+      if(x<env.x0||x>env.x1||y<env.y0||y>env.y1) continue;
+      if(seen.has(k)) continue;
+      seen.add(k); q.push([x,y]);
     }
+  }
+  for(let i=0;i<q.length;i++){
+    const [x,y]=q[i];
+    for(const [dx,dy] of DIRS){
+      const nx=x+dx, ny=y+dy, nk=tkey(nx,ny);
+      if(seen.has(nk)||!roadAt(nx,ny)) continue;
+      seen.add(nk); q.push([nx,ny]);
+    }
+  }
+  return seen;
+}
+function tileInAnyDistrict(x,y){
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    const b=distBounds(dgx,dgy);
+    if(x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1) return true;
+  }
+  return false;
+}
+function roadTouchesSlot(dgx,dgy,reach){
+  const b=distBounds(dgx,dgy);
+  const hit=(x,y)=>reach.has(tkey(x,y))&&!tileInAnyDistrict(x,y);
+  for(let x=b.x0;x<=b.x1;x++){
+    if(hit(x,b.y0)||hit(x,b.y1)||hit(x,b.y0-1)||hit(x,b.y1+1)) return true;
+  }
+  for(let y=b.y0;y<=b.y1;y++){
+    if(hit(b.x0,y)||hit(b.x1,y)||hit(b.x0-1,y)||hit(b.x1+1,y)) return true;
+  }
+  return false;
+}
+function districtGridAdj(dgx,dgy){
+  return [[dgx-1,dgy],[dgx+1,dgy],[dgx,dgy-1],[dgx,dgy+1]]
+    .some(([x,y])=>districts.has(`${x},${y}`));
+}
+function expansionLabel(dgx,dgy, viaRoad){
+  if(viaRoad) return 'via road';
+  const cx=0, cy=0;
+  const dx=dgx-cx, dy=dgy-cy;
+  if(Math.abs(dx)>=Math.abs(dy)) return dx>0?'east':dx<0?'west':'center';
+  return dy>0?'south':'north';
+}
+function districtCandidates(){
+  let minDgx=0,maxDgx=0,minDgy=0,maxDgy=0;
+  for(const dk of districts){
+    const [dgx,dgy]=dk.split(',').map(Number);
+    minDgx=Math.min(minDgx,dgx); maxDgx=Math.max(maxDgx,dgx);
+    minDgy=Math.min(minDgy,dgy); maxDgy=Math.max(maxDgy,dgy);
+  }
+  for(const k of computeRoadReach()){
+    const [x,y]=k.split(',').map(Number);
+    const dgx=Math.floor((x-CORE0)/DIST_SPAN), dgy=Math.floor((y-CORE0)/DIST_SPAN);
+    minDgx=Math.min(minDgx,dgx); maxDgx=Math.max(maxDgx,dgx);
+    minDgy=Math.min(minDgy,dgy); maxDgy=Math.max(maxDgy,dgy);
+  }
+  const out=[];
+  for(let dgx=minDgx-1;dgx<=maxDgx+1;dgx++)
+    for(let dgy=minDgy-1;dgy<=maxDgy+1;dgy++){
+      const k=`${dgx},${dgy}`;
+      if(!districts.has(k)) out.push({dgx,dgy,k});
+    }
+  return out;
+}
+function availableExpansions(){
+  const reach=computeRoadReach(), seen=new Set(), out=[];
+  for(const c of districtCandidates()){
+    if(seen.has(c.k)) continue;
+    const adj=districtGridAdj(c.dgx,c.dgy);
+    const viaRoad=roadTouchesSlot(c.dgx,c.dgy,reach);
+    if(!adj&&!viaRoad) continue;
+    seen.add(c.k);
+    out.push({...c, label:expansionLabel(c.dgx,c.dgy, viaRoad&&!adj), viaRoad:viaRoad&&!adj});
   }
   return out;
 }
@@ -1285,9 +1362,10 @@ const COST={road:120,house:500,shop:900,park:200,tree:40,dozer:50,fire:1200,scho
 function tryExpand(dgx,dgy){
   const k=`${dgx},${dgy}`;
   if(districts.has(k)) return false;
-  const adj=[[dgx-1,dgy],[dgx+1,dgy],[dgx,dgy-1],[dgx,dgy+1]]
-    .some(([x,y])=>districts.has(`${x},${y}`));
-  if(!adj) return false;
+  const reach=computeRoadReach();
+  const adj=districtGridAdj(dgx,dgy);
+  const viaRoad=roadTouchesSlot(dgx,dgy,reach);
+  if(!adj&&!viaRoad) return false;
   if(!spend(COST.expand)) return false;
   const firstExpand=districts.size===1;
   districts.add(k);
@@ -1295,7 +1373,8 @@ function tryExpand(dgx,dgy){
   rebuildLights();
   recompute();
   adjustAgents();
-  toast('New 4×4 district added'+costTxt(COST.expand)+(firstExpand?' · tap glowing edges anytime':'')+' · pave roads to connect','ok');
+  const link=viaRoad&&!adj?' · linked by your road':'';
+  toast('New 4×4 district added'+costTxt(COST.expand)+link+(firstExpand?' · tap glowing edges or road links':'')+'','ok');
   return true;
 }
 const stats={pop:0,cap:0,jobs:0,happy:.7,green:0,dR:.4,dC:.4,dG:.4,cong:0};
@@ -1536,7 +1615,7 @@ function tryPlace(x,y){
     else if(tool==='house'||tool==='shop'||tool==='fire'||tool==='school') toast('Needs an empty lot next to a sidewalk or road','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
-    else if(tool==='expand') toast('Tap a glowing edge to add a 4×4 district','err');
+    else if(tool==='expand') toast('Tap a glowing district — beside the city or at the end of a road','err');
     else toast('Can\u2019t build there','err');
     return;
   }
@@ -2699,7 +2778,7 @@ function setTool(t){
   document.getElementById('palette').classList.toggle('show', t==='block');
   if(t==='expand'&&!expandToolHinted){
     expandToolHinted=true;
-    toast('Glowing edges show where a new 4×4 district can go — tap one','ok');
+    toast('Glowing districts grow beside the city or where roads connect — tap one','ok');
   }
   if(t==='road'&&!roadToolHinted){
     roadToolHinted=true;
@@ -2719,7 +2798,7 @@ const TOOL_HINTS={
   park:'tap open ground for a park',
   tree:'tap open ground to plant',
   block:'tap to stack colored blocks',
-  expand:'tap a glowing edge to grow the city',
+  expand:'tap a glowing district edge or road link',
   dozer:'tap to remove one thing'
 };
 function updateMobCap(){
