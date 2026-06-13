@@ -211,11 +211,13 @@
     border:1px solid #ffffff1c; padding:6px 14px; border-radius:12px;
     font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009;
     white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis;
+    bottom:calc(90px + env(safe-area-inset-bottom));
   }
+  .mob-cap.show{display:block;}
   .mob-ctrl{
-    display:none; position:fixed; z-index:7; pointer-events:none;
+    display:none; position:fixed; z-index:9; pointer-events:none;
     left:calc(10px + env(safe-area-inset-left));
-    bottom:calc(132px + env(safe-area-inset-bottom));
+    bottom:calc(90px + env(safe-area-inset-bottom));
     gap:10px; align-items:flex-end;
   }
   .mob-ctrl.show{display:flex; pointer-events:auto;}
@@ -282,6 +284,7 @@
     #cash{font-size:17px;} #clock{font-size:15px;}
     #toasts{bottom:calc(132px + env(safe-area-inset-bottom));}
     .mob-cap.show{display:block; bottom:calc(132px + env(safe-area-inset-bottom));}
+    .mob-ctrl.show{bottom:calc(132px + env(safe-area-inset-bottom));}
     body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
     .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
     body.bar-collapsed .dock .bar{display:none;}
@@ -430,7 +433,7 @@
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
 <div id="tip"></div>
 <div id="toasts"></div>
-<div class="hint">pick a tool · click a tile to build · blocks stack!<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
+<div class="hint">pick a tool · D-pad + Place to build (or click on desktop)<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
 
 <script>
 'use strict';
@@ -1950,8 +1953,7 @@ function mobClearAction(){
 function ghostTile(){
   if(interior) return null;
   if(tool!=='inspect'){
-    if(mobCursor) return mobCursor;
-    if(mqMobile.matches) syncMobCursor();
+    syncMobCursor();
     if(mobCursor) return mobCursor;
   }
   return hoverTile;
@@ -2795,6 +2797,17 @@ const hud=$('hud'), hudChip=$('hudChip'), hudClose=$('hudClose'),
 const mqMobile=typeof window.matchMedia==='function'
   ? window.matchMedia('(max-width:760px)')
   : {matches:false, addEventListener:()=>{}};
+const mqCoarse=typeof window.matchMedia==='function'
+  ? window.matchMedia('(pointer: coarse)')
+  : {matches:false};
+function prefersMobPlace(){
+  return mqMobile.matches || mqCoarse.matches || navigator.maxTouchPoints>0;
+}
+function showMobBuildUI(){
+  if(interior) return true;
+  if(tool==='inspect') return false;
+  return true; // any build tool — desktop, tablet, and phone
+}
 function hudExpanded(){ return hud.classList.contains('expanded'); }
 function setHudExpanded(open){
   hud.classList.toggle('expanded', open);
@@ -3055,7 +3068,7 @@ cv.addEventListener('pointerup', e=>{
   if(dragging&&!dragMoved){
     const t=screenToTile(e.clientX,e.clientY);
     if(tool!=='inspect'){
-      if(!mqMobile.matches) tryPlace(t.x,t.y);
+      if(!prefersMobPlace()) tryPlace(t.x,t.y);
     } else {
       const best=nearestAgent(e.clientX,e.clientY,26);
       if(best) showTip(agentTipHTML(best), e.clientX, e.clientY);
@@ -3236,15 +3249,15 @@ const TOOL_HINTS={
 };
 function updateMobUI(){
   syncMobCursor();
-  const showCtrl=!!interior || (mqMobile.matches && tool!=='inspect');
+  const showCtrl=showMobBuildUI();
   if(mobCtrl){
     mobCtrl.classList.toggle('show', showCtrl);
     mobCtrl.setAttribute?.('aria-hidden', showCtrl?'false':'true');
   }
   const clearBtn=$('mobClear');
   if(clearBtn) clearBtn.style.display=interior?'block':(tool==='dozer'?'block':'none');
-  if(!mobCap||!mqMobile.matches){ mobCap?.classList.remove('show'); return; }
-  if(tool==='inspect' && !interior){ mobCap.classList.remove('show'); return; }
+  if(!mobCap){ return; }
+  if(!showCtrl){ mobCap.classList.remove('show'); return; }
   if(interior){
     const rt=ROOM_TYPES[roomType];
     mobCap.textContent=rt.icon+' '+rt.name+' · D-pad moves · Place / Clear';
@@ -3254,7 +3267,7 @@ function updateMobUI(){
   const btn=document.querySelector('.tool[data-t="'+tool+'"]');
   const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||tool;
   const ico=btn?.querySelector('.ico')?.textContent||'';
-  mobCap.textContent=ico+' '+name+' — D-pad moves cursor · tap Place';
+  mobCap.textContent=ico+' '+name+' — use D-pad (bottom-left) · Place to build';
   mobCap.classList.add('show');
 }
 mobCtrl?.querySelectorAll('.mob-dir').forEach(btn=>{
