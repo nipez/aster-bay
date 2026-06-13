@@ -420,6 +420,22 @@ function sortD(x,y,off=0){
   const p=rotTile(x,y);
   return p.x+p.y+off;
 }
+function visFaces(){
+  const r=viewRot&3;
+  return [{y:1,x:1},{y:1,x:0},{y:0,x:0},{y:0,x:1}][r]; // y:1=south,0=north; x:1=east,0=west
+}
+function faceCoords(x0,y0,x1,y1){
+  const f=visFaces();
+  return { y:f.y?y1:y0, x:f.x?x1:x0 };
+}
+function wallY(y,x0,x1,z0,z1,col){
+  quad(iso(x0,y,z1),iso(x1,y,z1),iso(x1,y,z0),iso(x0,y,z0),col);
+}
+function wallX(x,y0,y1,z0,z1,col){
+  quad(iso(x,y0,z1),iso(x,y1,z1),iso(x,y1,z0),iso(x,y0,z0),col);
+}
+function roadRunsNS(x,y){ return roadAt(x,y-1)||roadAt(x,y+1); }
+function roadMarkVert(x,y){ return (viewRot&1) ? !roadRunsNS(x,y) : roadRunsNS(x,y); }
 
 // ---------- infinite world: procedural terrain + edits overlay ----------
 // Terrain is deterministic from coordinates (meadow / forest / lakes).
@@ -1385,7 +1401,11 @@ function visibleRange(){
   return {x0,x1,y0,y1};
 }
 function drawGround(rng, animT){
-  for(let x=rng.x0;x<=rng.x1;x++) for(let y=rng.y0;y<=rng.y1;y++){
+  const tiles=[];
+  for(let x=rng.x0;x<=rng.x1;x++) for(let y=rng.y0;y<=rng.y1;y++)
+    tiles.push({x,y,d:sortD(x,y)});
+  tiles.sort((a,b)=>a.d-b.d);
+  for(const {x,y} of tiles){
     const t=tileAt(x,y);
     if(t==='road'||t==='xing'){
       diamond(x,y,0, shade('#565b68',1));
@@ -1399,7 +1419,7 @@ function drawGround(rng, animT){
       diamond(x,y,0, shade('#b9b3a2',1));
     } else if(t==='water'){
       diamond(x,y,0, shade('#5fb6d9',1));
-      if(hash(x,y,13)<0.2){ // sparse shimmer so big lakes stay cheap
+      if(hash(x,y,13)<0.2){
         const c=iso(x+0.5,y+0.5,0), r=6+Math.sin(animT*2+x*1.7+y*2.3)*2;
         ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1;
         ctx.beginPath(); ctx.ellipse(c.x,c.y,r,r*0.5,0,0,Math.PI*2); ctx.stroke();
@@ -1407,14 +1427,18 @@ function drawGround(rng, animT){
     }
     if(scorch.has(tkey(x,y))) diamond(x,y,0,'rgba(35,28,25,.55)');
   }
-  // road furniture: roads only exist as edits, so iterate those
   ctx.lineWidth=1.6;
+  const roads=[];
   for(const [k,t] of edits){
     if(t!=='road') continue;
     const [x,y]=k.split(',').map(Number);
     if(x<rng.x0||x>rng.x1||y<rng.y0||y>rng.y1) continue;
-    const vert = roadAt(x,y-1)||roadAt(x,y+1);
-    const byXing = xingAt(x-1,y)||xingAt(x+1,y)||xingAt(x,y-1)||xingAt(x,y+1);
+    roads.push({x,y,d:sortD(x,y)});
+  }
+  roads.sort((a,b)=>a.d-b.d);
+  for(const {x,y} of roads){
+    const vert=roadMarkVert(x,y);
+    const byXing=xingAt(x-1,y)||xingAt(x+1,y)||xingAt(x,y-1)||xingAt(x,y+1);
     if(byXing){
       ctx.strokeStyle='rgba(244,241,230,.78)'; ctx.lineWidth=2.6;
       for(let kk=0;kk<4;kk++){
@@ -1441,10 +1465,11 @@ function procTreeObj(x,y){
 // ---------- elevated objects ----------
 function drawBuilding(b, animT){
   const i=b.inset, x0=b.x+i, x1=b.x+1-i, y0=b.y+i, y1=b.y+1-i, h=b.h;
-  quad(iso(x0,y1,h),iso(x1,y1,h),iso(x1,y1,0),iso(x0,y1,0), shade(b.color,0.78));
-  quad(iso(x1,y0,h),iso(x1,y1,h),iso(x1,y1,0),iso(x1,y0,0), shade(b.color,0.6));
+  const fc=faceCoords(x0,y0,x1,y1);
+  wallY(fc.y,x0,x1,0,h,shade(b.color,0.78));
+  wallX(fc.x,y0,y1,0,h,shade(b.color,0.6));
 
-  if(b.roof==='pitch'){
+  if(b.roof==='pitch' && !viewRot){
     const ridge=h+9, mx=(x0+x1)/2;
     const rA=iso(mx,y0,ridge), rB=iso(mx,y1,ridge);
     quad(iso(x0,y0,h),rA,rB,iso(x0,y1,h), shade(b.roofCol,1.04));
@@ -1456,40 +1481,33 @@ function drawBuilding(b, animT){
     ctx.beginPath();ctx.moveTo(r1.x,r1.y);ctx.lineTo(r2.x,r2.y);ctx.lineTo(r3.x,r3.y);ctx.lineTo(r4.x,r4.y);ctx.closePath();ctx.stroke();
   }
 
-  // shop awning band on the south face
   if(b.use==='com'&&!b.landmark){
-    quad(iso(x0,y1,9),iso(x1,y1,9),iso(x1,y1,3),iso(x0,y1,3), shade(b.awn,1));
+    wallY(fc.y,x0,x1,3,9,shade(b.awn,1));
   }
-  // civic: big door + rooftop flag
   if(b.use==='civic'){
-    quad(iso(x0+0.3*(x1-x0),y1,12),iso(x0+0.7*(x1-x0),y1,12),
-         iso(x0+0.7*(x1-x0),y1,1),iso(x0+0.3*(x1-x0),y1,1),
-         shade(b.kind==='fire'?'#f4f1ea':'#8a5a3b',1));
-    const fc=iso(b.x+0.5,b.y+0.5,h);
+    wallY(fc.y,x0+0.3*(x1-x0),x0+0.7*(x1-x0),1,12,shade(b.kind==='fire'?'#f4f1ea':'#8a5a3b',1));
+    const flag=iso(b.x+0.5,b.y+0.5,h);
     ctx.strokeStyle=shade('#5a5f6b',1); ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(fc.x,fc.y); ctx.lineTo(fc.x,fc.y-12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(flag.x,flag.y); ctx.lineTo(flag.x,flag.y-12); ctx.stroke();
     ctx.fillStyle=b.kind==='fire'?'#ff5a52':'#4f9dde';
-    ctx.beginPath(); ctx.moveTo(fc.x,fc.y-12); ctx.lineTo(fc.x+8,fc.y-9.5); ctx.lineTo(fc.x,fc.y-7); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(flag.x,flag.y-12); ctx.lineTo(flag.x+8,flag.y-9.5); ctx.lineTo(flag.x,flag.y-7); ctx.closePath(); ctx.fill();
   }
 
-  // windows
   const floors=Math.max(1,Math.round(h/STORY));
   const litP=night>0.35;
   const dayGlass=shade('#cfe3ec',0.9), darkGlass=shade('#2c3550',0.9);
   for(let f=0;f<floors;f++){
     const v0=f*STORY+4, v1=f*STORY+STORY-3;
     if(v1>h-3) break;
-    if(b.use==='com'&&f===0&&v0<10) continue; // awning floor
+    if(b.use==='com'&&f===0&&v0<10) continue;
     for(let w=0;w<2;w++){
       const u0=0.18+w*0.42, u1=u0+0.24;
       let lit=litP&&hash(b.x,b.y,f*31+w*7+1)<0.55;
-      quad(iso(x0+u0*(x1-x0),y1,v1),iso(x0+u1*(x1-x0),y1,v1),
-           iso(x0+u1*(x1-x0),y1,v0),iso(x0+u0*(x1-x0),y1,v0),
-           lit?(hash(b.x,b.y,f*13+w)<.5?'#ffd98a':'#ffeec2'):(litP?darkGlass:dayGlass));
+      wallY(fc.y,x0+u0*(x1-x0),x0+u1*(x1-x0),v0,v1,
+        lit?(hash(b.x,b.y,f*13+w)<.5?'#ffd98a':'#ffeec2'):(litP?darkGlass:dayGlass));
       lit=litP&&hash(b.x,b.y,f*47+w*11+2)<0.5;
-      quad(iso(x1,y0+u0*(y1-y0),v1),iso(x1,y0+u1*(y1-y0),v1),
-           iso(x1,y0+u1*(y1-y0),v0),iso(x1,y0+u0*(y1-y0),v0),
-           lit?'#ffd98a':(litP?shade('#222a42',0.9):shade('#bfd6e0',0.9)));
+      wallX(fc.x,y0+u0*(y1-y0),y0+u1*(y1-y0),v0,v1,
+        lit?'#ffd98a':(litP?shade('#222a42',0.9):shade('#bfd6e0',0.9)));
     }
   }
   // roof details
@@ -1507,8 +1525,9 @@ function drawBuilding(b, animT){
     }
   } else if(b.roof==='unit'){
     const u0=b.x+0.38,u1=b.x+0.62,v0=b.y+0.38,v1=b.y+0.62,uh=h+7;
-    quad(iso(u0,v1,uh),iso(u1,v1,uh),iso(u1,v1,h),iso(u0,v1,h),shade('#9aa1ad',0.8));
-    quad(iso(u1,v0,uh),iso(u1,v1,uh),iso(u1,v1,h),iso(u1,v0,h),shade('#9aa1ad',0.62));
+    const ufc=faceCoords(u0,v0,u1,v1);
+    wallY(ufc.y,u0,u1,h,uh,shade('#9aa1ad',0.8));
+    wallX(ufc.x,v0,v1,h,uh,shade('#9aa1ad',0.62));
     quad(iso(u0,v0,uh),iso(u1,v0,uh),iso(u1,v1,uh),iso(u0,v1,uh),shade('#b8bfca',1));
   } else if(b.roof==='garden'){
     const c=iso(b.x+0.5,b.y+0.5,h);
@@ -1575,10 +1594,11 @@ function drawBench(bn){
 
 function drawBlock(bk){
   const i=0.1, x0=bk.x+i, x1=bk.x+1-i, y0=bk.y+i, y1=bk.y+1-i;
+  const fc=faceCoords(x0,y0,x1,y1);
   for(let lv=0;lv<bk.colors.length;lv++){
     const z0=lv*BLOCK_H, z1=z0+BLOCK_H, col=bk.colors[lv];
-    quad(iso(x0,y1,z1),iso(x1,y1,z1),iso(x1,y1,z0),iso(x0,y1,z0), shade(col,0.78));
-    quad(iso(x1,y0,z1),iso(x1,y1,z1),iso(x1,y1,z0),iso(x1,y0,z0), shade(col,0.6));
+    wallY(fc.y,x0,x1,z0,z1, shade(col,0.78));
+    wallX(fc.x,y0,y1,z0,z1, shade(col,0.6));
     quad(iso(x0,y0,z1),iso(x1,y0,z1),iso(x1,y1,z1),iso(x0,y1,z1), shade(col,1.06));
   }
   // top edge highlight so stacks read as separate cubes
