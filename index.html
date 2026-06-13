@@ -248,12 +248,13 @@
   }
   .mob-cap.show{display:block;}
   .mob-ctrl{
-    display:none; position:fixed; z-index:9; pointer-events:none;
+    display:none; position:fixed; z-index:20; pointer-events:none;
     left:calc(10px + env(safe-area-inset-left));
     bottom:calc(90px + env(safe-area-inset-bottom));
     gap:10px; align-items:flex-end;
   }
   .mob-ctrl.show{display:flex; pointer-events:auto; align-items:flex-end; gap:10px;}
+  body.building .mob-ctrl.show{display:flex; pointer-events:auto;}
   body.bar-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
   body.dock-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
   .mob-stick{
@@ -322,10 +323,12 @@
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .dock-peek.on{background:var(--accent); color:#23201a;}
-  body.dock-collapsed .dock-peek.side{
-    display:block; z-index:11;
-    left:calc(6px + env(safe-area-inset-left)); top:50%;
-    transform:translateY(-50%); border-radius:0 12px 12px 0; padding:10px 8px;
+  @media (min-width:1025px){
+    body.dock-collapsed .dock-peek.side{
+      display:block; z-index:11;
+      left:calc(6px + env(safe-area-inset-left)); top:50%;
+      transform:translateY(-50%); border-radius:0 12px 12px 0; padding:10px 8px;
+    }
   }
   body:not(.dock-collapsed) .dock-peek.side{display:none;}
   .find-panel{
@@ -365,9 +368,9 @@
     body:not(.dock-collapsed) .dock-hide::after{content:' hide';}
     body:not(.dock-collapsed) .dock-hide::before{content:'▼';}
     body.dock-collapsed .dock-hide::before{content:'▲';}
-    body.dock-collapsed .dock-hide::after{content:' tools';}
-    .dock-hide{font-size:0; padding:6px 10px;}
-    .dock-hide::before,.dock-hide::after{font-size:11px; font-weight:800;}
+    body.dock-collapsed .dock-hide::after{content:'';}
+    .dock-hide{font-size:0; padding:8px 10px; flex-shrink:0;}
+    .dock-hide::before{font-size:13px; font-weight:800;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -376,23 +379,30 @@
     }
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
-    #toasts{bottom:calc(132px + env(safe-area-inset-bottom));}
-    .mob-cap.show{display:block; bottom:calc(132px + env(safe-area-inset-bottom));}
-    .mob-ctrl.show{bottom:calc(132px + env(safe-area-inset-bottom));}
-    body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
-    .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:11;}
-    .dock-peek.bottom{display:none;}
-    body.dock-collapsed .dock-peek.bottom{
-      display:block; z-index:12;
-      bottom:calc(10px + env(safe-area-inset-bottom));
-      right:calc(58px + env(safe-area-inset-right));
-      left:auto; transform:none;
-      padding:10px 13px; font-size:14px;
-      background:var(--accent); color:#23201a; border-color:#ffce6b66;
+    #toasts{bottom:calc(168px + env(safe-area-inset-bottom));}
+    .mob-cap.show{display:block; bottom:calc(168px + env(safe-area-inset-bottom));}
+    .mob-ctrl.show{
+      flex-direction:row; align-items:center;
+      bottom:calc(72px + env(safe-area-inset-bottom));
+      z-index:20;
     }
+    body.dock-expanded .mob-ctrl.show,
+    body:not(.dock-collapsed) .mob-ctrl.show{
+      bottom:calc(152px + env(safe-area-inset-bottom));
+    }
+    body.dock-expanded .mob-cap.show,
+    body:not(.dock-collapsed) .mob-cap.show{
+      bottom:calc(168px + env(safe-area-inset-bottom));
+    }
+    body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+    .bar-peek{display:none;}
+    body.dock-expanded .bar-peek{display:none;}
+    .dock-peek.bottom{display:none!important;}
     body.dock-collapsed .dock{
-      transform:translateX(-50%) translateY(calc(100% - 58px));
+      transform:translateX(-50%) translateY(calc(100% - 54px));
       pointer-events:auto;
+      width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
     }
     body.dock-collapsed .dock .bar{display:none;}
     body.dock-collapsed .tools{
@@ -403,10 +413,13 @@
     }
     body.dock-collapsed .dock .tools,
     body.dock-collapsed .dock .bar{pointer-events:auto;}
-    body.dock-collapsed .dock-peek.bottom{pointer-events:auto;}
-    body.dock-collapsed .mob-ctrl.show,
-    body.dock-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
-    body.dock-collapsed .bar-peek{display:block;}
+    body.dock-collapsed .dock-peek.bottom{pointer-events:none; display:none!important;}
+    body.dock-collapsed .bar-peek{
+      display:block;
+      right:calc(10px + env(safe-area-inset-right));
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:12;
+    }
     body.bar-collapsed .dock .bar{display:none;}
     body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
     body.creative .tools .adv:not([data-t="expand"]){display:none;}
@@ -426,6 +439,9 @@
       overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
       flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
     }
+    .mob-actions{flex-direction:row;}
+    .mob-stick{width:96px; height:96px;}
+    .mob-actions button{min-width:72px; height:42px; font-size:12px;}
     .tools button{min-width:0; padding:10px 12px; flex-shrink:0;}
     .tools button .lbl{display:none;}
     .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
@@ -551,7 +567,6 @@
 </div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
 <button type="button" id="dockPeek" class="dock-peek side" aria-label="Show build tools">🛠</button>
-<button type="button" id="dockPeekMob" class="dock-peek bottom" aria-label="Show build tools">🛠</button>
 <div id="findPanel" class="find-panel" aria-hidden="true">
   <div class="find-head">
     <span>🔍 Find game</span>
@@ -3556,12 +3571,13 @@ document.querySelectorAll('.spd').forEach(b=>{
     if(paused) setPause(false);
   };
 });
-let expandToolHinted=false, roadToolHinted=false;
+let expandToolHinted=false, roadToolHinted=false, buildStickHinted=false;
 function setTool(t){
   tool=t;
   mobCursor=null;
   stopMobStick();
   document.body.classList.toggle('find-mode', t==='find');
+  document.body.classList.toggle('building', t!=='inspect'&&t!=='find'&&!interior);
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   cv.classList.toggle('building',t!=='inspect'&&t!=='find');
   document.getElementById('palette').classList.toggle('show', t==='block');
@@ -3569,6 +3585,10 @@ function setTool(t){
     rebuildFindGoals();
     updateFindPanel();
     toast('🔍 Find mode — tap people, pets & landmarks','ok');
+  } else if(t!=='inspect' && mqCompact.matches && !buildStickHinted){
+    buildStickHinted=true;
+    updateFindPanel();
+    toast('Thumb pad bottom-left · tap tiles or ✓ Place','ok');
   } else updateFindPanel();
   if(t==='expand'&&!expandToolHinted){
     expandToolHinted=true;
@@ -3629,7 +3649,7 @@ tip?.addEventListener('click', e=>{
   const btn=e.target.closest('[data-enter-bld]');
   if(btn) enterInterior(+btn.dataset.x, +btn.dataset.y);
 });
-const barPeek=$('barPeek'), dockPeek=$('dockPeek'), dockPeekMob=$('dockPeekMob');
+const barPeek=$('barPeek'), dockPeek=$('dockPeek');
 let dockCollapsed=false;
 function syncDockPeekBtns(collapsed){
   const hide=$('dockHide');
@@ -3643,19 +3663,16 @@ function syncDockPeekBtns(collapsed){
     }
   }
   if(dockPeek){ dockPeek.classList.toggle('on', collapsed); dockPeek.textContent='🛠'; dockPeek.title='Show full tools'; }
-  if(dockPeekMob){
-    dockPeekMob.classList.toggle('on', collapsed);
-    dockPeekMob.textContent=collapsed?'▲ Tools':'';
-    dockPeekMob.title='Show full tools';
-  }
   if(barPeek && mqCompact.matches){
     barPeek.classList.toggle('on', document.body.classList.contains('bar-collapsed'));
+    barPeek.textContent=document.body.classList.contains('bar-collapsed')?'⏸':'▾';
   }
 }
 function setDockCollapsed(v){
   if(!document.body) return;
   dockCollapsed=!!v;
   document.body.classList.toggle('dock-collapsed', dockCollapsed);
+  document.body.classList.toggle('dock-expanded', !dockCollapsed);
   syncDockPeekBtns(dockCollapsed);
   updateMobUI();
 }
@@ -3671,11 +3688,16 @@ function toggleDockCollapsed(){
   setDockCollapsed(!dockCollapsed);
 }
 if(mqCompact.matches) setDockCollapsed(true);
+if(document.body) document.body.classList.toggle('dock-expanded', !dockCollapsed);
 $('dockHide')?.addEventListener('click', toggleDockCollapsed);
 dockPeek?.addEventListener('click', ()=> setDockCollapsed(false));
-dockPeekMob?.addEventListener('click', ()=> setDockCollapsed(false));
 if(mqCompact.matches) setBarCollapsed(true);
 barPeek?.addEventListener('click', ()=>{
+  if(document.body?.classList.contains('dock-collapsed') && mqCompact.matches){
+    setDockCollapsed(false);
+    setBarCollapsed(false);
+    return;
+  }
   if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
 });
 mqCompact.addEventListener('change', e=>{
