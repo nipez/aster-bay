@@ -253,19 +253,28 @@
     bottom:calc(90px + env(safe-area-inset-bottom));
     gap:10px; align-items:flex-end;
   }
-  .mob-ctrl.show{display:flex; pointer-events:auto;}
+  .mob-ctrl.show{display:flex; pointer-events:auto; align-items:flex-end; gap:10px;}
   body.bar-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
-  .mob-dpad{display:flex; flex-direction:column; align-items:center; gap:4px;}
-  .mob-row{display:flex; gap:4px;}
-  .mob-dir,.mob-actions button{
+  body.dock-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+  .mob-stick{
+    position:relative; width:108px; height:108px; border-radius:50%; flex-shrink:0;
+    background:rgba(21,24,42,.94); border:2px solid #ffffff22;
+    box-shadow:0 4px 14px #0009; backdrop-filter:blur(8px); touch-action:none;
+  }
+  .mob-stick-knob{
+    position:absolute; left:50%; top:50%; width:44px; height:44px;
+    margin:-22px 0 0 -22px; border-radius:50%; pointer-events:none;
+    background:var(--accent); border:2px solid #ffce6b88;
+    box-shadow:0 2px 10px #0008;
+  }
+  .mob-actions{display:flex; flex-direction:column; gap:6px;}
+  .mob-actions button{
     appearance:none; border:1px solid #ffffff22; cursor:pointer;
     background:#15182af0; color:var(--ink); border-radius:12px;
-    width:46px; height:46px; font-size:17px; font-weight:800;
-    box-shadow:0 4px 14px #0009; backdrop-filter:blur(8px);
+    font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009; backdrop-filter:blur(8px);
+    width:auto; min-width:88px; padding:0 12px; height:46px;
   }
-  .mob-dir:active,.mob-actions button:active{transform:scale(.94); background:#ffffff18;}
-  .mob-actions{display:flex; flex-direction:column; gap:6px;}
-  .mob-actions button{width:auto; min-width:88px; padding:0 12px; font-size:13px;}
+  .mob-actions button:active{transform:scale(.94); background:#ffffff18;}
   #mobPlace{background:#67d18a22; border-color:#67d18a66; color:#dff7e8;}
   #mobClear{background:#ff6b5e22; border-color:#ff6b5e66; color:#ffd4cf;}
   body.interior-mode .dock{display:none;}
@@ -523,13 +532,8 @@
 
 <div id="mobCap" class="mob-cap"></div>
 <div id="mobCtrl" class="mob-ctrl" aria-hidden="true">
-  <div class="mob-dpad">
-    <button type="button" class="mob-dir" data-dx="0" data-dy="-1" aria-label="Move up">▲</button>
-    <div class="mob-row">
-      <button type="button" class="mob-dir" data-dx="-1" data-dy="0" aria-label="Move left">◀</button>
-      <button type="button" class="mob-dir" data-dx="0" data-dy="1" aria-label="Move down">▼</button>
-      <button type="button" class="mob-dir" data-dx="1" data-dy="0" aria-label="Move right">▶</button>
-    </div>
+  <div class="mob-stick" id="mobStick" aria-label="Move build cursor">
+    <div class="mob-stick-knob" id="mobKnob"></div>
   </div>
   <div class="mob-actions">
     <button type="button" id="mobPlace">✓ Place</button>
@@ -558,7 +562,7 @@
 </div>
 <div id="tip"></div>
 <div id="toasts"></div>
-<div class="hint">pick a tool · D-pad + Place to build (or click on desktop)<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
+<div class="hint">pick a tool · thumb pad + Place to build · tap tiles too<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
 
 <script>
 'use strict';
@@ -2206,6 +2210,61 @@ function nudgeMobCursor(dx,dy){
     hoverTile={x:mobCursor.x, y:mobCursor.y};
   }
 }
+const STICK_TRAVEL=38;
+let mobStick=null, mobKnob=null, stickVec={x:0,y:0}, stickDragId=null, stickTimer=null;
+function resetMobStick(){
+  stickVec={x:0,y:0};
+  if(mobKnob) mobKnob.style.transform='translate(0px,0px)';
+}
+function stopMobStick(){
+  if(stickTimer){ clearInterval(stickTimer); stickTimer=null; }
+  stickDragId=null;
+  resetMobStick();
+}
+function stickFromPoint(clientX,clientY){
+  if(!mobStick) return;
+  const r=mobStick.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  let dx=clientX-cx, dy=clientY-cy;
+  const d=Math.hypot(dx,dy);
+  if(d>STICK_TRAVEL){ dx=dx/d*STICK_TRAVEL; dy=dy/d*STICK_TRAVEL; }
+  stickVec={x:dx/STICK_TRAVEL, y:dy/STICK_TRAVEL};
+  if(mobKnob) mobKnob.style.transform='translate('+dx+'px,'+dy+'px)';
+}
+function mobStickStep(){
+  const ax=Math.abs(stickVec.x), ay=Math.abs(stickVec.y);
+  if(ax<0.28 && ay<0.28) return;
+  let dx=0, dy=0;
+  if(ax>=ay) dx=stickVec.x>0?1:-1;
+  else dy=stickVec.y>0?1:-1;
+  nudgeMobCursor(dx,dy);
+}
+function startMobStickRepeat(){
+  if(stickTimer) return;
+  mobStickStep();
+  stickTimer=setInterval(mobStickStep, 145);
+}
+function initMobStick(){
+  mobStick=$('mobStick'); mobKnob=$('mobKnob');
+  if(!mobStick) return;
+  mobStick.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    stickDragId=e.pointerId;
+    mobStick.setPointerCapture(e.pointerId);
+    stickFromPoint(e.clientX,e.clientY);
+    startMobStickRepeat();
+  });
+  mobStick.addEventListener('pointermove', e=>{
+    if(stickDragId!==e.pointerId) return;
+    stickFromPoint(e.clientX,e.clientY);
+  });
+  const endMobStick=e=>{
+    if(stickDragId!==e.pointerId) return;
+    stopMobStick();
+  };
+  mobStick.addEventListener('pointerup', endMobStick);
+  mobStick.addEventListener('pointercancel', endMobStick);
+}
 function mobPlaceAction(){
   if(interior) placeInteriorRoom(interior.floor, interior.cx, interior.cy, roomType);
   else{
@@ -3070,9 +3129,6 @@ const mqCompact=mqMobile;
 const mqCoarse=typeof window.matchMedia==='function'
   ? window.matchMedia('(pointer: coarse)')
   : {matches:false};
-function prefersMobPlace(){
-  return mqMobile.matches || mqCoarse.matches || navigator.maxTouchPoints>0;
-}
 function showMobBuildUI(){
   if(interior) return true;
   if(tool==='inspect'||tool==='find') return false;
@@ -3312,6 +3368,9 @@ cv.addEventListener('pointermove', e=>{
     lx=e.clientX; ly=e.clientY;
   }
   hoverTile=screenToTile(e.clientX,e.clientY);
+  if(!interior && tool!=='inspect' && tool!=='find' && !dragging && activePtrs.size<=1){
+    mobCursor={x:hoverTile.x, y:hoverTile.y};
+  }
   if(tool==='find'){
     hoverAgent=null;
     if(!tipTimer) tip.style.display='none';
@@ -3346,7 +3405,9 @@ cv.addEventListener('pointerup', e=>{
     const t=screenToTile(e.clientX,e.clientY);
     if(tool==='find') tryFindAt(e.clientX,e.clientY);
     else if(tool!=='inspect'){
-      if(!prefersMobPlace()) tryPlace(t.x,t.y);
+      mobCursor={x:t.x, y:t.y};
+      hoverTile=mobCursor;
+      tryPlace(t.x,t.y);
     } else {
       const best=nearestAgent(e.clientX,e.clientY,26);
       if(best) showTip(agentTipHTML(best), e.clientX, e.clientY);
@@ -3499,6 +3560,7 @@ let expandToolHinted=false, roadToolHinted=false;
 function setTool(t){
   tool=t;
   mobCursor=null;
+  stopMobStick();
   document.body.classList.toggle('find-mode', t==='find');
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   cv.classList.toggle('building',t!=='inspect'&&t!=='find');
@@ -3547,21 +3609,19 @@ function updateMobUI(){
   if(!showCtrl){ mobCap.classList.remove('show'); return; }
   if(interior){
     const rt=ROOM_TYPES[roomType];
-    mobCap.textContent=rt.icon+' '+rt.name+' · D-pad moves · Place / Clear';
+    mobCap.textContent=rt.icon+' '+rt.name+' · thumb pad moves · Place / Clear';
     mobCap.classList.add('show');
     return;
   }
   const btn=document.querySelector('.tool[data-t="'+tool+'"]');
   const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||tool;
   const ico=btn?.querySelector('.ico')?.textContent||'';
-  mobCap.textContent=ico+' '+name+' — use D-pad (bottom-left) · Place to build';
+  mobCap.textContent=ico+' '+name+' — thumb pad moves cursor · tap tile or Place';
   mobCap.classList.add('show');
 }
-mobCtrl?.querySelectorAll('.mob-dir').forEach(btn=>{
-  btn.addEventListener('click', ()=> nudgeMobCursor(+btn.dataset.dx, +btn.dataset.dy));
-});
 $('mobPlace')?.addEventListener('click', ()=> mobPlaceAction());
 $('mobClear')?.addEventListener('click', ()=> mobClearAction());
+initMobStick();
 $('intExit')?.addEventListener('click', ()=> exitInterior());
 $('intUp')?.addEventListener('click', ()=> setInteriorFloor((interior?.floor|0)+1));
 $('intDown')?.addEventListener('click', ()=> setInteriorFloor((interior?.floor|0)-1));
