@@ -310,7 +310,7 @@
   <div class="gap"></div>
   <button class="tool on" data-t="inspect"><span class="ico">🖐</span><span class="lbl">Inspect<small>hover the city</small></span></button>
   <div class="gap"></div>
-  <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · must touch a road</small></span></button>
+  <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · tap green tiles</small></span></button>
   <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · trucks roll on roads</small></span></button>
@@ -1526,7 +1526,13 @@ function updateUndoBtn(){
 function tryPlace(x,y){
   if(tool==='inspect') return;
   if(!canPlace(tool,x,y)){
-    if(tool==='road') toast('Roads must touch an existing road','err');
+    if(tool==='road'){
+      const ty=tileAt(x,y), k=tkey(x,y);
+      const open=(emptyGroundType(ty)||ty==='walk') && !bldMap.has(k) && !blockMap.has(k);
+      toast(open
+        ? 'Tap a green tile right beside a road — extend one piece at a time'
+        : 'Can\u2019t pave here — need open ground next to a road','err');
+    }
     else if(tool==='house'||tool==='shop'||tool==='fire'||tool==='school') toast('Needs an empty lot next to a sidewalk or road','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
@@ -2167,6 +2173,24 @@ function drawSky(h, animT){
 
 // ---------- render frame ----------
 let hoverAgent=null;
+function drawRoadHints(rng, animT){
+  const pulse=(Math.sin(animT*4)+1)*0.5;
+  const fill=`rgba(103,209,138,${0.14+0.1*pulse})`;
+  const seen=new Set();
+  for(const [k,t] of edits){
+    if(!isRoadT(t)) continue;
+    const [rx,ry]=k.split(',').map(Number);
+    if(rx<rng.x0-1||rx>rng.x1+1||ry<rng.y0-1||ry>rng.y1+1) continue;
+    for(const d of DIRS){
+      const nx=rx+d[0], ny=ry+d[1];
+      if(nx<rng.x0||nx>rng.x1||ny<rng.y0||ny>rng.y1) continue;
+      const nk=tkey(nx,ny);
+      if(seen.has(nk)||!canPlace('road',nx,ny)) continue;
+      seen.add(nk);
+      diamond(nx,ny,0,fill);
+    }
+  }
+}
 function render(animT){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   const h=hourNow();
@@ -2180,6 +2204,8 @@ function render(animT){
 
   const rng=visibleRange();
   drawGround(rng, animT);
+
+  if(tool==='road') drawRoadHints(rng, animT);
 
   // build ghost
   if(tool!=='inspect'&&hoverTile&&inB(hoverTile.x,hoverTile.y)){
@@ -2323,8 +2349,12 @@ function updateHUD(){
   document.querySelector('#dG .bfill').style.width=(stats.dG*100)+'%';
 }
 function toast(msg, kind){
+  const now=Date.now();
+  if(toast.lastMsg===msg && now-toast.lastAt<2200) return;
+  toast.lastMsg=msg; toast.lastAt=now;
   const t=document.createElement('div');
   t.className='toast'+(kind?' '+kind:'');
+  t.dataset.msg=msg;
   t.textContent=msg;
   $('toasts').appendChild(t);
   setTimeout(()=>t.remove(), 3000);
@@ -2661,7 +2691,7 @@ document.querySelectorAll('.spd').forEach(b=>{
     if(paused) setPause(false);
   };
 });
-let expandToolHinted=false;
+let expandToolHinted=false, roadToolHinted=false;
 function setTool(t){
   tool=t;
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
@@ -2671,13 +2701,17 @@ function setTool(t){
     expandToolHinted=true;
     toast('Glowing edges show where a new 4×4 district can go — tap one','ok');
   }
+  if(t==='road'&&!roadToolHinted){
+    roadToolHinted=true;
+    toast('Green tiles beside roads are valid — extend one piece at a time','ok');
+  }
   updateMobCap();
 }
 document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
 const mobCap=$('mobCap');
 const TOOL_HINTS={
   inspect:'tap things to learn about them',
-  road:'tap next to a road to extend it',
+  road:'tap a green tile beside a road',
   house:'tap an empty lot by a sidewalk',
   shop:'tap an empty lot by a sidewalk',
   fire:'tap an empty lot by a sidewalk',
