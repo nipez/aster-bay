@@ -57,7 +57,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
   setBlockColor:c=>{blockColor=c;},applyBootParams,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
-  getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
+  getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,goToWalker,
+  getCam:()=>({px:cam.px,py:cam.py}),
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
   fitCityView,cityBounds,getCamZ:()=>cam.z,
@@ -233,6 +234,11 @@ A(H.getWalkers().length === 2, 'multiple walkers supported');
 const sam = H.getWalkers().find(w => w.name === 'Sam');
 H.toggleTrackWalker(sam.id);
 A(H.getTrackWalkerId() === sam.id, 'can track a chosen walker');
+H.resetCam();
+const cam0 = H.getCam();
+H.goToWalker(sam.id);
+const cam1 = H.getCam();
+A(cam0.px !== cam1.px || cam0.py !== cam1.py, 'click name jumps camera to walker');
 H.exportCity();
 const dPlayer = JSON.parse(global.__blob);
 A(Array.isArray(dPlayer.walkers) && dPlayer.walkers.length === 2, 'all walkers saved in export');

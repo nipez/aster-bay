@@ -93,7 +93,14 @@
   }
   .you-item.track{background:#ffce6b18; border-color:#ffce6b44;}
   .you-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
-  .you-item .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; color:var(--ink);}
+  .you-item .nm{
+    flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-weight:700; color:var(--ink); text-align:left;
+    appearance:none; border:none; cursor:pointer; background:transparent;
+    padding:2px 0; font:700 11.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-item .nm:hover{color:var(--accent);}
+  .you-item .nm:active{transform:scale(.98);}
   .you-item button{
     appearance:none; border:none; cursor:pointer; background:#ffffff14; color:var(--ink);
     border-radius:7px; padding:3px 7px; font:700 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
@@ -1592,10 +1599,11 @@ function renderWalkerList(){
     const row=document.createElement('div');
     row.className='you-item'+(trackWalkerId===w.id?' track':'');
     row.innerHTML='<span class="you-dot" style="background:'+w.shirt+'"></span>'
-      +'<span class="nm">'+escapeHtml(w.name)
+      +'<button type="button" class="nm" data-act="goto" data-id="'+w.id+'" title="Go to '+escapeHtml(w.name)+'">'
+      +escapeHtml(w.name)
       +(w.goalLabel?' <span class="task">→ '+escapeHtml(w.goalLabel)+'</span>':'')
-      +'</span>'
-      +'<button type="button" class="'+(trackWalkerId===w.id?'on':'')+'" data-act="find" data-id="'+w.id+'" aria-label="Find '+escapeHtml(w.name)+'">📍</button>'
+      +'</button>'
+      +'<button type="button" class="'+(trackWalkerId===w.id?'on':'')+'" data-act="find" data-id="'+w.id+'" aria-label="Track '+escapeHtml(w.name)+'">📍</button>'
       +'<button type="button" class="remove" data-act="remove" data-id="'+w.id+'" aria-label="Remove '+escapeHtml(w.name)+'">×</button>';
     el.appendChild(row);
   }
@@ -1608,6 +1616,17 @@ function panToWalker(w){
 }
 function pulseWalker(id){
   walkerPulseId=id; walkerPulseT=2.5;
+}
+function goToWalker(id){
+  const w=getWalker(id);
+  if(!w) return false;
+  focusWalkerId=id;
+  if(trackWalkerId!==id) setTrackWalker(null);
+  panToWalker(w);
+  pulseWalker(id);
+  if(hudExpanded()) collapseHud();
+  toast('📍 '+w.name,'ok');
+  return true;
 }
 function setTrackWalker(id){
   trackWalkerId=id;
@@ -3426,6 +3445,8 @@ $('youCmd').addEventListener('keydown', e=>{
   if(e.key==='Enter' && instructWalker($('youCmd').value)) $('youCmd').value='';
 });
 $('youList').addEventListener('click', e=>{
+  const goto=e.target.closest('[data-act="goto"]');
+  if(goto){ goToWalker(+goto.dataset.id); return; }
   const btn=e.target.closest('button[data-id]');
   if(!btn) return;
   const id=+btn.dataset.id;
