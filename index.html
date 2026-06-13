@@ -1333,6 +1333,19 @@ function quad(p1,p2,p3,p4,fill){
   ctx.lineTo(p3.x,p3.y); ctx.lineTo(p4.x,p4.y); ctx.closePath();
   ctx.fillStyle=fill; ctx.fill();
 }
+function faceDepth(p1,p2,p3,p4){ return p1.x+p2.x+p3.x+p4.x+p1.y+p2.y+p3.y+p4.y; }
+function drawBoxFaces(lo, hi, col, shades, topCol){
+  const tc=topCol||col;
+  const faces=[
+    {p:[lo[0],lo[1],hi[1],hi[0]], c:col, s:shades[0]},
+    {p:[lo[1],lo[2],hi[2],hi[1]], c:col, s:shades[1]},
+    {p:[lo[2],lo[3],hi[3],hi[2]], c:col, s:shades[2]},
+    {p:[lo[3],lo[0],hi[0],hi[3]], c:col, s:shades[3]},
+    {p:[hi[0],hi[1],hi[2],hi[3]], c:tc, s:shades[4]},
+  ];
+  faces.sort((a,b)=>faceDepth(...a.p)-faceDepth(...b.p));
+  for(const f of faces) quad(f.p[0],f.p[1],f.p[2],f.p[3], shade(f.c,f.s));
+}
 function diamond(x,y,z,fill){
   quad(iso(x,y,z),iso(x+1,y,z),iso(x+1,y+1,z),iso(x,y+1,z),fill);
 }
@@ -1606,18 +1619,14 @@ function drawCar(c, animT){
   const lo=corners(2.5), hi=corners(10.5);
   ctx.fillStyle='rgba(20,24,40,.25)';
   ctx.beginPath(); ctx.ellipse(p0.x,p0.y,13,6,0,0,Math.PI*2); ctx.fill();
-  quad(hi[3],hi[2],lo[2],lo[3], shade(c.color,0.72));
-  quad(hi[1],hi[2],lo[2],lo[1], shade(c.color,0.58));
-  quad(hi[0],hi[1],hi[2],hi[3], shade(c.color,1.05));
+  drawBoxFaces(lo, hi, c.color, [0.58, 0.58, 0.72, 0.72, 1.05]);
   const cl=0.13, cw=0.11;
   const cax=along[0]*cl, cay=along[1]*cl, cbx=-along[1]*cw, cby=along[0]*cw;
   const cc=z=>[
     iso(pos.x-cax-cbx,pos.y-cay-cby,z), iso(pos.x+cax-cbx,pos.y+cay-cby,z),
-    iso(pos.x+cax+cbx,pos.y+cay+cby,z), iso(pos.x-cax+cbx,pos.y-cay+cby,z)];
+    iso(pos.x+cax+cbx,pos.y+cay+cby,z), iso(pos.x-cax+cbx,pos.y-cay-cby,z)];
   const c1=cc(10.5), c2=cc(16);
-  quad(c2[3],c2[2],c1[2],c1[3], shade('#2e3852',0.95));
-  quad(c2[1],c2[2],c1[2],c1[1], shade('#2e3852',0.8));
-  quad(c2[0],c2[1],c2[2],c2[3], shade(c.color,1.12));
+  drawBoxFaces(c1, c2, '#2e3852', [0.8, 0.8, 0.95, 0.95, 1.12], c.color);
   if(night>0.3&&c.wait<=0){
     const hx=pos.x+along[0]*L, hy=pos.y+along[1]*L;
     const h1=iso(hx-bx_*0.6,hy-by_*0.6,6), h2=iso(hx+bx_*0.6,hy+by_*0.6,6);
