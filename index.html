@@ -118,22 +118,56 @@
     position:fixed; right:14px; bottom:16px; color:#ffffff66; font-size:11px;
     letter-spacing:.5px; text-align:right; line-height:1.5; pointer-events:none;
   }
+  .mob-cap{
+    display:none; position:fixed; left:50%; z-index:7; pointer-events:none;
+    transform:translateX(-50%); background:#15182af0; color:var(--ink);
+    border:1px solid #ffffff1c; padding:6px 14px; border-radius:12px;
+    font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009;
+    white-space:nowrap;
+  }
+  .bar-peek{
+    display:none; position:fixed; right:14px; z-index:7;
+    appearance:none; border:1px solid #ffffff1c; cursor:pointer;
+    background:var(--panel); color:var(--ink); border-radius:12px;
+    padding:8px 11px; font-size:15px; font-weight:800;
+    box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
+  }
+  .bar-peek.on{background:var(--accent); color:#23201a;}
   @media (max-width:760px){
     .hint{display:none;}
     .hud{min-width:0; padding:8px 12px 9px; transform:scale(.9); transform-origin:top left;}
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
+    .mob-cap.show{display:block;}
+    .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
     .tools{
-      top:auto; left:50%; bottom:calc(64px + env(safe-area-inset-bottom));
+      top:auto; left:50%; bottom:calc(58px + env(safe-area-inset-bottom));
       transform:translateX(-50%); flex-direction:row; max-width:96vw;
       overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+      scroll-snap-type:x proximity;
     }
-    .tools button{min-width:0; padding:10px 12px;}
+    body.bar-collapsed .tools{bottom:calc(52px + env(safe-area-inset-bottom));}
+    .mob-cap{bottom:calc(108px + env(safe-area-inset-bottom));}
+    body.bar-collapsed .mob-cap{bottom:calc(100px + env(safe-area-inset-bottom));}
+    .tools button{min-width:0; padding:10px 12px; scroll-snap-align:start;}
     .tools button .lbl{display:none;}
     .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
       border-left:1px solid #ffffff18; margin:2px 3px;}
-    .bar{bottom:calc(10px + env(safe-area-inset-bottom)); padding:7px 9px;}
+    .bar{
+      bottom:calc(10px + env(safe-area-inset-bottom)); padding:7px 9px;
+      transition:transform .25s ease, opacity .25s ease;
+    }
+    body.bar-collapsed .bar{
+      transform:translateX(-50%) translateY(calc(100% + 24px));
+      opacity:0; pointer-events:none;
+    }
+    .bar .spd{display:none;}
     .bar button{padding:9px 12px;}
+    body.creative .tools .adv{display:none;}
+    body.creative .tools .gap.adv{display:none;}
+    .palette{bottom:calc(108px + env(safe-area-inset-bottom));}
+    body.bar-collapsed .palette{bottom:calc(100px + env(safe-area-inset-bottom));}
+    #toasts{bottom:calc(120px + env(safe-area-inset-bottom));}
   }
 </style>
 </head>
@@ -164,17 +198,17 @@
   <div class="gap"></div>
   <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · must touch a road</small></span></button>
   <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
-  <button class="tool" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
-  <button class="tool" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · douses fires nearby</small></span></button>
-  <button class="tool" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
+  <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
+  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · douses fires nearby</small></span></button>
+  <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · tap to stack</small></span></button>
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50</small></span></button>
-  <div class="gap"></div>
-  <button id="bEvents"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
-  <button id="bSave"><span class="ico">💾</span><span class="lbl">Export save<small>.json</small></span></button>
-  <button id="bLoad"><span class="ico">📂</span><span class="lbl">Import save<small>.json</small></span></button>
+  <div class="gap adv"></div>
+  <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
+  <button id="bSave" class="adv"><span class="ico">💾</span><span class="lbl">Export save<small>.json</small></span></button>
+  <button id="bLoad" class="adv"><span class="ico">📂</span><span class="lbl">Import save<small>.json</small></span></button>
   <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
 </div>
 
@@ -189,9 +223,12 @@
   <span class="sep"></span>
   <button id="bOut" title="Zoom out (−)">−</button>
   <button id="bIn" title="Zoom in (+)">＋</button>
+  <button id="bRot" title="Rotate view (4 angles)">↻</button>
   <button id="bHome" title="Recenter view">⌖</button>
 </div>
 
+<div id="mobCap" class="mob-cap"></div>
+<button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
 <div id="tip"></div>
 <div id="toasts"></div>
 <div class="hint">pick a tool · click a tile to build · blocks stack!<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
@@ -238,7 +275,33 @@ const inB=()=>true;                // the world is unbounded now
 const isCoreLine = i => i>=CORE0 && i<=CORE1 && (i-CORE0)%6===0;
 const tkey=(x,y)=>x+','+y;
 
-function iso(x,y,z){ return { x:(x-y)*TW, y:(x+y)*TH - (z||0) }; }
+let camRot=0; // 0..3 quarter-turns around the map center
+function rotXY(x,y){
+  switch(camRot){
+    case 0: return [x,y];
+    case 1: return [y,-x];
+    case 2: return [-x,-y];
+    case 3: return [-y,x];
+    default: return [x,y];
+  }
+}
+function invRotXY(rx,ry){
+  switch(camRot){
+    case 0: return [rx,ry];
+    case 1: return [-ry,rx];
+    case 2: return [-rx,-ry];
+    case 3: return [ry,-rx];
+    default: return [rx,ry];
+  }
+}
+function sortD(x,y,off=0){
+  const [rx,ry]=rotXY(x,y);
+  return rx+ry+off;
+}
+function iso(x,y,z){
+  const [rx,ry]=rotXY(x,y);
+  return { x:(rx-ry)*TW, y:(rx+ry)*TH - (z||0) };
+}
 
 // ---------- infinite world: procedural terrain + edits overlay ----------
 // Terrain is deterministic from coordinates (meadow / forest / lakes).
@@ -831,20 +894,30 @@ const stars=[]; for(let i=0;i<110;i++) stars.push({x:R(),y:R()*0.62,s:rand(.6,1.
 const clouds=[]; for(let i=0;i<6;i++) clouds.push({x:R()*1.4-0.2,y:rand(.06,.3),s:rand(.6,1.4),v:rand(.004,.012)});
 
 // ---------- camera ----------
-const center=iso(GRID/2,GRID/2,0);
+function getCenter(){ return iso(GRID/2, GRID/2, 0); }
 const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7};
 function applyCam(){
+  const center=getCenter();
   ctx.translate(CW/2+cam.px, CH/2+cam.py);
   ctx.scale(cam.z,cam.z);
   ctx.translate(-center.x,-center.y);
 }
 function worldToScreen(wx,wy){
+  const center=getCenter();
   return {x:(wx-center.x)*cam.z+CW/2+cam.px, y:(wy-center.y)*cam.z+CH/2+cam.py};
 }
-function screenToTile(mx,my){
+function screenToTileExact(mx,my){
+  const center=getCenter();
   const wx=(mx-CW/2-cam.px)/cam.z+center.x;
   const wy=(my-CH/2-cam.py)/cam.z+center.y;
-  return {x:Math.floor(wx/(2*TW)+wy/(2*TH)), y:Math.floor(wy/(2*TH)-wx/(2*TW))};
+  const rx=wx/(2*TW)+wy/(2*TH);
+  const ry=wy/(2*TH)-wx/(2*TW);
+  const [x,y]=invRotXY(rx,ry);
+  return {x,y};
+}
+function screenToTile(mx,my){
+  const t=screenToTileExact(mx,my);
+  return {x:Math.floor(t.x), y:Math.floor(t.y)};
 }
 
 // ---------- drawing primitives ----------
@@ -859,12 +932,7 @@ function diamond(x,y,z,fill){
 
 // ---------- ground ----------
 function visibleRange(){
-  const inv=(sx,sy)=>{
-    const wx=(sx-CW/2-cam.px)/cam.z+center.x;
-    const wy=(sy-CH/2-cam.py)/cam.z+center.y;
-    return {x:wx/(2*TW)+wy/(2*TH), y:wy/(2*TH)-wx/(2*TW)};
-  };
-  const c=[inv(0,0),inv(CW,0),inv(0,CH),inv(CW,CH)];
+  const c=[[0,0],[CW,0],[0,CH],[CW,CH]].map(([mx,my])=>screenToTileExact(mx,my));
   let x0=Math.floor(Math.min(c[0].x,c[1].x,c[2].x,c[3].x))-3;
   let x1=Math.ceil (Math.max(c[0].x,c[1].x,c[2].x,c[3].x))+12;
   let y0=Math.floor(Math.min(c[0].y,c[1].y,c[2].y,c[3].y))-3;
@@ -1260,16 +1328,16 @@ function render(animT){
   const items=[];
   const inR=(x,y)=>x>=rng.x0&&x<=rng.x1&&y>=rng.y0&&y<=rng.y1;
   for(let x=rng.x0;x<=rng.x1;x++) for(let y=rng.y0;y<=rng.y1;y++)
-    if(hasProcTree(x,y)){ const tr=procTreeObj(x,y); items.push({d:tr.x+tr.y, f:()=>drawTree(tr,animT)}); }
-  for(const b of buildings) if(inR(b.x,b.y)) items.push({d:b.x+b.y+1, f:()=>drawBuilding(b,animT)});
-  for(const bk of blocks)   if(inR(bk.x,bk.y)) items.push({d:bk.x+bk.y+1, f:()=>drawBlock(bk)});
-  for(const tr of trees)    if(inR(tr.x,tr.y)) items.push({d:tr.x+tr.y, f:()=>drawTree(tr,animT)});
-  for(const l of lamps)     if(inR(l.x,l.y)) items.push({d:l.x+l.y, f:()=>drawLamp(l)});
-  for(const bn of benches)  if(inR(bn.x,bn.y)) items.push({d:bn.x+bn.y, f:()=>drawBench(bn)});
-  if(fountain) items.push({d:fountain.x+fountain.y, f:()=>drawFountain(animT)});
-  for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:it.x+it.y+0.2, f:()=>drawTrafficLight(it,simClock)});
-  for(const c of cars){ const p=carPos(c); items.push({d:p.x+p.y, f:()=>drawCar(c,animT)}); }
-  for(const p of peds){ const q=pedPos(p); items.push({d:q.x+q.y, f:()=>drawPed(p,animT)}); }
+    if(hasProcTree(x,y)){ const tr=procTreeObj(x,y); items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)}); }
+  for(const b of buildings) if(inR(b.x,b.y)) items.push({d:sortD(b.x,b.y,1), f:()=>drawBuilding(b,animT)});
+  for(const bk of blocks)   if(inR(bk.x,bk.y)) items.push({d:sortD(bk.x,bk.y,1), f:()=>drawBlock(bk)});
+  for(const tr of trees)    if(inR(tr.x,tr.y)) items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)});
+  for(const l of lamps)     if(inR(l.x,l.y)) items.push({d:sortD(l.x,l.y), f:()=>drawLamp(l)});
+  for(const bn of benches)  if(inR(bn.x,bn.y)) items.push({d:sortD(bn.x,bn.y), f:()=>drawBench(bn)});
+  if(fountain) items.push({d:sortD(fountain.x,fountain.y), f:()=>drawFountain(animT)});
+  for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:sortD(it.x,it.y,0.2), f:()=>drawTrafficLight(it,simClock)});
+  for(const c of cars){ const p=carPos(c); items.push({d:sortD(p.x,p.y), f:()=>drawCar(c,animT)}); }
+  for(const p of peds){ const q=pedPos(p); items.push({d:sortD(q.x,q.y), f:()=>drawPed(p,animT)}); }
   items.sort((a,b)=>a.d-b.d);
   for(const it of items) it.f();
 
@@ -1396,6 +1464,7 @@ document.getElementById('bEvents').onclick=()=>{
 };
 function setMode(m){
   mode=m;
+  if(document.body) document.body.classList.toggle('creative', mode==='creative');
   document.getElementById('modeLbl').innerHTML = mode==='creative'
     ? 'Creative mode<small>everything is free</small>'
     : 'Mayor mode<small>tap for creative</small>';
@@ -1531,6 +1600,11 @@ cv.addEventListener('wheel', e=>{
 $('bIn').onclick=()=>zoomAt(1.25,CW/2,CH/2);
 $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
 $('bHome').onclick=()=>{ cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+const VIEW_LBL=['North','East','South','West'];
+$('bRot').onclick=()=>{
+  camRot=(camRot+1)%4;
+  toast('🧭 View: '+VIEW_LBL[camRot]+' ('+(camRot+1)+'/4)','ok');
+};
 const bPause=$('bPause');
 function setPause(v){
   paused=v;
@@ -1545,13 +1619,51 @@ document.querySelectorAll('.spd').forEach(b=>{
     if(paused) setPause(false);
   };
 });
+const MOB=typeof matchMedia==='function'?matchMedia('(max-width:760px)'):{matches:false,addEventListener:()=>{}};
+const mobCap=$('mobCap');
+const TOOL_HINTS={
+  inspect:'tap things to learn about them',
+  road:'tap next to a road to extend it',
+  house:'tap an empty lot by a sidewalk',
+  shop:'tap an empty lot by a sidewalk',
+  fire:'tap an empty lot by a sidewalk',
+  school:'tap an empty lot by a sidewalk',
+  park:'tap open ground for a park',
+  tree:'tap open ground to plant',
+  block:'tap to stack colored blocks',
+  dozer:'tap to remove one thing'
+};
+function updateMobCap(){
+  if(!MOB.matches){ mobCap.classList.remove('show'); return; }
+  if(tool==='inspect'){ mobCap.classList.remove('show'); return; }
+  const btn=document.querySelector('.tool[data-t="'+tool+'"]');
+  const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||tool;
+  const ico=btn?.querySelector('.ico')?.textContent||'';
+  mobCap.textContent=ico+' '+name+' — '+TOOL_HINTS[tool];
+  mobCap.classList.add('show');
+}
 function setTool(t){
   tool=t;
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   cv.classList.toggle('building',t!=='inspect');
   document.getElementById('palette').classList.toggle('show', t==='block');
+  updateMobCap();
 }
 document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
+const barPeek=$('barPeek');
+function setBarCollapsed(v){
+  if(!document.body) return;
+  document.body.classList.toggle('bar-collapsed', v);
+  barPeek.classList.toggle('on', !v);
+  barPeek.textContent=v?'⏸':'▾';
+}
+if(MOB.matches) setBarCollapsed(true);
+barPeek.onclick=()=>{ if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed')); };
+MOB.addEventListener('change', ()=>{
+  if(MOB.matches) setBarCollapsed(true);
+  else setBarCollapsed(false);
+  updateMobCap();
+});
 window.addEventListener('keydown', e=>{
   if(e.code==='Space'){ e.preventDefault(); setPause(!paused); }
   if(e.key==='+'||e.key==='=') zoomAt(1.2,CW/2,CH/2);
