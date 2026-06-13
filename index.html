@@ -250,7 +250,9 @@
     .tools button .lbl{display:none;}
     .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
       border-left:1px solid #ffffff18; margin:2px 3px; flex-shrink:0;}
-    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;}
+    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;
+      max-width:96vw; overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
+      -webkit-overflow-scrolling:touch;}
     .bar button{padding:9px 11px;}
     .palette{
       left:50%; top:auto; bottom:calc(132px + env(safe-area-inset-bottom));
@@ -320,9 +322,7 @@
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50</small></span></button>
   <div class="gap adv"></div>
   <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
-  <button id="bSave" class="adv"><span class="ico">💾</span><span class="lbl">Export save<small>.json</small></span></button>
-  <button id="bLoad" class="adv"><span class="ico">📂</span><span class="lbl">Import save<small>.json</small></span></button>
-  <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+  <input type="file" id="fileIn" accept=".json,.asterbay,application/json" style="display:none">
 </div>
 
 <div class="bar" role="toolbar" aria-label="Simulation controls">
@@ -338,6 +338,9 @@
   <button id="bRotL" title="Rotate left (Q)">↺</button>
   <button id="bRotR" title="Rotate right (E)">↻</button>
   <button id="bUndo" title="Undo last build (Ctrl+Z / ⌘Z)" disabled>↩ Undo</button>
+  <span class="sep bar-save-sep"></span>
+  <button id="bSave" title="Save game to this device">💾 Save</button>
+  <button id="bLoad" title="Load a saved game file">📂 Load</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
   <button id="bYou" title="Find or track a walker">📍 Walkers</button>
 </div>
@@ -2562,10 +2565,10 @@ function exportCity(){
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='aster-bay-day'+day+'.json';
+  a.download='aster-bay-day-'+day+'.asterbay';
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  toast('City exported','ok');
+  toast('Game saved to your device','ok');
 }
 function importCity(data){
   if(!data||(data.v!==2&&data.v!==3&&data.v!==4)) throw new Error('bad save');
@@ -2604,7 +2607,7 @@ function importCity(data){
   recompute();
   rankIdx = data.rankIdx!==undefined ? data.rankIdx : currentRank();
   adjustAgents(); updateHUD();
-  toast('City loaded — welcome back, Mayor','ok');
+  toast('Game loaded — welcome back!','ok');
 }
 function currentRank(){
   let idx=0;
@@ -2659,7 +2662,7 @@ $('bLoad').onclick=()=>$('fileIn').click();
 $('fileIn').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=()=>{ try{ importCity(JSON.parse(rd.result)); }catch(err){ toast('Couldn\u2019t read that save file','err'); } };
+  rd.onload=()=>{ try{ importCity(JSON.parse(rd.result)); }catch(err){ toast('Couldn\u2019t open that save file — try Save/Load from this game','err'); } };
   rd.readAsText(f);
   e.target.value='';
 });
