@@ -27,11 +27,15 @@ const elStub = () => ({
   getContext: () => ctxStub, width: 0, height: 0,
   appendChild: noop, remove: noop, click: noop, files: [],
 });
-global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop };
+global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop, scrollTo: noop,
+  visualViewport: { width: 1280, height: 800, addEventListener: noop } };
 global.location = { search: '' };
+const docEl = elStub();
 global.document = {
   getElementById: () => elStub(), querySelector: () => elStub(),
   querySelectorAll: () => [elStub(), elStub(), elStub()], createElement: () => elStub(),
+  addEventListener: noop, documentElement: docEl, body: docEl,
+  fullscreenElement: null, webkitFullscreenElement: null,
 };
 global.performance = { now: () => Date.now() };
 global.Blob = class { constructor(parts) { global.__blob = parts[0]; } };
@@ -48,7 +52,12 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
-  setBlockColor:c=>{blockColor=c;},applyBootParams};`;
+  setBlockColor:c=>{blockColor=c;},applyBootParams,
+  joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
+  getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,
+  instructWalker,parseWalkerCommand,updatePeds,
+  rotateView,screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,
+  toggleFullscreen,isFsView,setImmersive};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -166,6 +175,12 @@ for (let x = -60; x < 90 && !(foundWater && foundForest); x++)
 A(foundWater, 'lakes exist in the wilds');
 A(foundForest, 'forests exist in the wilds');
 A(H.tileAt(16, 16) !== 'water', 'town center is dry land');
+let expWater = 0, expN = 0;
+for (let x = 30; x < 80; x++) for (let y = 30; y < 80; y++) {
+  expN++;
+  if (H.terrainAt(x, y) === 'water') expWater++;
+}
+A(expWater / expN < 0.18, `expansion ring stays mostly dry (${Math.round(expWater / expN * 100)}% water)`);
 
 // road can extend far into the wilderness tile by tile
 // (south from the edge road at (10,28) — roads auto-fell forest trees)
@@ -189,6 +204,73 @@ global.location.search = '?mode=mayor';
 H.applyBootParams();
 A(H.getMode() === 'mayor', '?mode=mayor URL param');
 global.location.search = '';
+
+// ---------- player walker ----------
+console.log('\nplayer walker');
+A(!H.getWalkers().length, 'no walkers before add');
+A(H.addWalker('  Alex  '), 'add walker with trimmed name');
+A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Alex', 'walker name stored');
+A(H.getWalkers()[0].isYou, 'walker flagged as citizen');
+const px0 = H.getWalkers()[0].fx, py0 = H.getWalkers()[0].fy;
+for (let i = 0; i < 400; i++) run(1);
+const w0 = H.getWalkers()[0];
+A(w0.fx !== px0 || w0.fy !== py0 || w0.tx !== px0 || w0.ty !== py0, 'walker moves around');
+A(H.addWalker('Sam'), 'second walker added');
+A(H.getWalkers().length === 2, 'multiple walkers supported');
+const sam = H.getWalkers().find(w => w.name === 'Sam');
+H.toggleTrackWalker(sam.id);
+A(H.getTrackWalkerId() === sam.id, 'can track a chosen walker');
+H.exportCity();
+const dPlayer = JSON.parse(global.__blob);
+A(Array.isArray(dPlayer.walkers) && dPlayer.walkers.length === 2, 'all walkers saved in export');
+H.clearWalkers();
+A(!H.getWalkers().length, 'clear walkers');
+H.importCity(dPlayer);
+A(H.getWalkers().length === 2, 'walkers restored from save');
+A(H.getWalkers().some(w => w.name === 'Alex') && H.getWalkers().some(w => w.name === 'Sam'),
+  'restored walker names match');
+const legacy = JSON.parse(JSON.stringify(dPlayer));
+delete legacy.walkers;
+legacy.playerName = 'Jordan';
+legacy.playerPed = { fx: 12, fy: 10, tx: 12, ty: 10, p: 1, steps: 1, d: [1, 0] };
+H.importCity(legacy);
+A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Jordan', 'legacy single walker import');
+
+H.clearWalkers();
+H.addWalker('Nora');
+A(H.instructWalker('Nora - go to shop'), 'walker command accepted');
+const nora = H.getWalkers()[0];
+A(nora.path && nora.path.length > 0 && nora.goalLabel === 'shop', 'route assigned to shop');
+A(H.parseWalkerCommand('Nora go to fire station').dest.includes('fire'), 'parses go-to phrasing');
+H.clearWalkers();
+H.addWalker('Nora');
+H.setMode('creative');
+H.setTool('fire');
+let firePlaced = false;
+outer5: for (let x = 8; x < 24; x++) for (let y = 8; y < 24; y++)
+  if (H.canPlace('fire', x, y)) { H.tryPlace(x, y); firePlaced = true; break outer5; }
+A(firePlaced, 'fire station ready for walker command');
+A(H.instructWalker('Nora - go to fire station'), 'command to fire station accepted');
+A(H.getWalkers()[0].goalLabel === 'fire station', 'fire station goal set');
+let arriveSteps = 0;
+while (H.getWalkers()[0].path && arriveSteps < 2500) { run(1); arriveSteps++; }
+A(!H.getWalkers()[0].path, 'walker finishes route');
+
+// ---------- camera rotation ----------
+console.log('\ncamera rotation');
+A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing north');
+H.rotateView(1);
+A(H.getViewRot() === 1, 'view rotates 90°');
+A(H.tilePickRoundtrip(10, 12), 'tile pick round-trip facing east');
+H.rotateView(3);
+A(H.getViewRot() === 0, 'rotation returns to north');
+
+// ---------- full screen ----------
+console.log('\nfull screen');
+H.setImmersive(true);
+A(H.isFsView(), 'immersive expanded view');
+H.setImmersive(false);
+A(!H.isFsView(), 'immersive exits');
 
 // ---------- v0.5: blocks ----------
 console.log('\nblocks (creative)');

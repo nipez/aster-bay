@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aster Bay">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Aster Bay — City Builder</title>
 <style>
   :root{
@@ -17,12 +23,34 @@
   canvas.building{cursor:crosshair;}
 
   .hud{
-    position:fixed; top:14px; left:14px; background:var(--panel); color:var(--ink);
+    position:fixed; top:14px; left:14px; z-index:10; pointer-events:none;
+  }
+  .hud-panel{
+    background:var(--panel); color:var(--ink);
     border-radius:14px; padding:12px 16px 12px; backdrop-filter:blur(8px);
-    box-shadow:0 6px 24px #0008; min-width:208px; pointer-events:none;
+    box-shadow:0 6px 24px #0008; min-width:208px;
     border:1px solid #ffffff14;
   }
-  .hud h1{font-size:15px; letter-spacing:3px; color:var(--accent); font-weight:800; margin-bottom:2px;}
+  .hud-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:2px;}
+  .hud-head h1{font-size:15px; letter-spacing:3px; color:var(--accent); font-weight:800; margin:0;}
+  .hud-close{
+    display:none; appearance:none; border:none; cursor:pointer;
+    background:#ffffff14; color:var(--dim); border-radius:8px;
+    width:28px; height:28px; font-size:12px; line-height:1; flex-shrink:0;
+  }
+  .hud-close:active{transform:scale(.94);}
+  .hud-chip{
+    display:none; appearance:none; border:1px solid #ffffff14; cursor:pointer;
+    background:var(--panel); color:var(--ink); border-radius:999px;
+    padding:7px 12px; backdrop-filter:blur(8px); box-shadow:0 4px 16px #0008;
+    font:700 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    align-items:center; gap:7px; pointer-events:auto;
+  }
+  .hud-chip:active{transform:scale(.97);}
+  .hud-chip .chip-cash{color:var(--good); font-size:14px;}
+  .hud-chip .chip-sep{color:#ffffff44; font-weight:600;}
+  .hud-chip .chip-clock{font-variant-numeric:tabular-nums;}
+  .hud-chip .chip-caret{color:var(--dim); font-size:10px; margin-left:2px;}
   .hud .sub{font-size:10px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
   #cash{font-size:20px; font-weight:800; color:var(--good); letter-spacing:.5px;}
   #cash.broke{color:var(--bad);}
@@ -37,6 +65,55 @@
   .btrack{flex:1; height:6px; background:#ffffff14; border-radius:4px; overflow:hidden;}
   .bfill{height:100%; border-radius:4px; transition:width .4s;}
   #dR .bfill{background:#67d18a;} #dC .bfill{background:#4f9dde;} #dG .bfill{background:#a3c9a8;}
+
+  .you-row{display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14; pointer-events:auto;}
+  .you-row input{
+    flex:1; min-width:0; appearance:none; border:1px solid #ffffff22; background:#ffffff10;
+    color:var(--ink); border-radius:9px; padding:6px 9px;
+    font:600 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-row input::placeholder{color:var(--dim);}
+  .you-row input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .you-row button,.you-status button{
+    appearance:none; border:none; cursor:pointer; color:#23201a; background:var(--accent);
+    border-radius:9px; padding:6px 10px; font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    white-space:nowrap;
+  }
+  .you-row button:active,.you-status button:active{transform:scale(.96);}
+  .you-section{margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14; pointer-events:auto;}
+  .you-list{display:flex; flex-direction:column; gap:4px; margin-top:6px; max-height:112px; overflow-y:auto;}
+  .you-empty{font-size:11px; color:var(--dim); padding:2px 2px 0;}
+  .you-item{
+    display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:8px;
+    background:#ffffff08; font-size:11.5px; border:1px solid transparent;
+  }
+  .you-item.track{background:#ffce6b18; border-color:#ffce6b44;}
+  .you-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .you-item .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; color:var(--ink);}
+  .you-item button{
+    appearance:none; border:none; cursor:pointer; background:#ffffff14; color:var(--ink);
+    border-radius:7px; padding:3px 7px; font:700 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-item button.on{background:var(--accent); color:#23201a;}
+  .you-item button.remove{color:var(--bad); padding:3px 6px; font-size:13px; line-height:1;}
+  .you-item button:active{transform:scale(.94);}
+  .you-item .task{font-weight:600; color:var(--accent); font-size:10px;}
+  .you-cmd{display:flex; gap:6px; margin-top:6px;}
+  .you-cmd input{
+    flex:1; min-width:0; appearance:none; border:1px solid #ffffff22; background:#ffffff10;
+    color:var(--ink); border-radius:9px; padding:6px 9px;
+    font:600 11.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-cmd input::placeholder{color:var(--dim); font-size:11px;}
+  .you-cmd input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .you-cmd button{
+    appearance:none; border:none; cursor:pointer; color:#23201a; background:var(--accent);
+    border-radius:9px; padding:6px 10px; font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .you-cmd button:active{transform:scale(.96);}
+  .you-hint{font-size:10px; color:var(--dim); margin-top:5px; line-height:1.35;}
+
+  .dock{display:contents;}
 
   .tools{
     position:fixed; left:14px; top:50%; transform:translateY(-42%);
@@ -91,12 +168,6 @@
   }
   .palette button:active{transform:scale(.9);}
   .palette button.on{border-color:var(--ink); box-shadow:0 0 0 2px #00000055 inset;}
-  @media (max-width:760px){
-    .palette{
-      left:50%; top:auto; bottom:calc(118px + env(safe-area-inset-bottom));
-      transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
-    }
-  }
   #tip{
     position:fixed; pointer-events:none; background:#15182ae8; color:var(--ink);
     border:1px solid #ffffff1c; padding:6px 10px; border-radius:10px;
@@ -118,79 +189,119 @@
     position:fixed; right:14px; bottom:16px; color:#ffffff66; font-size:11px;
     letter-spacing:.5px; text-align:right; line-height:1.5; pointer-events:none;
   }
+  html.immersive, html.immersive body{
+    width:100%; min-height:100vh; min-height:-webkit-fill-available; min-height:100dvh;
+    height:100%; overflow:hidden; overscroll-behavior:none;
+  }
+  html.immersive canvas{width:100vw!important; height:100vh!important; height:100dvh!important;}
+
   .mob-cap{
     display:none; position:fixed; left:50%; z-index:7; pointer-events:none;
     transform:translateX(-50%); background:#15182af0; color:var(--ink);
     border:1px solid #ffffff1c; padding:6px 14px; border-radius:12px;
     font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009;
-    white-space:nowrap;
+    white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis;
   }
   .bar-peek{
-    display:none; position:fixed; right:14px; z-index:7;
+    display:none; position:fixed; right:calc(10px + env(safe-area-inset-right)); z-index:7;
     appearance:none; border:1px solid #ffffff1c; cursor:pointer;
     background:var(--panel); color:var(--ink); border-radius:12px;
     padding:8px 11px; font-size:15px; font-weight:800;
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .bar-peek.on{background:var(--accent); color:#23201a;}
+
   @media (max-width:760px){
     .hint{display:none;}
-    .hud{min-width:0; padding:8px 12px 9px; transform:scale(.9); transform-origin:top left;}
+    .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
+    .hud-chip{display:flex;}
+    .hud.expanded .hud-chip{display:none;}
+    .hud:not(.expanded) .hud-panel{display:none;}
+    .hud.expanded .hud-panel{
+      display:block; pointer-events:auto; min-width:0; max-width:min(92vw, 280px);
+      padding:10px 12px 11px;
+    }
+    .hud.expanded .hud-close{display:block; pointer-events:auto;}
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
-    .mob-cap.show{display:block;}
+    #toasts{bottom:calc(132px + env(safe-area-inset-bottom));}
+    .mob-cap.show{display:block; bottom:calc(132px + env(safe-area-inset-bottom));}
+    body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
     .bar-peek{display:block; bottom:calc(10px + env(safe-area-inset-bottom));}
-    .tools{
-      top:auto; left:50%; bottom:calc(58px + env(safe-area-inset-bottom));
-      transform:translateX(-50%); flex-direction:row; max-width:96vw;
-      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
-      scroll-snap-type:x proximity;
-    }
-    body.bar-collapsed .tools{bottom:calc(52px + env(safe-area-inset-bottom));}
-    .mob-cap{bottom:calc(108px + env(safe-area-inset-bottom));}
-    body.bar-collapsed .mob-cap{bottom:calc(100px + env(safe-area-inset-bottom));}
-    .tools button{min-width:0; padding:10px 12px; scroll-snap-align:start;}
-    .tools button .lbl{display:none;}
-    .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
-      border-left:1px solid #ffffff18; margin:2px 3px;}
-    .bar{
-      bottom:calc(10px + env(safe-area-inset-bottom)); padding:7px 9px;
-      transition:transform .25s ease, opacity .25s ease;
-    }
-    body.bar-collapsed .bar{
-      transform:translateX(-50%) translateY(calc(100% + 24px));
-      opacity:0; pointer-events:none;
-    }
-    .bar .spd{display:none;}
-    .bar button{padding:9px 12px;}
+    body.bar-collapsed .dock .bar{display:none;}
     body.creative .tools .adv{display:none;}
     body.creative .tools .gap.adv{display:none;}
-    .palette{bottom:calc(108px + env(safe-area-inset-bottom));}
-    body.bar-collapsed .palette{bottom:calc(100px + env(safe-area-inset-bottom));}
-    #toasts{bottom:calc(120px + env(safe-area-inset-bottom));}
+    .bar .spd{display:none;}
+    .dock{
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); width:max-content; max-width:96vw; z-index:6;
+      pointer-events:none;
+    }
+    .dock > *{pointer-events:auto;}
+    .tools{
+      position:static; top:auto; left:auto; bottom:auto;
+      transform:none; flex-direction:row; max-width:96vw; width:100%;
+      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+      flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
+    }
+    .tools button{min-width:0; padding:10px 12px; flex-shrink:0;}
+    .tools button .lbl{display:none;}
+    .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
+      border-left:1px solid #ffffff18; margin:2px 3px; flex-shrink:0;}
+    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;}
+    .bar button{padding:9px 11px;}
+    .palette{
+      left:50%; top:auto; bottom:calc(132px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
+    }
   }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 
-<div class="hud">
-  <h1>ASTER BAY</h1>
-  <div class="sub" id="rank">hamlet · mayor mode v0.5</div>
-  <div id="cash">$25,000</div>
-  <div id="clock">08:00</div>
-  <div id="phase">Morning · Day 1</div>
-  <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
-  <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
-  <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
-  <div class="stat"><span class="k">Vehicles on road</span><span class="v" id="sCars">0</span></div>
-  <div class="bars">
-    <div class="brow" id="dR"><span class="bl">R</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
-    <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
-    <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+<div class="hud" id="hud">
+  <button type="button" class="hud-chip" id="hudChip" aria-expanded="false" aria-controls="hudPanel" aria-label="Show city stats">
+    <span class="chip-cash" id="chipCash">$25,000</span>
+    <span class="chip-sep" aria-hidden="true">·</span>
+    <span class="chip-clock" id="chipClock">08:00</span>
+    <span class="chip-caret" aria-hidden="true">▾</span>
+  </button>
+  <div class="hud-panel" id="hudPanel">
+    <div class="hud-head">
+      <h1>ASTER BAY</h1>
+      <button type="button" class="hud-close" id="hudClose" aria-label="Hide stats">▴</button>
+    </div>
+    <div class="sub" id="rank">hamlet · mayor mode v0.5</div>
+    <div id="cash">$25,000</div>
+    <div id="clock">08:00</div>
+    <div id="phase">Morning · Day 1</div>
+    <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
+    <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
+    <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
+    <div class="stat"><span class="k">Vehicles on road</span><span class="v" id="sCars">0</span></div>
+    <div class="bars">
+      <div class="brow" id="dR"><span class="bl">R</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+      <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+      <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
+    </div>
+    <div class="you-section" id="youSection">
+      <div class="you-row" id="youRow">
+        <input id="youName" type="text" maxlength="18" placeholder="Add a name" autocomplete="nickname" enterkeyhint="go">
+        <button type="button" id="youJoin">Add</button>
+      </div>
+      <div class="you-list" id="youList"></div>
+      <div class="you-cmd">
+        <input id="youCmd" type="text" maxlength="48" placeholder="Nora - go to fire station" enterkeyhint="go">
+        <button type="button" id="youGo">Go</button>
+      </div>
+      <div class="you-hint">fire station · school · park · shop · home · town square</div>
+    </div>
   </div>
 </div>
 
+<div class="dock">
 <div class="tools" role="toolbar" aria-label="Build tools">
   <button id="bMode"><span class="ico">🎮</span><span class="lbl" id="modeLbl">Mayor mode<small>tap for creative</small></span></button>
   <div class="gap"></div>
@@ -212,8 +323,6 @@
   <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
 </div>
 
-<div class="palette" id="palette" aria-label="Block colors"></div>
-
 <div class="bar" role="toolbar" aria-label="Simulation controls">
   <button id="bPause" title="Pause / resume (Space)">⏸ Pause</button>
   <span class="sep"></span>
@@ -223,9 +332,15 @@
   <span class="sep"></span>
   <button id="bOut" title="Zoom out (−)">−</button>
   <button id="bIn" title="Zoom in (+)">＋</button>
-  <button id="bRot" title="Rotate view (4 angles)">↻</button>
   <button id="bHome" title="Recenter view">⌖</button>
+  <button id="bRotL" title="Rotate left (Q)">↺</button>
+  <button id="bRotR" title="Rotate right (E)">↻</button>
+  <button id="bFs" title="Full screen (F)">⛶</button>
+  <button id="bYou" title="Find or track a walker">📍 Walkers</button>
 </div>
+</div>
+
+<div class="palette" id="palette" aria-label="Block colors"></div>
 
 <div id="mobCap" class="mob-cap"></div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
@@ -247,10 +362,14 @@ const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let DPR = 1, CW = 0, CH = 0;
 function resize(){
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  CW = window.innerWidth; CH = window.innerHeight;
+  const vp=window.visualViewport;
+  CW=Math.round(vp?vp.width:window.innerWidth);
+  CH=Math.round(vp?vp.height:window.innerHeight);
   cv.width = CW * DPR; cv.height = CH * DPR;
 }
-window.addEventListener('resize', resize); resize();
+window.addEventListener('resize', resize);
+if(window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+resize();
 
 // ---------- rng / helpers ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
@@ -274,33 +393,27 @@ const DAY_LEN = 150;              // real seconds per in-game day at 1×
 const inB=()=>true;                // the world is unbounded now
 const isCoreLine = i => i>=CORE0 && i<=CORE1 && (i-CORE0)%6===0;
 const tkey=(x,y)=>x+','+y;
+const ROT_CX=GRID/2, ROT_CY=GRID/2;
+let viewRot=0;
 
-let camRot=0; // 0..3 quarter-turns around the map center
-function rotXY(x,y){
-  switch(camRot){
-    case 0: return [x,y];
-    case 1: return [y,-x];
-    case 2: return [-x,-y];
-    case 3: return [-y,x];
-    default: return [x,y];
-  }
-}
-function invRotXY(rx,ry){
-  switch(camRot){
-    case 0: return [rx,ry];
-    case 1: return [-ry,rx];
-    case 2: return [-rx,-ry];
-    case 3: return [ry,-rx];
-    default: return [rx,ry];
-  }
-}
-function sortD(x,y,off=0){
-  const [rx,ry]=rotXY(x,y);
-  return rx+ry+off;
-}
 function iso(x,y,z){
-  const [rx,ry]=rotXY(x,y);
-  return { x:(rx-ry)*TW, y:(rx+ry)*TH - (z||0) };
+  const r=viewRot&3;
+  let px=x, py=y;
+  if(r){
+    const dx=x-ROT_CX, dy=y-ROT_CY;
+    if(r===1){ px=ROT_CX+dy; py=ROT_CY-dx; }
+    else if(r===2){ px=ROT_CX-dx; py=ROT_CY-dy; }
+    else { px=ROT_CX-dy; py=ROT_CY+dx; }
+  }
+  return { x:(px-py)*TW, y:(px+py)*TH - (z||0) };
+}
+function unrotTile(x,y){
+  const r=viewRot&3;
+  if(!r) return {x,y};
+  const dx=x-ROT_CX, dy=y-ROT_CY;
+  if(r===1) return {x:ROT_CX-dy, y:ROT_CY+dx};
+  if(r===2) return {x:ROT_CX-dx, y:ROT_CY-dy};
+  return {x:ROT_CX+dy, y:ROT_CY-dx};
 }
 
 // ---------- infinite world: procedural terrain + edits overlay ----------
@@ -324,9 +437,10 @@ function noise2(x,y,s){
 function terrainAt(x,y){
   const cd=Math.max(Math.abs(x-16),Math.abs(y-16));   // distance from old town
   const e=noise2(x*0.085,y*0.085,21)*0.65 + noise2(x*0.21,y*0.21,22)*0.35;
-  const w=e + Math.max(0,(26-cd))*0.022;              // dry land near town
-  if(w<0.31) return 'water';
-  if(cd>16 && e>0.62) return 'forest';                // open meadow ring, then woods
+  const dry=Math.max(0,(38-cd))*0.024;                 // wide buildable meadow ring
+  const w=e + dry;
+  if(w<0.20) return 'water';                           // sparser lakes (was 0.31)
+  if(cd>14 && e>0.64) return 'forest';                 // woods beyond the meadow ring
   return 'grass';
 }
 function tileAt(x,y){
@@ -576,21 +690,335 @@ function spawnPed(){
   }
   return false;
 }
+function updateOnePed(p, dt){
+  if(p.idle>0){ p.idle-=dt; return; }
+  p.p += dt*p.speed/p.steps;
+  if(p.p<1) return;
+  p.fx=p.tx; p.fy=p.ty; p.p=0;
+  if(R()<0.06) p.idle=rand(.5,3);
+  const moves=pedMoves(p.fx,p.fy);
+  if(!moves.length){ p.idle=1; p.steps=1; p.tx=p.fx; p.ty=p.fy; return; }
+  const fwd=moves.find(m=>m.d[0]===p.d[0]&&m.d[1]===p.d[1]);
+  const m=(fwd&&R()<0.55)?fwd:pick(moves);
+  p.tx=m.x; p.ty=m.y; p.steps=m.steps; p.d=m.d;
+}
 function updatePeds(dt){
-  for(const p of peds){
-    if(p.idle>0){ p.idle-=dt; continue; }
-    p.p += dt*p.speed/p.steps;
-    if(p.p<1) continue;
-    p.fx=p.tx; p.fy=p.ty; p.p=0;
-    if(R()<0.06) p.idle=rand(.5,3);
-    const moves=pedMoves(p.fx,p.fy);
-    if(!moves.length){ p.idle=1; p.steps=1; p.tx=p.fx; p.ty=p.fy; continue; }
-    const fwd=moves.find(m=>m.d[0]===p.d[0]&&m.d[1]===p.d[1]);
-    const m=(fwd&&R()<0.55)?fwd:pick(moves);
-    p.tx=m.x; p.ty=m.y; p.steps=m.steps; p.d=m.d;
-  }
+  for(const p of peds) updateOnePed(p, dt);
+  for(const w of walkers) updateWalker(w, dt);
 }
 const pedPos=p=>({x:lerp(p.fx,p.tx,p.p)+0.5+p.ox, y:lerp(p.fy,p.ty,p.p)+0.5+p.oy});
+
+function pedPath(sx,sy,gx,gy,limit=600){
+  if(sx===gx&&sy===gy) return [];
+  const start=tkey(sx,sy), goal=tkey(gx,gy);
+  const q=[[sx,sy]], prev=new Map();
+  prev.set(start,null);
+  let head=0, found=prev.has(goal);
+  while(head<q.length&&!found){
+    if(head>=limit) break;
+    const [x,y]=q[head++];
+    for(const m of pedMoves(x,y)){
+      const k=tkey(m.x,m.y);
+      if(prev.has(k)) continue;
+      prev.set(k,{px:x,py:y,move:m});
+      if(k===goal){ found=true; break; }
+      q.push([m.x,m.y]);
+    }
+  }
+  if(!found) return null;
+  const path=[];
+  let cur=goal;
+  while(cur!==start){
+    const node=prev.get(cur);
+    const m=node.move;
+    path.unshift({tx:m.x, ty:m.y, steps:m.steps, d:m.d});
+    cur=tkey(node.px,node.py);
+  }
+  return path;
+}
+function nearestWalkGoal(fromX, fromY, bx, by, radius=2){
+  let bestPath=null, bestLen=1e9;
+  for(let dx=-radius;dx<=radius;dx++) for(let dy=-radius;dy<=radius;dy++){
+    if(!dx&&!dy) continue;
+    const tx=bx+dx, ty=by+dy;
+    if(!isWalkable(tx,ty)) continue;
+    const path=pedPath(fromX,fromY,tx,ty);
+    if(path && path.length<bestLen){ bestLen=path.length; bestPath=path; }
+  }
+  return bestPath;
+}
+function goalForBuildings(fromX, fromY, filter){
+  let cands;
+  if(filter==='fire'||filter==='school') cands=stationsOf(filter);
+  else cands=buildings.filter(b=>b.use===filter&&!b.landmark);
+  if(!cands.length) return null;
+  const labels={fire:'fire station',school:'school',com:'shop',res:'home'};
+  let bestPath=null, bestLen=1e9;
+  const radius=(filter==='fire'||filter==='school')?3:2;
+  for(const b of cands){
+    const path=nearestWalkGoal(fromX,fromY,b.x,b.y,radius);
+    if(path && path.length<bestLen){ bestLen=path.length; bestPath=path; }
+  }
+  return bestPath ? {path:bestPath, label:labels[filter]} : null;
+}
+function goalForParks(fromX, fromY){
+  if(!parkSet.size) return null;
+  let bestPath=null, bestLen=1e9;
+  for(const k of parkSet){
+    const [px,py]=k.split(',').map(Number);
+    const path=nearestWalkGoal(fromX,fromY,px,py,1);
+    if(path && path.length<bestLen){ bestLen=path.length; bestPath=path; }
+  }
+  return bestPath ? {path:bestPath, label:'park'} : null;
+}
+function goalForFountain(fromX, fromY){
+  if(!fountain) return null;
+  const path=nearestWalkGoal(fromX,fromY,fountain.x|0,fountain.y|0,3);
+  return path ? {path, label:'town square'} : null;
+}
+function resolveWalkerGoal(dest, fromX, fromY){
+  const d=dest.replace(/\s+/g,' ').trim().toLowerCase();
+  if(/fire/.test(d)) return goalForBuildings(fromX,fromY,'fire');
+  if(/school/.test(d)) return goalForBuildings(fromX,fromY,'school');
+  if(/shop|store|market|mall|bakery/.test(d)) return goalForBuildings(fromX,fromY,'com');
+  if(/home|house|housing|apartment|residential/.test(d)) return goalForBuildings(fromX,fromY,'res');
+  if(/park|garden|green|playground/.test(d)) return goalForParks(fromX,fromY);
+  if(/town|square|center|centre|fountain|hall|plaza/.test(d)) return goalForFountain(fromX,fromY);
+  return null;
+}
+
+// ---------- walkers (named people in the sim) ----------
+const WALKER_SHIRTS=['#ffce6b','#67d18a','#4f9dde','#ef8fb2','#b06fc4','#46c2b2','#f2a93b','#e2574c','#7d6ddc','#ffd23e'];
+const MAX_WALKERS=12;
+const walkers=[];
+let walkerNextId=1, trackWalkerId=null, focusWalkerId=null, walkerPulseId=null, walkerPulseT=0;
+function cleanPlayerName(raw){
+  return String(raw||'').replace(/[\s\u0000-\u001f\u007f]+/g,' ').trim().slice(0,18);
+}
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+function findWalkSpawn(){
+  for(let tries=0;tries<80;tries++){
+    const spot=randomEditTile('walk'); if(spot) return spot;
+  }
+  for(let x=CORE0;x<=CORE1;x++) for(let y=CORE0;y<=CORE1;y++)
+    if(tileAt(x,y)==='walk') return [x,y];
+  return [16,10];
+}
+function makeWalkerPed(name, x, y, state){
+  const id=state&&state.id!=null ? state.id : walkerNextId++;
+  if(id>=walkerNextId) walkerNextId=id+1;
+  const shirt=(state&&state.shirt)||WALKER_SHIRTS[(id-1)%WALKER_SHIRTS.length];
+  const base={id,fx:x,fy:y,tx:x,ty:y,p:1,steps:1,d:[1,0],
+    ox:0,oy:0,speed:rand(.62,.88),idle:0,bob:R()*9,
+    shirt,skin:pick(['#f4cba6','#e3a87c','#c98a5e','#9c6b43','#7a5236']),
+    name,flavor:'exploring the city',sx:0,sy:0,isYou:true,
+    path:null,goalLabel:null,taskLabel:null};
+  const w=state ? Object.assign(base, state, {id,name,shirt,isYou:true}) : base;
+  if(w.path && !w.path.length) w.path=null;
+  return w;
+}
+function snapWalkerTile(w){
+  const x=w.p>=0.5?w.tx:w.fx, y=w.p>=0.5?w.ty:w.fy;
+  w.fx=x; w.fy=y; w.tx=x; w.ty=y; w.p=1; w.steps=1;
+}
+function startWalkerPath(w, path, goalLabel){
+  if(!path || !path.length){ toast('No route to the '+goalLabel,'err'); return false; }
+  snapWalkerTile(w);
+  w.path=path.slice();
+  w.goalLabel=goalLabel;
+  w.taskLabel='heading to the '+goalLabel;
+  w.flavor=w.taskLabel;
+  w.idle=0;
+  const n=w.path[0];
+  w.tx=n.tx; w.ty=n.ty; w.steps=n.steps; w.d=n.d;
+  w.p=0;
+  return true;
+}
+function updateWalker(w, dt){
+  if(w.path && w.path.length){
+    w.flavor=w.taskLabel||('heading to the '+w.goalLabel);
+    w.p += dt*w.speed/w.steps;
+    if(w.p<1) return;
+    w.fx=w.tx; w.fy=w.ty; w.p=0;
+    w.path.shift();
+    if(w.path.length){
+      const n=w.path[0];
+      w.tx=n.tx; w.ty=n.ty; w.steps=n.steps; w.d=n.d;
+    } else {
+      const dest=w.goalLabel;
+      w.path=null; w.taskLabel=null; w.goalLabel=null;
+      w.tx=w.fx; w.ty=w.fy; w.steps=1;
+      w.flavor='enjoying the visit';
+      w.idle=rand(1,2.5);
+      toast(w.name+' arrived at the '+dest,'ok');
+      renderWalkerList();
+    }
+  } else {
+    if(w.goalLabel) w.goalLabel=null;
+    updateOnePed(w, dt);
+  }
+}
+function findWalkerByName(name){
+  const n=name.toLowerCase();
+  return walkers.find(w=>w.name.toLowerCase()===n)
+    || walkers.find(w=>w.name.toLowerCase().startsWith(n+' '))
+    || walkers.find(w=>w.name.toLowerCase().startsWith(n))
+    || walkers.find(w=>w.name.toLowerCase().includes(n));
+}
+function parseWalkerCommand(raw){
+  const s=String(raw||'').trim();
+  if(!s) return null;
+  let name='', dest='';
+  const parts=s.split(/\s*[-–—:]\s*/);
+  if(parts.length>=2){
+    name=parts[0].trim();
+    dest=parts.slice(1).join(' ').trim();
+  } else {
+    const m=s.match(/^(.+?)\s+go\s+(?:to\s+(?:the\s+)?)?(.+)$/i);
+    if(m){ name=m[1].trim(); dest=m[2].trim(); }
+    else return null;
+  }
+  dest=dest.replace(/^go\s+(?:to\s+(?:the\s+)?)?/i,'').replace(/^the\s+/i,'').trim();
+  name=cleanPlayerName(name);
+  if(!name||!dest) return null;
+  return {name, dest};
+}
+function instructWalker(rawCmd){
+  const cmd=parseWalkerCommand(rawCmd);
+  if(!cmd){
+    toast('Try: Nora - go to fire station','err');
+    return false;
+  }
+  const w=findWalkerByName(cmd.name);
+  if(!w){ toast('No walker named '+cmd.name,'err'); return false; }
+  const sx=w.p>=0.5?w.tx:w.fx, sy=w.p>=0.5?w.ty:w.fy;
+  const goal=resolveWalkerGoal(cmd.dest, sx, sy);
+  if(!goal){ toast('Unknown place — try fire station, school, park, shop, home','err'); return false; }
+  if(!startWalkerPath(w, goal.path, goal.label)) return false;
+  focusWalkerId=w.id;
+  pulseWalker(w.id);
+  renderWalkerList();
+  toast('🚶 '+w.name+' → '+goal.label,'ok');
+  return true;
+}
+function getWalker(id){ return walkers.find(w=>w.id===id); }
+function getTrackedWalker(){ return trackWalkerId!=null ? getWalker(trackWalkerId) : null; }
+function syncTrackBtn(){
+  const w=getTrackedWalker();
+  $('bYou').disabled=!walkers.length;
+  $('bYou').classList.toggle('on', !!w);
+  const short=w ? w.name.split(' ')[0] : '';
+  $('bYou').textContent=w ? '📍 '+short : '📍 Walkers';
+}
+function renderWalkerList(){
+  const el=$('youList');
+  el.innerHTML='';
+  if(!walkers.length){
+    el.innerHTML='<div class="you-empty">Add family or friends to walk the city</div>';
+    syncTrackBtn();
+    return;
+  }
+  for(const w of walkers){
+    const row=document.createElement('div');
+    row.className='you-item'+(trackWalkerId===w.id?' track':'');
+    row.innerHTML='<span class="you-dot" style="background:'+w.shirt+'"></span>'
+      +'<span class="nm">'+escapeHtml(w.name)
+      +(w.goalLabel?' <span class="task">→ '+escapeHtml(w.goalLabel)+'</span>':'')
+      +'</span>'
+      +'<button type="button" class="'+(trackWalkerId===w.id?'on':'')+'" data-act="find" data-id="'+w.id+'" aria-label="Find '+escapeHtml(w.name)+'">📍</button>'
+      +'<button type="button" class="remove" data-act="remove" data-id="'+w.id+'" aria-label="Remove '+escapeHtml(w.name)+'">×</button>';
+    el.appendChild(row);
+  }
+  syncTrackBtn();
+}
+function panToWalker(w){
+  if(!w) return;
+  const pos=pedPos(w), p=iso(pos.x,pos.y,0), s=worldToScreen(p.x,p.y);
+  cam.px += CW/2-s.x; cam.py += CH/2-s.y;
+}
+function pulseWalker(id){
+  walkerPulseId=id; walkerPulseT=2.5;
+}
+function setTrackWalker(id){
+  trackWalkerId=id;
+  renderWalkerList();
+}
+function toggleTrackWalker(id){
+  const w=getWalker(id);
+  if(!w) return;
+  focusWalkerId=id;
+  pulseWalker(id);
+  panToWalker(w);
+  if(trackWalkerId===id){
+    setTrackWalker(null);
+    toast('Found '+w.name,'ok');
+  } else {
+    setTrackWalker(id);
+    toast('Tracking '+w.name,'ok');
+  }
+}
+function addWalker(rawName){
+  const name=cleanPlayerName(rawName);
+  if(!name){ toast('Type a name first','err'); return false; }
+  if(walkers.length>=MAX_WALKERS){ toast('Max '+MAX_WALKERS+' walkers in the city','err'); return false; }
+  const [x,y]=findWalkSpawn();
+  const w=makeWalkerPed(name,x,y);
+  walkers.push(w);
+  focusWalkerId=w.id;
+  pulseWalker(w.id);
+  panToWalker(w);
+  $('youName').value='';
+  renderWalkerList();
+  toast('🚶 '+name+' joined the stroll','ok');
+  return true;
+}
+function joinCity(rawName){ return addWalker(rawName); }
+function removeWalker(id){
+  const i=walkers.findIndex(w=>w.id===id);
+  if(i<0) return;
+  const name=walkers[i].name;
+  walkers.splice(i,1);
+  if(trackWalkerId===id) trackWalkerId=null;
+  if(focusWalkerId===id) focusWalkerId=walkers[0]?walkers[0].id:null;
+  if(walkerPulseId===id) walkerPulseT=0;
+  renderWalkerList();
+  toast(name+' left the city','ok');
+}
+function clearWalkers(){
+  walkers.length=0;
+  trackWalkerId=null; focusWalkerId=null; walkerPulseId=null; walkerPulseT=0;
+  $('youName').value='';
+  renderWalkerList();
+}
+function leaveCity(){ clearWalkers(); toast('See you around!','ok'); }
+function importWalkers(data){
+  walkers.length=0;
+  trackWalkerId=null; focusWalkerId=null; walkerPulseId=null; walkerPulseT=0;
+  walkerNextId=1;
+  if(Array.isArray(data.walkers)){
+    for(const st of data.walkers){
+      const name=cleanPlayerName(st.name);
+      if(!name) continue;
+      walkers.push(makeWalkerPed(name, st.fx|0, st.fy|0, st));
+    }
+  } else if(data.playerName&&data.playerPed){
+    const name=cleanPlayerName(data.playerName);
+    if(name) walkers.push(makeWalkerPed(name, data.playerPed.fx|0, data.playerPed.fy|0, data.playerPed));
+  }
+  if(walkers.length) focusWalkerId=walkers[0].id;
+  renderWalkerList();
+}
+function exportWalkers(data){
+  if(walkers.length){
+    data.walkers=walkers.map(w=>{
+      const {isYou,...st}=w;
+      if(st.path && !st.path.length) st.path=null;
+      return st;
+    });
+  }
+}
 
 // ---------- economy & demand ----------
 let cash=25000, day=1;
@@ -894,30 +1322,34 @@ const stars=[]; for(let i=0;i<110;i++) stars.push({x:R(),y:R()*0.62,s:rand(.6,1.
 const clouds=[]; for(let i=0;i<6;i++) clouds.push({x:R()*1.4-0.2,y:rand(.06,.3),s:rand(.6,1.4),v:rand(.004,.012)});
 
 // ---------- camera ----------
-function getCenter(){ return iso(GRID/2, GRID/2, 0); }
-const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7};
+function camCenter(){ return iso(GRID/2, GRID/2, 0); }
+const cam={px:0, py:40, z: Math.min(CW,CH)>700?1.05:0.7, rot:0};
 function applyCam(){
-  const center=getCenter();
+  const center=camCenter();
   ctx.translate(CW/2+cam.px, CH/2+cam.py);
   ctx.scale(cam.z,cam.z);
   ctx.translate(-center.x,-center.y);
 }
 function worldToScreen(wx,wy){
-  const center=getCenter();
+  const center=camCenter();
   return {x:(wx-center.x)*cam.z+CW/2+cam.px, y:(wy-center.y)*cam.z+CH/2+cam.py};
 }
-function screenToTileExact(mx,my){
-  const center=getCenter();
+function screenToTile(mx,my){
+  const center=camCenter();
   const wx=(mx-CW/2-cam.px)/cam.z+center.x;
   const wy=(my-CH/2-cam.py)/cam.z+center.y;
-  const rx=wx/(2*TW)+wy/(2*TH);
-  const ry=wy/(2*TH)-wx/(2*TW);
-  const [x,y]=invRotXY(rx,ry);
-  return {x,y};
+  const rx=wx/(2*TW)+wy/(2*TH), ry=wy/(2*TH)-wx/(2*TW);
+  const p=unrotTile(rx, ry);
+  return {x:Math.floor(p.x), y:Math.floor(p.y)};
 }
-function screenToTile(mx,my){
-  const t=screenToTileExact(mx,my);
-  return {x:Math.floor(t.x), y:Math.floor(t.y)};
+function rotateView(d){
+  viewRot=(viewRot+(d|0)+4)&3;
+  cam.rot=viewRot;
+  toast(['View: north','View: east','View: south','View: west'][viewRot],'ok');
+}
+function tilePickRoundtrip(x,y){
+  const p=iso(x,y,0), s=worldToScreen(p.x,p.y), t=screenToTile(s.x,s.y);
+  return t.x===x && t.y===y;
 }
 
 // ---------- drawing primitives ----------
@@ -932,7 +1364,13 @@ function diamond(x,y,z,fill){
 
 // ---------- ground ----------
 function visibleRange(){
-  const c=[[0,0],[CW,0],[0,CH],[CW,CH]].map(([mx,my])=>screenToTileExact(mx,my));
+  const inv=(sx,sy)=>{
+    const center=camCenter();
+    const wx=(sx-CW/2-cam.px)/cam.z+center.x;
+    const wy=(sy-CH/2-cam.py)/cam.z+center.y;
+    return unrotTile(wx/(2*TW)+wy/(2*TH), wy/(2*TH)-wx/(2*TW));
+  };
+  const c=[inv(0,0),inv(CW,0),inv(0,CH),inv(CW,CH)];
   let x0=Math.floor(Math.min(c[0].x,c[1].x,c[2].x,c[3].x))-3;
   let x1=Math.ceil (Math.max(c[0].x,c[1].x,c[2].x,c[3].x))+12;
   let y0=Math.floor(Math.min(c[0].y,c[1].y,c[2].y,c[3].y))-3;
@@ -1240,6 +1678,19 @@ function drawPed(p, animT){
   ctx.beginPath(); ctx.arc(g.x,g.y-1-bh-2.6-bob,2.6,0,Math.PI*2); ctx.fill();
   p.sx=g.x; p.sy=g.y-16-bob;
 }
+function drawWalkerRing(w, animT){
+  const pos=pedPos(w), g=iso(pos.x,pos.y,0);
+  const bob=Math.abs(Math.sin(animT*7+w.bob))*(w.idle>0?0.3:1.6);
+  const pulse=walkerPulseT>0 && walkerPulseId===w.id ? 1+0.22*Math.sin(animT*11) : 1;
+  const tracked=trackWalkerId===w.id;
+  const a=walkerPulseT>0 && walkerPulseId===w.id ? 0.95 : (tracked ? 0.78 : 0.45);
+  const rgb=rgbOf(w.shirt);
+  ctx.strokeStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')';
+  ctx.lineWidth=tracked ? 2.4 : 2;
+  ctx.beginPath();
+  ctx.ellipse(g.x,g.y-1-bob, 9*pulse, 4.8*pulse, 0,0,Math.PI*2);
+  ctx.stroke();
+}
 
 // ---------- sky ----------
 function drawSky(h, animT){
@@ -1328,32 +1779,37 @@ function render(animT){
   const items=[];
   const inR=(x,y)=>x>=rng.x0&&x<=rng.x1&&y>=rng.y0&&y<=rng.y1;
   for(let x=rng.x0;x<=rng.x1;x++) for(let y=rng.y0;y<=rng.y1;y++)
-    if(hasProcTree(x,y)){ const tr=procTreeObj(x,y); items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)}); }
-  for(const b of buildings) if(inR(b.x,b.y)) items.push({d:sortD(b.x,b.y,1), f:()=>drawBuilding(b,animT)});
-  for(const bk of blocks)   if(inR(bk.x,bk.y)) items.push({d:sortD(bk.x,bk.y,1), f:()=>drawBlock(bk)});
-  for(const tr of trees)    if(inR(tr.x,tr.y)) items.push({d:sortD(tr.x,tr.y), f:()=>drawTree(tr,animT)});
-  for(const l of lamps)     if(inR(l.x,l.y)) items.push({d:sortD(l.x,l.y), f:()=>drawLamp(l)});
-  for(const bn of benches)  if(inR(bn.x,bn.y)) items.push({d:sortD(bn.x,bn.y), f:()=>drawBench(bn)});
-  if(fountain) items.push({d:sortD(fountain.x,fountain.y), f:()=>drawFountain(animT)});
-  for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:sortD(it.x,it.y,0.2), f:()=>drawTrafficLight(it,simClock)});
-  for(const c of cars){ const p=carPos(c); items.push({d:sortD(p.x,p.y), f:()=>drawCar(c,animT)}); }
-  for(const p of peds){ const q=pedPos(p); items.push({d:sortD(q.x,q.y), f:()=>drawPed(p,animT)}); }
+    if(hasProcTree(x,y)){ const tr=procTreeObj(x,y); items.push({d:tr.x+tr.y, f:()=>drawTree(tr,animT)}); }
+  for(const b of buildings) if(inR(b.x,b.y)) items.push({d:b.x+b.y+1, f:()=>drawBuilding(b,animT)});
+  for(const bk of blocks)   if(inR(bk.x,bk.y)) items.push({d:bk.x+bk.y+1, f:()=>drawBlock(bk)});
+  for(const tr of trees)    if(inR(tr.x,tr.y)) items.push({d:tr.x+tr.y, f:()=>drawTree(tr,animT)});
+  for(const l of lamps)     if(inR(l.x,l.y)) items.push({d:l.x+l.y, f:()=>drawLamp(l)});
+  for(const bn of benches)  if(inR(bn.x,bn.y)) items.push({d:bn.x+bn.y, f:()=>drawBench(bn)});
+  if(fountain) items.push({d:fountain.x+fountain.y, f:()=>drawFountain(animT)});
+  for(const it of INTERS)   if(inR(it.x,it.y)) items.push({d:it.x+it.y+0.2, f:()=>drawTrafficLight(it,simClock)});
+  for(const c of cars){ const p=carPos(c); items.push({d:p.x+p.y, f:()=>drawCar(c,animT)}); }
+  for(const p of peds){ const q=pedPos(p); items.push({d:q.x+q.y, f:()=>drawPed(p,animT)}); }
+  for(const w of walkers){
+    const q=pedPos(w);
+    items.push({d:q.x+q.y+0.01, f:()=>{ drawPed(w,animT); drawWalkerRing(w,animT); }});
+  }
   items.sort((a,b)=>a.d-b.d);
   for(const it of items) it.f();
 
+  ctx.font='700 9px ui-rounded, "Segoe UI", sans-serif';
+  ctx.textAlign='center';
+  const label=(x,y,txt,gold)=>{
+    const w=ctx.measureText(txt).width+8;
+    ctx.fillStyle='rgba(18,21,38,.78)';
+    ctx.beginPath(); ctx.roundRect(x-w/2,y-9,w,12,6); ctx.fill();
+    ctx.fillStyle=gold?'#ffce6b':'#f4ede0'; ctx.fillText(txt,x,y);
+  };
+  for(const w of walkers) label(w.sx, w.sy-2, w.name, true);
   if(cam.z>=1.7){
-    ctx.font='700 9px ui-rounded, "Segoe UI", sans-serif';
-    ctx.textAlign='center';
-    const label=(x,y,txt)=>{
-      const w=ctx.measureText(txt).width+8;
-      ctx.fillStyle='rgba(18,21,38,.78)';
-      ctx.beginPath(); ctx.roundRect(x-w/2,y-9,w,12,6); ctx.fill();
-      ctx.fillStyle='#f4ede0'; ctx.fillText(txt,x,y);
-    };
-    for(const c of cars) label(c.sx,c.sy-6,c.name);
-    for(const p of peds) label(p.sx,p.sy-2,p.name);
-    ctx.textAlign='start';
+    for(const c of cars) label(c.sx,c.sy-6,c.name,false);
+    for(const p of peds) label(p.sx,p.sy-2,p.name,false);
   }
+  ctx.textAlign='start';
   ctx.restore();
 
   if(hoverAgent&&tool==='inspect'){
@@ -1367,6 +1823,21 @@ function render(animT){
 const $=id=>document.getElementById(id);
 const elCash=$('cash'), elClock=$('clock'), elPhase=$('phase'),
       elPop=$('sPop'), elJobs=$('sJobs'), elHap=$('sHap'), elCars=$('sCars'), tip=$('tip');
+const hud=$('hud'), hudChip=$('hudChip'), hudClose=$('hudClose'),
+      chipCash=$('chipCash'), chipClock=$('chipClock');
+const mqMobile=typeof window.matchMedia==='function'
+  ? window.matchMedia('(max-width:760px)')
+  : {matches:false, addEventListener:()=>{}};
+function hudExpanded(){ return hud.classList.contains('expanded'); }
+function setHudExpanded(open){
+  if(!mqMobile.matches){ hud.classList.remove('expanded'); return; }
+  hud.classList.toggle('expanded', open);
+  hudChip.setAttribute('aria-expanded', open?'true':'false');
+}
+function collapseHud(){ setHudExpanded(false); }
+hudChip.addEventListener('click', ()=> setHudExpanded(true));
+hudClose.addEventListener('click', ()=> collapseHud());
+mqMobile.addEventListener('change', e=>{ if(!e.matches) collapseHud(); });
 function phaseName(h){
   if(h<5)return'Deep night'; if(h<7)return'Dawn'; if(h<11)return'Morning';
   if(h<14)return'Midday'; if(h<17.5)return'Afternoon'; if(h<19.5)return'Dusk';
@@ -1378,11 +1849,15 @@ function updateHUD(){
   if(h<lastHour-12){ day++; economyTick(); }
   lastHour=h;
   const hh=String(h|0).padStart(2,'0'), mm=String(((h%1)*60)|0).padStart(2,'0');
-  elClock.textContent=hh+':'+mm;
+  const clockStr=hh+':'+mm;
+  elClock.textContent=clockStr;
+  chipClock.textContent=clockStr;
   elPhase.textContent=phaseName(h)+' · Day '+day;
   checkMilestones();
   document.getElementById('rank').textContent=RANKS[rankIdx][1]+(mode==='creative'?' · creative v0.5':' · mayor mode v0.5');
-  elCash.textContent = mode==='creative' ? '∞ creative' : '$'+cash.toLocaleString();
+  const cashStr=mode==='creative' ? '∞ creative' : '$'+cash.toLocaleString();
+  elCash.textContent=cashStr;
+  chipCash.textContent=mode==='creative' ? '∞' : '$'+cash.toLocaleString();
   elCash.classList.toggle('broke', mode!=='creative'&&cash<0);
   elPop.textContent=stats.pop.toLocaleString();
   elJobs.textContent=stats.jobs.toLocaleString();
@@ -1402,12 +1877,13 @@ function toast(msg, kind){
 
 // ---------- save / load ----------
 function exportCity(){
-  const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx,
+  const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
     edits:[...edits], removedTrees:[...removedTrees],
     parks:[...parkSet], scorch:[...scorch],
     blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
     buildings:buildings.map(b=>{const o={...b}; o.fire=null; return o;}),
     trees:trees.map(t=>({x:t.x,y:t.y,s:t.s}))};
+  exportWalkers(data);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1442,8 +1918,10 @@ function importCity(data){
   scorch.clear(); for(const k of (data.scorch||[])) scorch.add(k);
   if(data.eventsOn!==undefined) setEvents(data.eventsOn);
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
+  if(data.camRot!=null){ viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
   rebuildLights();
   cars.length=0; peds.length=0;
+  importWalkers(data);
   recompute();
   rankIdx = data.rankIdx!==undefined ? data.rankIdx : currentRank();
   adjustAgents(); updateHUD();
@@ -1531,14 +2009,18 @@ function nearestAgent(mx,my,maxD){
   };
   for(const c of cars) test(c,'car');
   for(const p of peds) test(p,'ped');
+  for(const w of walkers) test(w,'ped');
   return best;
 }
 function agentTipHTML(best){
-  return best.kind==='car'
-    ? `🚗 <b>${best.a.name}</b> · ${best.a.kind}${best.a.wait>0?' · waiting at the light':''}`
-    : `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
+  if(best.kind==='car')
+    return `🚗 <b>${best.a.name}</b> · ${best.a.kind}${best.a.wait>0?' · waiting at the light':''}`;
+  if(best.a.isYou && best.a.goalLabel) return `🚶 <b>${best.a.name}</b> · heading to the ${best.a.goalLabel}`;
+  if(best.a.isYou) return `🚶 <b>${best.a.name}</b> · that's you!`;
+  return `🚶 <b>${best.a.name}</b> · ${best.a.flavor}`;
 }
 cv.addEventListener('pointerdown', e=>{
+  if(hudExpanded()) collapseHud();
   activePtrs.add(e.pointerId);
   dragging=true; dragMoved=false; lx=e.clientX; ly=e.clientY;
   cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId);
@@ -1546,7 +2028,10 @@ cv.addEventListener('pointerdown', e=>{
 cv.addEventListener('pointermove', e=>{
   if(dragging && activePtrs.size<=1){
     cam.px+=e.clientX-lx; cam.py+=e.clientY-ly;
-    if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3) dragMoved=true;
+    if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3){
+      dragMoved=true;
+      if(trackWalkerId) setTrackWalker(null);
+    }
     lx=e.clientX; ly=e.clientY;
   }
   hoverTile=screenToTile(e.clientX,e.clientY);
@@ -1599,12 +2084,106 @@ cv.addEventListener('wheel', e=>{
 
 $('bIn').onclick=()=>zoomAt(1.25,CW/2,CH/2);
 $('bOut').onclick=()=>zoomAt(0.8,CW/2,CH/2);
-$('bHome').onclick=()=>{ cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
-const VIEW_LBL=['North','East','South','West'];
-$('bRot').onclick=()=>{
-  camRot=(camRot+1)%4;
-  toast('🧭 View: '+VIEW_LBL[camRot]+' ('+(camRot+1)+'/4)','ok');
+$('bHome').onclick=()=>{ setTrackWalker(null); cam.px=0; cam.py=40; cam.z=Math.min(CW,CH)>700?1.05:0.7; };
+$('bRotL').onclick=()=> rotateView(-1);
+$('bRotR').onclick=()=> rotateView(1);
+const bFs=$('bFs');
+let immersiveOn=false;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=()=>{
+  if(typeof window.matchMedia!=='function') return false;
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || !!navigator.standalone;
 };
+function isNativeFs(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+function isFsView(){ return isNativeFs()||immersiveOn; }
+function fsHint(){
+  if(isStandalone()) return 'Full screen';
+  if(isIOS) return 'Expand view (Add to Home Screen to hide browser bars)';
+  return 'Full screen (F)';
+}
+function syncFsBtn(){
+  const on=isFsView();
+  bFs.classList.toggle('on', on);
+  bFs.textContent=on?'⤡':'⛶';
+  bFs.title=on?'Exit '+fsHint():fsHint();
+  resize();
+}
+function nudgeMobileChrome(){
+  window.scrollTo(0, 1);
+  requestAnimationFrame(()=>window.scrollTo(0, 0));
+}
+function setImmersive(on){
+  immersiveOn=!!on;
+  document.documentElement.classList.toggle('immersive', immersiveOn);
+  if(immersiveOn) nudgeMobileChrome();
+  syncFsBtn();
+}
+function requestElFs(el){
+  const req=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(!req) return Promise.resolve(false);
+  const run=opts=>Promise.resolve(req.call(el, opts)).then(()=>true).catch(()=>false);
+  return run({navigationUI:'hide'}).then(ok=>ok||run());
+}
+function tryNativeFs(){
+  const els=[document.documentElement, document.body, $('cv')];
+  let chain=Promise.resolve(false);
+  for(const el of els){
+    if(!el) continue;
+    chain=chain.then(done=> done ? true : requestElFs(el));
+  }
+  return chain;
+}
+function toggleFullscreen(){
+  if(isFsView()){
+    if(isNativeFs()) (document.exitFullscreen||document.webkitExitFullscreen)?.call(document)?.catch?.(()=>{});
+    if(immersiveOn) setImmersive(false);
+    return;
+  }
+  if(isStandalone()){
+    setImmersive(true);
+    toast('Using the whole screen','ok');
+    return;
+  }
+  tryNativeFs().then(ok=>{
+    if(ok){ syncFsBtn(); return; }
+    setImmersive(true);
+    if(isIOS) toast('Share → Add to Home Screen to hide Safari/Chrome bars','ok');
+    else toast('Expanded view — tap ⤡ to exit','ok');
+  });
+}
+bFs.onclick=()=> toggleFullscreen();
+function onFsChange(){
+  if(!isNativeFs() && immersiveOn) return syncFsBtn();
+  immersiveOn=false;
+  document.documentElement.classList.remove('immersive');
+  syncFsBtn();
+}
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+syncFsBtn();
+$('bYou').onclick=()=>{
+  if(!walkers.length){ toast('Add a name in the stats panel first','err'); return; }
+  const id=focusWalkerId!=null ? focusWalkerId : walkers[0].id;
+  toggleTrackWalker(id);
+};
+$('youJoin').onclick=()=> addWalker($('youName').value);
+$('youName').addEventListener('keydown', e=>{ if(e.key==='Enter') addWalker($('youName').value); });
+$('youGo').onclick=()=>{
+  if(instructWalker($('youCmd').value)) $('youCmd').value='';
+};
+$('youCmd').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && instructWalker($('youCmd').value)) $('youCmd').value='';
+});
+$('youList').addEventListener('click', e=>{
+  const btn=e.target.closest('button[data-id]');
+  if(!btn) return;
+  const id=+btn.dataset.id;
+  if(btn.dataset.act==='find') toggleTrackWalker(id);
+  else if(btn.dataset.act==='remove') removeWalker(id);
+});
 const bPause=$('bPause');
 function setPause(v){
   paused=v;
@@ -1619,7 +2198,14 @@ document.querySelectorAll('.spd').forEach(b=>{
     if(paused) setPause(false);
   };
 });
-const MOB=typeof matchMedia==='function'?matchMedia('(max-width:760px)'):{matches:false,addEventListener:()=>{}};
+function setTool(t){
+  tool=t;
+  document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  cv.classList.toggle('building',t!=='inspect');
+  document.getElementById('palette').classList.toggle('show', t==='block');
+  updateMobCap();
+}
+document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
 const mobCap=$('mobCap');
 const TOOL_HINTS={
   inspect:'tap things to learn about them',
@@ -1634,7 +2220,7 @@ const TOOL_HINTS={
   dozer:'tap to remove one thing'
 };
 function updateMobCap(){
-  if(!MOB.matches){ mobCap.classList.remove('show'); return; }
+  if(!mobCap||!mqMobile.matches){ mobCap?.classList.remove('show'); return; }
   if(tool==='inspect'){ mobCap.classList.remove('show'); return; }
   const btn=document.querySelector('.tool[data-t="'+tool+'"]');
   const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||tool;
@@ -1642,25 +2228,21 @@ function updateMobCap(){
   mobCap.textContent=ico+' '+name+' — '+TOOL_HINTS[tool];
   mobCap.classList.add('show');
 }
-function setTool(t){
-  tool=t;
-  document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
-  cv.classList.toggle('building',t!=='inspect');
-  document.getElementById('palette').classList.toggle('show', t==='block');
-  updateMobCap();
-}
-document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
 const barPeek=$('barPeek');
 function setBarCollapsed(v){
   if(!document.body) return;
   document.body.classList.toggle('bar-collapsed', v);
-  barPeek.classList.toggle('on', !v);
-  barPeek.textContent=v?'⏸':'▾';
+  if(barPeek){
+    barPeek.classList.toggle('on', !v);
+    barPeek.textContent=v?'⏸':'▾';
+  }
 }
-if(MOB.matches) setBarCollapsed(true);
-barPeek.onclick=()=>{ if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed')); };
-MOB.addEventListener('change', ()=>{
-  if(MOB.matches) setBarCollapsed(true);
+if(mqMobile.matches) setBarCollapsed(true);
+barPeek?.addEventListener('click', ()=>{
+  if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
+});
+mqMobile.addEventListener('change', e=>{
+  if(e.matches) setBarCollapsed(true);
   else setBarCollapsed(false);
   updateMobCap();
 });
@@ -1669,6 +2251,9 @@ window.addEventListener('keydown', e=>{
   if(e.key==='+'||e.key==='=') zoomAt(1.2,CW/2,CH/2);
   if(e.key==='-'||e.key==='_') zoomAt(0.83,CW/2,CH/2);
   if(e.key==='Escape') setTool('inspect');
+  if(e.key==='q'||e.key==='Q') rotateView(-1);
+  if(e.key==='e'||e.key==='E') rotateView(1);
+  if(e.key==='f'||e.key==='F') toggleFullscreen();
 });
 let pinchD=0;
 cv.addEventListener('touchstart', e=>{ if(e.touches.length===2){
@@ -1686,17 +2271,25 @@ recompute();
 rankIdx=currentRank();
 adjustAgents();
 applyBootParams();
+renderWalkerList();
 if(mode==='creative') toast('🎨 Creative mode — build anything, everything is free', 'ok');
 let prev=performance.now(), animT=0, hudTick=0;
 function frame(now){
   let dt=Math.min((now-prev)/1000,0.05); prev=now;
   animT+=dt;
+  if(walkerPulseT>0) walkerPulseT=Math.max(0, walkerPulseT-dt);
   if(!paused){
     const sdt=dt*speed;
     simClock+=sdt;
     updateCars(sdt,simClock);
     updatePeds(sdt);
     updateFires(sdt);
+  }
+  const tw=getTrackedWalker();
+  if(tw){
+    const pos=pedPos(tw), w=iso(pos.x,pos.y,0), s=worldToScreen(w.x,w.y);
+    cam.px += (CW/2-s.x)*0.14;
+    cam.py += (CH/2-s.y)*0.14;
   }
   render(animT);
   hudTick+=dt;
