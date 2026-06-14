@@ -54,7 +54,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   INTERS,peds,cars,stats,recompute,exportCity,importCity,getDay:()=>day,
   igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,fireTrucks,findFireDispatch,
   getRank:()=>rankIdx,checkMilestones,
-  tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,
+  tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,setMoneyEnabled,setUxInterior,
   setBlockColor:c=>{blockColor=c;},applyBootParams,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,goToWalker,
@@ -65,7 +65,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,roadNeighbors,roadAt,
   startBigCity,getCitySize:()=>citySize,getDistrictCount:()=>districts.size,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
-  screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
+  screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,iso,worldToScreen,pickTileAtScreen,screenToTileAt,
   toggleFullscreen,isFsView,setImmersive,
   enterInterior,exitInterior,placeInteriorRoom,clearInteriorRoom,getRoom,canEnterBuilding,countRooms,
   nudgeMobCursor,mobPlaceAction,syncMobCursor,getMobCursor:()=>mobCursor,setInteriorFloor,
@@ -89,11 +89,16 @@ const A = (cond, msg) => {
 console.log('Aster Bay test suite\n');
 run(100);
 H.setEvents(false); // deterministic: disable random fires while testing
+H.setMoneyEnabled(true);
+H.setMode('mayor');
 
 // ---------- placement & road graph ----------
 console.log('placement & road graph');
 H.setTool('road');
 A(H.canPlace('road', 3, 10), 'fringe road placeable next to core road');
+const isoPt=H.iso(10,12,0), scr=H.worldToScreen(isoPt.x,isoPt.y);
+const pick=H.pickTileAtScreen(scr.x,scr.y);
+A(pick.x===10 && pick.y===12, 'nearest tile pick at tile center');
 const cash0 = H.getCash();
 H.tryPlace(3, 10);
 A(H.tileAt(3,10) === 'road', 'tile became road');
@@ -372,6 +377,7 @@ A(H.getHappy() < happyClear, 'congestion lowers happiness');
 
 // ---------- interior rooms & mobile build cursor ----------
 console.log('\ninterior rooms');
+H.setUxInterior(true);
 const house = H.buildings.find(b => H.canEnterBuilding(b));
 A(!!house, 'found enterable building');
 A(H.enterInterior(house.x, house.y), 'enter interior');

@@ -18,7 +18,7 @@
   *{box-sizing:border-box; margin:0; padding:0; -webkit-user-select:none; user-select:none;}
   html,body{width:100%;height:100%;overflow:hidden;background:#0a0f24;
     font-family: ui-rounded,'SF Pro Rounded','Segoe UI',system-ui,sans-serif;}
-  canvas{display:block;width:100vw;height:100vh;cursor:grab;touch-action:none;}
+  canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none;}
   canvas.dragging{cursor:grabbing;}
   canvas.building{cursor:crosshair;}
 
@@ -420,6 +420,15 @@
   .find-item.found .find-hint::after{content:' ✓ found!';}
   body.find-mode canvas{cursor:crosshair;}
 
+  body.no-mob-stick .mob-ctrl,
+  body.no-mob-stick .mob-cap{display:none!important;}
+  body.no-money #bMode,
+  body.no-money .hero-money,
+  body.no-money .chip-cash,
+  body.no-money .chip-sep{display:none!important;}
+  body.no-interior .interior-bar{display:none!important;}
+  body.no-interior [data-enter-bld]{display:none!important;}
+
   body.dock-collapsed .dock-hide{display:block;}
 
   @media (max-width:1024px){
@@ -488,8 +497,8 @@
     }
     body.bar-collapsed .dock .bar{display:none;}
     body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
-    body.creative .tools .adv:not([data-t="expand"]){display:none;}
-    body.creative .tools .gap.adv:not(.expand-gap){display:none;}
+    body.no-money .tools .adv{display:flex!important;}
+    body.no-money .tools .gap.adv{display:block!important;}
     .bar .spd{display:none;}
     .dock{
       display:flex; flex-direction:column; align-items:center; gap:8px;
@@ -664,7 +673,7 @@
 </div>
 <div id="tip"></div>
 <div id="toasts"></div>
-<div class="hint">pick a tool · thumb pad + Place to build · tap tiles too<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
+<div class="hint">pick a tool · tap tiles to build · drag to pan<br>scroll or pinch to zoom · Esc to inspect</div>
 
 <script>
 'use strict';
@@ -684,10 +693,31 @@ function resize(){
   CW=Math.round(vp?vp.width:window.innerWidth);
   CH=Math.round(vp?vp.height:window.innerHeight);
   cv.width = CW * DPR; cv.height = CH * DPR;
+  cv.style.width = CW + 'px';
+  cv.style.height = CH + 'px';
 }
 window.addEventListener('resize', resize);
 if(window.visualViewport) window.visualViewport.addEventListener('resize', resize);
 resize();
+
+// ---------- UX toggles (temporary — re-enable when polished) ----------
+const UX={
+  interior:false,
+  mobStick:false,
+  buildOkToasts:false,
+  money:false,
+};
+let MONEY_ENABLED=UX.money;
+function setMoneyEnabled(v){ MONEY_ENABLED=!!v; }
+function setUxInterior(v){
+  UX.interior=!!v;
+  if(document.body) document.body.classList.toggle('no-interior', !UX.interior);
+}
+if(document.body){
+  if(!UX.mobStick) document.body.classList.add('no-mob-stick');
+  if(!UX.money) document.body.classList.add('no-money');
+  if(!UX.interior) document.body.classList.add('no-interior');
+}
 
 // ---------- rng / helpers ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
@@ -1248,32 +1278,33 @@ function markFound(id){
   return true;
 }
 function screenDist(mx,my,sx,sy){ return Math.hypot(mx-sx, my-sy); }
-function tryFindAt(mx,my){
+function tryFindAt(clientX,clientY){
+  const p=pointerToCanvas(clientX,clientY);
   let hit=null, bestD=34;
   for(const h of findHidden){
     if(h.found) continue;
     const s=worldToScreen(iso(h.x,h.y,0).x, iso(h.x,h.y,0).y);
-    const d=screenDist(mx,my,s.x,s.y);
+    const d=screenDist(p.x,p.y,s.x,s.y);
     if(d<bestD){ bestD=d; hit={id:h.id}; }
   }
   if(fountain){
     const s=worldToScreen(iso(fountain.x,fountain.y,0).x, iso(fountain.x,fountain.y,0).y);
-    if(screenDist(mx,my,s.x,s.y)<36) hit={id:'fountain'};
+    if(screenDist(p.x,p.y,s.x,s.y)<36) hit={id:'fountain'};
   }
   for(const b of buildings){
     if(!b.landmark) continue;
     const s=worldToScreen(iso(b.x+0.5,b.y+0.5,1).x, iso(b.x+0.5,b.y+0.5,1).y);
-    if(screenDist(mx,my,s.x,s.y)<40) hit={id:'spire'};
+    if(screenDist(p.x,p.y,s.x,s.y)<40) hit={id:'spire'};
   }
   for(const bn of benches){
     const s=worldToScreen(iso(bn.x,bn.y,0).x, iso(bn.x,bn.y,0).y);
-    if(screenDist(mx,my,s.x,s.y)<28) hit={id:'bench'};
+    if(screenDist(p.x,p.y,s.x,s.y)<28) hit={id:'bench'};
   }
   for(const [k,bk] of blockMap){
     const s=worldToScreen(iso(bk.x+0.5,bk.y+0.5,1).x, iso(bk.x+0.5,bk.y+0.5,1).y);
-    if(screenDist(mx,my,s.x,s.y)<32) hit={id:'block'};
+    if(screenDist(p.x,p.y,s.x,s.y)<32) hit={id:'block'};
   }
-  const ag=nearestAgent(mx,my,30);
+  const ag=nearestAgent(clientX,clientY,30);
   if(ag){
     if(ag.kind==='car'&&ag.a.kind==='firetruck') hit={id:'fire_truck'};
     else if(ag.kind==='car'&&ag.a.color==='#e2574c') hit={id:'red_car'};
@@ -1987,7 +2018,7 @@ function tryExpand(dgx,dgy){
   recompute();
   adjustAgents();
   const link=viaRoad&&!adj?' · linked by your road':' · connected by road';
-  toast('New 4×4 district added'+costTxt(COST.expand)+link+(firstExpand?' · pave roads to reach glowing zones':'')+'','ok');
+  buildOk('New district added'+link);
   return true;
 }
 const stats={pop:0,cap:0,jobs:0,happy:.7,green:0,dR:.4,dC:.4,dG:.4,cong:0};
@@ -2104,7 +2135,7 @@ function checkMilestones(){
 
 // ---------- build tools ----------
 let tool='inspect', hoverTile=null;
-let mode='mayor';                            // 'mayor' | 'creative'
+let mode=UX.money?'mayor':'creative';
 const BLOCK_H=10, MAX_STACK=14;
 const BLOCK_COLORS=['#e2574c','#f2a93b','#ffd23e','#67b56b','#46c2b2','#4f9dde','#7d6ddc','#ef8fb2','#f4f1ea','#5a5f6b'];
 let blockColor=BLOCK_COLORS[5];
@@ -2150,11 +2181,14 @@ function canPlace(t,x,y){
   }
 }
 function spend(n){
-  if(mode==='creative') return true;
+  if(!MONEY_ENABLED || mode==='creative') return true;
   if(cash<n){ toast(`Not enough cash — need $${n}`, 'err'); return false; }
   cash-=n; return true;
 }
-const costTxt=n=> mode==='creative' ? '' : ' · −$'+n;
+const costTxt=n=> (!MONEY_ENABLED || mode==='creative') ? '' : ' · −$'+n;
+function buildOk(msg){
+  if(UX.buildOkToasts) toast(msg,'ok');
+}
 
 // ---------- creative undo (last 20 build actions) ----------
 const UNDO_MAX=20;
@@ -2280,6 +2314,7 @@ function getRoom(b,f,rx,ry){
 }
 function interiorFloors(b){ return clamp(b.stories|0, 1, 12); }
 function enterInterior(x,y){
+  if(!UX.interior) return false;
   const b=bldMap.get(tkey(x,y));
   if(!canEnterBuilding(b)){ toast('You can only enter houses and shops','err'); return false; }
   interior={x,y,b,floor:0,cx:2,cy:2};
@@ -2563,7 +2598,7 @@ function tryPlace(x,y){
         }
       } else for(const d of DIRS) refreshXingAt(x+d[0],y+d[1]);
       rebuildLights();
-      toast(onWater?'Bridge built'+costTxt(COST.bridge):'Road paved · −$'+COST.road,'ok');
+      buildOk(onWater?'Bridge built':'Road paved');
       done=true;
       break;
     }
@@ -2572,7 +2607,7 @@ function tryPlace(x,y){
       const b=makeBuilding(x,y,1+((R()*3)|0),{use:'res'});
       addBuilding(b);
       if(snap) snap.building={...b,fire:null};
-      toast('New housing · −$'+COST.house,'ok');
+      buildOk('New housing');
       done=true;
       break;
     }
@@ -2581,7 +2616,7 @@ function tryPlace(x,y){
       const b=makeBuilding(x,y,1+((R()*2)|0),{use:'com'});
       addBuilding(b);
       if(snap) snap.building={...b,fire:null};
-      toast('Shop opened · −$'+COST.shop,'ok');
+      buildOk('Shop opened');
       done=true;
       break;
     }
@@ -2592,7 +2627,7 @@ function tryPlace(x,y){
         color:tool==='fire'?'#d6453c':'#f3cf7a'});
       addBuilding(b);
       if(snap) snap.building={...b,fire:null};
-      toast((tool==='fire'?'Fire station built':'School built')+' · −$'+COST[tool],'ok');
+      buildOk(tool==='fire'?'Fire station built':'School built');
       done=true;
       break;
     }
@@ -2606,7 +2641,7 @@ function tryPlace(x,y){
         addTree(t);
         if(snap) snap.tree={...t,tx:Math.floor(t.x),ty:Math.floor(t.y)};
       }
-      toast('Park planted · −$'+COST.park,'ok');
+      buildOk('Park planted');
       done=true;
       break;
     }
@@ -2615,7 +2650,7 @@ function tryPlace(x,y){
       const t={x:x+rand(.3,.7),y:y+rand(.3,.7),s:rand(.7,1.2)};
       addTree(t);
       if(snap) snap.tree={...t,tx:Math.floor(t.x),ty:Math.floor(t.y)};
-      toast('Tree planted · −$'+COST.tree,'ok');
+      buildOk('Tree planted');
       done=true;
       break;
     }
@@ -2626,10 +2661,10 @@ function tryPlace(x,y){
       if(blockMap.has(k)){
         const bk=blockMap.get(k);
         bk.colors.push(blockColor);
-        toast('Block stacked · '+bk.colors.length+' high'+costTxt(COST.block), 'ok');
+        buildOk('Block stacked · '+bk.colors.length+' high');
       } else {
         const bk={x,y,colors:[blockColor]}; blocks.push(bk); blockMap.set(k,bk);
-        toast('Block placed'+costTxt(COST.block), 'ok');
+        buildOk('Block placed');
       }
       done=true;
       break;
@@ -2647,26 +2682,26 @@ function tryPlace(x,y){
       else if(bldMap.has(k)){
         if(snap) snap.buildingRemoved={...bldMap.get(k),fire:null};
         removeBuildingAt(x,y);
-        toast('Building demolished','ok');
+        buildOk('Building demolished');
         done=true;
       }
       else if(treeMap.has(k)){
         if(snap) snap.treeRemoved={...treeMap.get(k)};
         removeTreeAt(x,y);
-        toast('Tree removed','ok');
+        buildOk('Tree removed');
         done=true;
       }
       else if(tileAt(x,y)==='grass'&&edits.has(k)){
         if(snap){ snapTile(snap,k); snap.parks.push({k,added:false}); }
         if(inCore(x,y)) setTile(x,y,'lot'); else clearTile(x,y);
         parkSet.delete(k);
-        toast('Park cleared','ok');
+        buildOk('Park cleared');
         done=true;
       }
       else if(hasProcTree(x,y)){
         if(snap) snap.removedTree={k,had:removedTrees.has(k)};
         removedTrees.add(k);
-        toast('Tree felled','ok');
+        buildOk('Tree felled');
         done=true;
       }
       else if(scorch.has(k)){
@@ -2800,6 +2835,28 @@ function screenToTile(mx,my){
   const rx=wx/(2*TW)+wy/(2*TH), ry=wy/(2*TH)-wx/(2*TW);
   const p=unrotTile(rx, ry);
   return {x:Math.floor(p.x), y:Math.floor(p.y)};
+}
+function pointerToCanvas(clientX,clientY){
+  const r=cv.getBoundingClientRect();
+  let x=clientX-r.left, y=clientY-r.top;
+  if(r.width>0 && r.height>0){ x*=CW/r.width; y*=CH/r.height; }
+  return {x,y};
+}
+function pickTileAtScreen(mx,my){
+  const base=screenToTile(mx,my);
+  let best={x:base.x,y:base.y}, bestD=1e9;
+  for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++){
+    const tx=base.x+dx, ty=base.y+dy;
+    if(!inB(tx,ty)) continue;
+    const c=iso(tx+0.5,ty+0.5,0), s=worldToScreen(c.x,c.y);
+    const d=Math.hypot(mx-s.x,my-s.y);
+    if(d<bestD){ bestD=d; best={x:tx,y:ty}; }
+  }
+  return best;
+}
+function screenToTileAt(clientX,clientY){
+  const p=pointerToCanvas(clientX,clientY);
+  return pickTileAtScreen(p.x,p.y);
 }
 function rotateView(d){
   if(rotAnimating) return;
@@ -3597,15 +3654,16 @@ function bldLabel(b){
 }
 function bldTipHTML(b){
   let html=bldLabel(b);
-  if(canEnterBuilding(b))
+  if(canEnterBuilding(b) && UX.interior)
     html+=`<br><button type="button" data-enter-bld data-x="${b.x}" data-y="${b.y}">🏠 Enter & build rooms</button>`;
   return html;
 }
-function nearestAgent(mx,my,maxD){
+function nearestAgent(clientX,clientY,maxD){
+  const p=pointerToCanvas(clientX,clientY);
   let best=null, bd=maxD;
   const test=(a,kind)=>{
     const s=worldToScreen(a.sx,a.sy);
-    const d=Math.hypot(s.x-mx, s.y-my);
+    const d=Math.hypot(s.x-p.x, s.y-p.y);
     if(d<bd){ bd=d; best={a,kind}; }
   };
   for(const c of cars) test(c,'car');
@@ -3642,7 +3700,7 @@ cv.addEventListener('pointermove', e=>{
     }
     lx=e.clientX; ly=e.clientY;
   }
-  hoverTile=screenToTile(e.clientX,e.clientY);
+  hoverTile=screenToTileAt(e.clientX,e.clientY);
   if(!interior && tool!=='inspect' && tool!=='find' && !dragging && activePtrs.size<=1){
     mobCursor={x:hoverTile.x, y:hoverTile.y};
   }
@@ -3677,7 +3735,7 @@ cv.addEventListener('pointerup', e=>{
     return;
   }
   if(dragging&&!dragMoved){
-    const t=screenToTile(e.clientX,e.clientY);
+    const t=screenToTileAt(e.clientX,e.clientY);
     if(tool==='find') tryFindAt(e.clientX,e.clientY);
     else if(tool!=='inspect'){
       mobCursor={x:t.x, y:t.y};
@@ -3700,11 +3758,12 @@ cv.addEventListener('pointerup', e=>{
 cv.addEventListener('pointercancel', e=>{ activePtrs.delete(e.pointerId); dragging=false; cv.classList.remove('dragging'); });
 cv.addEventListener('pointerleave', ()=>{ if(!tipTimer) tip.style.display='none'; hoverAgent=null; hoverTile=null; });
 
-function zoomAt(factor,sx,sy){
+function zoomAt(factor,clientX,clientY){
+  const p=pointerToCanvas(clientX,clientY);
   const nz=clamp(cam.z*factor, ZOOM_MIN, ZOOM_MAX);
   const k=nz/cam.z;
-  cam.px=sx-CW/2-(sx-CW/2-cam.px)*k;
-  cam.py=sy-CH/2-(sy-CH/2-cam.py)*k;
+  cam.px=p.x-CW/2-(p.x-CW/2-cam.px)*k;
+  cam.py=p.y-CH/2-(p.y-CH/2-cam.py)*k;
   cam.z=nz;
 }
 cv.addEventListener('wheel', e=>{
@@ -3849,7 +3908,7 @@ function setTool(t){
     rebuildFindGoals();
     updateFindPanel();
     toast('🔍 Find mode — tap people, pets & landmarks','ok');
-  } else if(t!=='inspect' && mqCompact.matches && !buildStickHinted){
+  } else if(t!=='inspect' && UX.mobStick && mqCompact.matches && !buildStickHinted){
     buildStickHinted=true;
     updateFindPanel();
     toast('Thumb pad bottom-left · tap tiles or ✓ Place','ok');
@@ -3860,7 +3919,7 @@ function setTool(t){
   }
   if(t==='road'&&!roadToolHinted){
     roadToolHinted=true;
-    toast('Green tiles beside roads · water tiles become bridges ($360)','ok');
+    toast('Green tiles beside roads · water tiles become bridges','ok');
   }
   updateMobUI();
 }
@@ -3882,7 +3941,7 @@ const TOOL_HINTS={
 };
 function updateMobUI(){
   syncMobCursor();
-  const showCtrl=showMobBuildUI();
+  const showCtrl=showMobBuildUI() && UX.mobStick;
   if(mobCtrl){
     mobCtrl.classList.toggle('show', showCtrl);
     mobCtrl.setAttribute?.('aria-hidden', showCtrl?'false':'true');
@@ -3890,7 +3949,7 @@ function updateMobUI(){
   const clearBtn=$('mobClear');
   if(clearBtn) clearBtn.style.display=interior?'block':(tool==='dozer'?'block':'none');
   if(!mobCap){ return; }
-  if(!showCtrl){ mobCap.classList.remove('show'); return; }
+  if(!UX.mobStick){ mobCap.classList.remove('show'); return; }
   if(interior){
     const rt=ROOM_TYPES[roomType];
     mobCap.textContent=rt.icon+' '+rt.name+' · thumb pad moves · Place / Clear';
@@ -4018,9 +4077,10 @@ cv.addEventListener('touchmove', e=>{ if(e.touches.length===2){
 recompute();
 rankIdx=currentRank();
 adjustAgents();
+if(!UX.money && document.body) document.body.classList.add('creative');
 applyBootParams();
 renderWalkerList();
-if(mode==='creative') toast('🎨 Creative mode — build anything · ↩ Undo is ready', 'ok');
+if(mode==='creative' && UX.money) toast('🎨 Creative mode — build anything · ↩ Undo is ready', 'ok');
 updateUndoBtn();
 let prev=performance.now(), animT=0, hudTick=0;
 function frame(now){
