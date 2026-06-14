@@ -14,12 +14,7 @@
   :root{
     --panel:#1c2030e6; --ink:#f4ede0; --dim:#b9b3a6; --accent:#ffce6b;
     --good:#67d18a; --bad:#ff6b5e;
-    --ui-tabs:52px; --ui-play:54px; --ui-tools:min(34vh, 228px);
-    --ui-dock:calc(var(--ui-tabs) + var(--ui-tools) + var(--ui-play));
   }
-  body.dock-collapsed{ --ui-tools:0px; --ui-dock:calc(var(--ui-tabs) + var(--ui-play)); }
-  body.bar-collapsed{ --ui-play:0px; --ui-dock:calc(var(--ui-tabs) + var(--ui-tools)); }
-  body.dock-collapsed.bar-collapsed{ --ui-dock:var(--ui-tabs); }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-user-select:none; user-select:none;}
   html,body{width:100%;height:100%;overflow:hidden;background:#0a0f24;
     font-family: ui-rounded,'SF Pro Rounded','Segoe UI',system-ui,sans-serif;}
@@ -129,113 +124,84 @@
   .you-cmd button:active{transform:scale(.96);}
   .you-hint{font-size:10px; color:var(--dim); margin-top:5px; line-height:1.35;}
 
-  .dock{
-    position:fixed; left:0; right:0; bottom:0; z-index:6;
-    display:flex; flex-direction:column; align-items:stretch;
-    padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    pointer-events:none;
-  }
-  .dock-shell{
-    pointer-events:auto; width:100%; max-width:960px; margin:0 auto;
-    background:var(--panel); border:1px solid #ffffff18; border-bottom:none;
-    border-radius:18px 18px 0 0; backdrop-filter:blur(10px);
-    box-shadow:0 -6px 32px #000a;
-  }
-  .dock-head{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:8px 12px 4px; border-bottom:1px solid #ffffff10;
-  }
-  .dock-active-name{
-    font-size:14px; font-weight:800; color:var(--accent);
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .dock-toggle{
-    appearance:none; border:1px solid #ffffff22; cursor:pointer; flex-shrink:0;
-    background:#ffffff10; color:var(--ink); border-radius:10px;
-    min-width:44px; min-height:44px; padding:0 12px;
-    font:800 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
-  }
-  .dock-toggle:active{transform:scale(.94);}
-  .tool-tabs{
-    display:flex; gap:4px; padding:6px 8px;
-    border-bottom:1px solid #ffffff10;
-  }
-  .tool-tab{
-    flex:1; appearance:none; border:2px solid transparent; cursor:pointer;
-    background:#ffffff08; color:var(--ink); border-radius:12px;
-    min-height:48px; padding:6px 4px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
-    transition:background .15s, border-color .15s, transform .08s;
-  }
-  .tool-tab .tab-ico{font-size:18px; line-height:1;}
-  .tool-tab.on{background:#ffce6b22; border-color:#ffce6b66; color:var(--accent);}
-  .tool-tab:active{transform:scale(.96);}
-  .tool-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .dock{display:contents;}
 
   .tools{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(108px, 1fr));
-    gap:6px; padding:8px 10px;
-    max-height:var(--ui-tools); overflow-y:auto; overflow-x:hidden;
-    -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-    transition:max-height .28s cubic-bezier(.4,0,.2,1), padding .28s ease;
+    position:fixed; left:14px; top:50%; transform:translateY(-42%);
+    display:flex; flex-direction:column; gap:6px;
+    background:var(--panel); padding:9px; border-radius:16px;
+    backdrop-filter:blur(8px); box-shadow:0 6px 24px #0008; border:1px solid #ffffff14;
+    z-index:6;
+    max-height:min(72vh, calc(100vh - 100px));
+    overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .25s ease;
   }
   body.dock-collapsed .tools{
-    max-height:0; padding-top:0; padding-bottom:0; overflow:hidden;
+    transform:translate(calc(-100% + 54px), -42%);
+    opacity:1; pointer-events:auto;
+    width:54px; min-width:54px; padding:8px 5px;
+    border-radius:0 16px 16px 0;
+    overflow:hidden;
   }
-  .tools [data-cat].cat-hidden{display:none!important;}
+  body.dock-collapsed .tools button{
+    min-width:0; width:42px; padding:8px 6px; justify-content:center;
+  }
+  body.dock-collapsed .tools button .lbl,
+  body.dock-collapsed .tools button small,
+  body.dock-collapsed .tools .gap{display:none!important;}
+  body.dock-collapsed .dock-hide{
+    display:block; align-self:center; width:42px; padding:6px 0;
+    color:var(--accent); border-color:#ffce6b44; background:#ffce6b18;
+  }
+  .dock-hide{
+    appearance:none; border:1px solid #ffffff22; cursor:pointer;
+    background:#ffffff10; color:var(--dim); border-radius:9px;
+    padding:4px 8px; font:800 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    align-self:flex-end; margin:-2px 0 2px;
+  }
+  .dock-hide:active{transform:scale(.94);}
   .tools button{
-    appearance:none; border:2px solid transparent; cursor:pointer; color:var(--ink);
-    background:#ffffff10; border-radius:14px; padding:10px 8px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-    min-height:72px; min-width:0; width:100%;
-    font:700 11.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
-    transition:background .15s, transform .08s, border-color .15s; text-align:center;
+    appearance:none; border:none; cursor:pointer; color:var(--ink);
+    background:#ffffff10; border-radius:11px; padding:7px 10px;
+    display:flex; align-items:center; gap:9px; min-width:128px;
+    font:700 12.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    transition:background .15s, transform .08s; text-align:left;
   }
-  .tools button .ico{font-size:24px; line-height:1;}
-  .tools button .lbl{line-height:1.15;}
-  .tools button small{display:block; font-size:9.5px; color:var(--dim); font-weight:600; line-height:1.2;}
+  .tools button .ico{font-size:16px; width:20px; text-align:center;}
+  .tools button small{display:block; font-size:10px; color:var(--dim); font-weight:600;}
   .tools button:hover{background:#ffffff22;}
   .tools button:active{transform:scale(.96);}
-  .tools button.on{background:var(--accent); color:#23201a; border-color:#ffce6b88;}
+  .tools button.on{background:var(--accent); color:#23201a;}
   .tools button.on small{color:#23201ab0;}
+  .tools .gap{height:4px; border-top:1px solid #ffffff18; margin:3px 2px;}
   .tools button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-  .tools .gap{display:none;}
 
   .bar{
-    position:static; transform:none;
-    display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:center;
-    padding:8px 10px 10px; border-top:1px solid #ffffff10;
-    overflow-x:auto; -webkit-overflow-scrolling:touch;
-    transition:max-height .28s ease, padding .28s ease, opacity .2s ease;
-    max-height:120px;
-  }
-  body.bar-collapsed .bar{
-    max-height:0; padding-top:0; padding-bottom:0; overflow:hidden; opacity:0;
-    border-top-color:transparent;
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    display:flex; gap:8px; align-items:center;
+    background:var(--panel); padding:9px 11px; border-radius:16px;
+    backdrop-filter:blur(8px); box-shadow:0 6px 24px #0008; border:1px solid #ffffff14;
   }
   .bar button{
     appearance:none; border:none; cursor:pointer; color:var(--ink);
-    background:#ffffff12; border-radius:10px; padding:10px 14px;
-    min-height:44px;
+    background:#ffffff12; border-radius:10px; padding:8px 13px;
     font:700 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
-    transition:background .15s, transform .08s; flex-shrink:0;
+    transition:background .15s, transform .08s;
   }
   .bar button:hover{background:#ffffff24;}
   .bar button:active{transform:scale(.94);}
   .bar button.on{background:var(--accent); color:#23201a;}
-  .bar .sep{width:1px; height:26px; background:#ffffff22; flex-shrink:0;}
+  .bar .sep{width:1px; height:22px; background:#ffffff22;}
   .bar button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
   #bUndo[disabled]{opacity:.42; cursor:default;}
 
   .palette{
-    position:fixed; left:50%; bottom:calc(var(--ui-dock) + 12px + env(safe-area-inset-bottom));
-    transform:translateX(-50%);
-    display:none; flex-direction:row; flex-wrap:wrap; gap:6px; max-width:min(92vw, 360px);
+    position:fixed; left:170px; top:50%; transform:translateY(-42%);
+    display:none; flex-direction:column; gap:6px;
     background:var(--panel); padding:8px; border-radius:14px;
     backdrop-filter:blur(8px); box-shadow:0 6px 24px #0008; border:1px solid #ffffff14;
-    z-index:7;
   }
   .palette.show{display:flex;}
   .palette button{
@@ -257,8 +223,7 @@
     font:800 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
   }
 
-  #toasts{position:fixed; left:50%; transform:translateX(-50%);
-    bottom:calc(var(--ui-dock) + 14px + env(safe-area-inset-bottom));
+  #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:74px;
     display:flex; flex-direction:column-reverse; gap:6px; align-items:center; pointer-events:none; z-index:8;}
   .toast{background:#15182af0; color:var(--ink); border:1px solid #ffffff1c;
     padding:7px 14px; border-radius:12px; font-size:12.5px; font-weight:700;
@@ -267,6 +232,10 @@
   @keyframes tin{from{opacity:0; transform:translateY(8px);}}
   @keyframes tout{to{opacity:0; transform:translateY(-6px);}}
 
+  .hint{
+    position:fixed; right:14px; bottom:16px; color:#ffffff66; font-size:11px;
+    letter-spacing:.5px; text-align:right; line-height:1.5; pointer-events:none;
+  }
   html.immersive, html.immersive body{
     width:100%; min-height:100vh; min-height:-webkit-fill-available; min-height:100dvh;
     height:100%; overflow:hidden; overscroll-behavior:none;
@@ -276,20 +245,22 @@
   .mob-cap{
     display:none; position:fixed; left:50%; z-index:7; pointer-events:none;
     transform:translateX(-50%); background:#15182af0; color:var(--ink);
-    border:1px solid #ffffff1c; padding:8px 16px; border-radius:12px;
+    border:1px solid #ffffff1c; padding:6px 14px; border-radius:12px;
     font-size:13px; font-weight:800; box-shadow:0 4px 14px #0009;
     white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis;
-    bottom:calc(var(--ui-dock) + 52px + env(safe-area-inset-bottom));
+    bottom:calc(90px + env(safe-area-inset-bottom));
   }
   .mob-cap.show{display:block;}
   .mob-ctrl{
     display:none; position:fixed; z-index:20; pointer-events:none;
-    left:calc(12px + env(safe-area-inset-left));
-    bottom:calc(var(--ui-dock) + 14px + env(safe-area-inset-bottom));
+    left:calc(10px + env(safe-area-inset-left));
+    bottom:calc(90px + env(safe-area-inset-bottom));
     gap:10px; align-items:flex-end;
   }
-  body.building .mob-ctrl.show{display:flex; pointer-events:auto;}
   .mob-ctrl.show{display:flex; pointer-events:auto; align-items:flex-end; gap:10px;}
+  body.building .mob-ctrl.show{display:flex; pointer-events:auto;}
+  body.bar-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+  body.dock-collapsed .mob-ctrl.show{bottom:calc(72px + env(safe-area-inset-bottom));}
   .mob-stick{
     position:relative; width:108px; height:108px; border-radius:50%; flex-shrink:0;
     background:rgba(21,24,42,.94); border:2px solid #ffffff22;
@@ -341,32 +312,34 @@
   }
   .int-rooms button.on{border-color:var(--accent); box-shadow:0 0 0 2px #ffce6b44;}
   .bar-peek{
-    display:none; position:fixed; right:calc(10px + env(safe-area-inset-right)); z-index:12;
-    bottom:calc(var(--ui-tabs) + 10px + env(safe-area-inset-bottom));
+    display:none; position:fixed; right:calc(10px + env(safe-area-inset-right)); z-index:7;
     appearance:none; border:1px solid #ffffff1c; cursor:pointer;
     background:var(--panel); color:var(--ink); border-radius:12px;
-    min-width:48px; min-height:48px; padding:8px 12px; font-size:15px; font-weight:800;
+    padding:8px 11px; font-size:15px; font-weight:800;
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .bar-peek.on{background:var(--accent); color:#23201a;}
-  body.bar-collapsed .bar-peek{display:block;}
   .dock-peek{
-    display:none; position:fixed; z-index:12; appearance:none;
+    display:none; position:fixed; z-index:8; appearance:none;
     border:1px solid #ffffff1c; cursor:pointer;
     background:var(--panel); color:var(--ink); border-radius:12px;
-    min-width:48px; min-height:48px; padding:8px 12px; font-size:15px; font-weight:800;
+    padding:8px 11px; font-size:15px; font-weight:800;
     box-shadow:0 4px 14px #0008; backdrop-filter:blur(8px);
   }
   .dock-peek.on{background:var(--accent); color:#23201a;}
-  body.dock-collapsed .dock-peek.tools-peek{display:block;
-    left:calc(10px + env(safe-area-inset-left));
-    bottom:calc(var(--ui-play) + 10px + env(safe-area-inset-bottom));}
+  @media (min-width:1025px){
+    body.dock-collapsed .dock-peek.side{
+      display:block; z-index:11;
+      left:calc(6px + env(safe-area-inset-left)); top:50%;
+      transform:translateY(-50%); border-radius:0 12px 12px 0; padding:10px 8px;
+    }
+  }
+  body:not(.dock-collapsed) .dock-peek.side{display:none;}
   .find-panel{
     display:none; position:fixed; z-index:10; pointer-events:auto;
     right:calc(10px + env(safe-area-inset-right));
     top:calc(10px + env(safe-area-inset-top));
-    width:min(92vw, 260px); max-height:min(46vh, 340px);
-    bottom:auto;
+    width:min(92vw, 248px); max-height:min(52vh, 360px);
     background:var(--panel); color:var(--ink);
     border:1px solid #ffffff18; border-radius:14px; padding:10px 12px;
     box-shadow:0 6px 24px #0009; backdrop-filter:blur(8px);
@@ -393,40 +366,98 @@
   .find-item.found .find-hint::after{content:' ✓ found!';}
   body.find-mode canvas{cursor:crosshair;}
 
-  .hint{
-    position:fixed; left:50%; transform:translateX(-50%);
-    bottom:calc(var(--ui-dock) + 8px + env(safe-area-inset-bottom));
-    color:#ffffff77; font-size:11px; letter-spacing:.3px; text-align:center;
-    line-height:1.45; pointer-events:none; max-width:92vw;
-  }
-
-  body.creative .tools .adv:not([data-t="expand"]){display:none!important;}
-  body.creative .tools #bEvents{display:none!important;}
+  body.dock-collapsed .dock-hide{display:block;}
 
   @media (max-width:1024px){
+    body:not(.dock-collapsed) .dock-hide::after{content:' hide';}
+    body:not(.dock-collapsed) .dock-hide::before{content:'▼';}
+    body.dock-collapsed .dock-hide::before{content:'▲';}
+    body.dock-collapsed .dock-hide::after{content:'';}
+    .dock-hide{font-size:0; padding:8px 10px; flex-shrink:0;}
+    .dock-hide::before{font-size:13px; font-weight:800;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
-      min-width:0; max-width:min(92vw, 300px);
+      min-width:0; max-width:min(92vw, 280px);
       padding:10px 12px 11px;
     }
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
-    .tool-tab{font-size:10px;}
-    .tool-tab .tab-lbl{display:none;}
+    #toasts{bottom:calc(168px + env(safe-area-inset-bottom));}
+    .mob-cap.show{display:block; bottom:calc(168px + env(safe-area-inset-bottom));}
+    .mob-ctrl.show{
+      flex-direction:row; align-items:center;
+      bottom:calc(72px + env(safe-area-inset-bottom));
+      z-index:20;
+    }
+    body.dock-expanded .mob-ctrl.show,
+    body:not(.dock-collapsed) .mob-ctrl.show{
+      bottom:calc(152px + env(safe-area-inset-bottom));
+    }
+    body.dock-expanded .mob-cap.show,
+    body:not(.dock-collapsed) .mob-cap.show{
+      bottom:calc(168px + env(safe-area-inset-bottom));
+    }
+    body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
+    .bar-peek{display:none;}
+    body.dock-expanded .bar-peek{display:none;}
+    .dock-peek.bottom{display:none!important;}
+    body.dock-collapsed .dock{
+      transform:translateX(-50%) translateY(calc(100% - 54px));
+      pointer-events:auto;
+      width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    }
+    body.dock-collapsed .dock .bar{display:none;}
+    body.dock-collapsed .tools{
+      transform:none; opacity:1; pointer-events:auto;
+      position:static; flex-direction:row; max-width:96vw;
+      overflow-x:auto; padding:6px 8px; border-radius:14px 14px 0 0;
+      width:max-content; min-width:0;
+    }
+    body.dock-collapsed .dock .tools,
+    body.dock-collapsed .dock .bar{pointer-events:auto;}
+    body.dock-collapsed .dock-peek.bottom{pointer-events:none; display:none!important;}
+    body.dock-collapsed .bar-peek{
+      display:block;
+      right:calc(10px + env(safe-area-inset-right));
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:12;
+    }
+    body.bar-collapsed .dock .bar{display:none;}
+    body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
+    body.creative .tools .adv:not([data-t="expand"]){display:none;}
+    body.creative .tools .gap.adv:not(.expand-gap){display:none;}
     .bar .spd{display:none;}
+    .dock{
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); width:max-content; max-width:96vw; z-index:6;
+      pointer-events:none;
+      transition:transform .32s cubic-bezier(.4,0,.2,1);
+    }
+    .dock > *{pointer-events:auto;}
+    .tools{
+      position:static; top:auto; left:auto; bottom:auto;
+      transform:none; flex-direction:row; max-width:96vw; width:100%;
+      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+      flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
+    }
     .mob-actions{flex-direction:row;}
     .mob-stick{width:96px; height:96px;}
-    .mob-actions button{min-width:72px; height:44px; font-size:12px;}
-  }
-  @media (min-width:1025px){
-    .tool-tab .tab-lbl{display:inline;}
-    .dock-toggle .lbl-hide{display:inline;}
-    body:not(.dock-collapsed) .dock-peek.tools-peek{display:none;}
-    body:not(.bar-collapsed) .bar-peek{display:none;}
-  }
-  @media (min-width:768px){
-    .tools{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));}
+    .mob-actions button{min-width:72px; height:42px; font-size:12px;}
+    .tools button{min-width:0; padding:10px 12px; flex-shrink:0;}
+    .tools button .lbl{display:none;}
+    .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
+      border-left:1px solid #ffffff18; margin:2px 3px; flex-shrink:0;}
+    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;
+      max-width:96vw; overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
+      -webkit-overflow-scrolling:touch;}
+    .bar button{padding:9px 11px;}
+    .palette{
+      left:50%; top:auto; bottom:calc(132px + env(safe-area-inset-bottom));
+      transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
+    }
   }
 </style>
 </head>
@@ -473,37 +504,31 @@
   </div>
 </div>
 
-<div class="dock" id="dock">
-<div class="dock-shell">
-  <div class="dock-head">
-    <span class="dock-active-name" id="dockToolName">Inspect</span>
-    <button type="button" id="dockHide" class="dock-toggle" aria-label="Hide tool list"><span class="lbl-hide">Hide tools</span> ▼</button>
-  </div>
-  <nav class="tool-tabs" role="tablist" aria-label="Tool categories">
-    <button type="button" class="tool-tab on" data-cat="look" role="tab" aria-selected="true"><span class="tab-ico">👀</span><span class="tab-lbl">Look</span></button>
-    <button type="button" class="tool-tab" data-cat="build" role="tab" aria-selected="false"><span class="tab-ico">🏗</span><span class="tab-lbl">Build</span></button>
-    <button type="button" class="tool-tab" data-cat="green" role="tab" aria-selected="false"><span class="tab-ico">🌳</span><span class="tab-lbl">Green</span></button>
-    <button type="button" class="tool-tab" data-cat="more" role="tab" aria-selected="false"><span class="tab-ico">⚙️</span><span class="tab-lbl">More</span></button>
-  </nav>
-  <div class="tools" role="toolbar" aria-label="Build tools">
-  <button id="bMode" data-cat="more"><span class="ico">🎮</span><span class="lbl" id="modeLbl">Mayor mode<small>tap for creative</small></span></button>
-  <button class="tool on" data-t="inspect" data-cat="look"><span class="ico">🖐</span><span class="lbl">Inspect<small>tap things to learn</small></span></button>
-  <button class="tool" data-t="find" data-cat="look"><span class="ico">🔍</span><span class="lbl">Find<small>spot hidden friends</small></span></button>
-  <button class="tool" data-t="road" data-cat="build"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 · $360 bridge</small></span></button>
-  <button class="tool" data-t="house" data-cat="build"><span class="ico">🏠</span><span class="lbl">Home<small>$500 · by sidewalk</small></span></button>
-  <button class="tool adv" data-t="shop" data-cat="build"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · by sidewalk</small></span></button>
-  <button class="tool adv" data-t="fire" data-cat="build"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200</small></span></button>
-  <button class="tool adv" data-t="school" data-cat="build"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier city</small></span></button>
-  <button class="tool adv" data-t="expand" data-cat="build"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · grow city</small></span></button>
-  <button class="tool" data-t="park" data-cat="green"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
-  <button class="tool" data-t="tree" data-cat="green"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
-  <button class="tool" data-t="block" data-cat="green"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · stack cubes</small></span></button>
-  <button class="tool" data-t="dozer" data-cat="green"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50 · clear tile</small></span></button>
-  <button id="bEvents" class="adv" data-cat="more"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
-  <button type="button" id="bBigCity" data-cat="more"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · new map</small></span></button>
+<div class="dock">
+<div class="tools" role="toolbar" aria-label="Build tools">
+  <button type="button" id="dockHide" class="dock-hide" aria-label="Hide build tools">◀ hide</button>
+  <button id="bMode"><span class="ico">🎮</span><span class="lbl" id="modeLbl">Mayor mode<small>tap for creative</small></span></button>
+  <div class="gap"></div>
+  <button class="tool on" data-t="inspect"><span class="ico">🖐</span><span class="lbl">Inspect<small>hover the city</small></span></button>
+  <button class="tool" data-t="find"><span class="ico">🔍</span><span class="lbl">Find<small>spot people & pets</small></span></button>
+  <div class="gap"></div>
+  <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 land · $360 bridge</small></span></button>
+  <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
+  <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
+  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · trucks roll on roads</small></span></button>
+  <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
+  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · edge or road link</small></span></button>
+  <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
+  <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
+  <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · tap to stack</small></span></button>
+  <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50</small></span></button>
+  <div class="gap adv"></div>
+  <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
+  <button type="button" id="bBigCity"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · new map</small></span></button>
   <input type="file" id="fileIn" accept=".json,.asterbay,application/json" style="display:none">
-  </div>
-  <div class="bar" role="toolbar" aria-label="Simulation controls">
+</div>
+
+<div class="bar" role="toolbar" aria-label="Simulation controls">
   <button id="bPause" title="Pause / resume (Space)">⏸ Pause</button>
   <span class="sep"></span>
   <button class="spd on" data-s="1">1×</button>
@@ -521,7 +546,7 @@
   <button id="bLoad" title="Load a saved game file">📂 Load</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
   <button id="bYou" title="Find or track a walker">📍 Walkers</button>
-  </div>
+</div>
 </div>
 </div>
 
@@ -547,7 +572,7 @@
   <div id="intRooms" class="int-rooms" aria-label="Room types"></div>
 </div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
-<button type="button" id="dockPeek" class="dock-peek tools-peek" aria-label="Show build tools">🛠</button>
+<button type="button" id="dockPeek" class="dock-peek side" aria-label="Show build tools">🛠</button>
 <div id="findPanel" class="find-panel" aria-hidden="true">
   <div class="find-head">
     <span>🔍 Find game</span>
@@ -558,7 +583,7 @@
 </div>
 <div id="tip"></div>
 <div id="toasts"></div>
-<div class="hint">Pick a tab · tap a big button · drag the map to explore<br>Need help? Start with 👀 Look, then 🏗 Build a road</div>
+<div class="hint">pick a tool · thumb pad + Place to build · tap tiles too<br>the world goes on forever — pave a road and see<br>drag to pan · scroll to zoom · Esc to inspect</div>
 
 <script>
 'use strict';
@@ -3662,39 +3687,8 @@ document.querySelectorAll('.spd').forEach(b=>{
   };
 });
 let expandToolHinted=false, roadToolHinted=false, buildStickHinted=false;
-const TOOL_CAT={
-  inspect:'look', find:'look',
-  road:'build', house:'build', shop:'build', fire:'build', school:'build', expand:'build',
-  park:'green', tree:'green', block:'green', dozer:'green',
-};
-let toolCat='look';
-function setToolCat(cat, expandDock){
-  toolCat=cat||'look';
-  document.querySelectorAll('.tool-tab').forEach(el=>{
-    const on=el.dataset.cat===toolCat;
-    el.classList.toggle('on', on);
-    el.setAttribute('aria-selected', on?'true':'false');
-  });
-  document.querySelectorAll('.tools [data-cat]').forEach(el=>{
-    el.classList.toggle('cat-hidden', el.dataset.cat!==toolCat);
-  });
-  if(expandDock && dockCollapsed) setDockCollapsed(false);
-}
-document.querySelectorAll('.tool-tab').forEach(tab=>{
-  tab.addEventListener('click', ()=> setToolCat(tab.dataset.cat, true));
-});
-function updateDockToolName(t){
-  const el=$('dockToolName');
-  if(!el) return;
-  const btn=document.querySelector('.tool[data-t="'+t+'"]');
-  const name=btn?.querySelector('.lbl')?.firstChild?.textContent?.trim()||t;
-  const ico=btn?.querySelector('.ico')?.textContent||'';
-  el.textContent=(ico?ico+' ':'')+name;
-}
 function setTool(t){
   tool=t;
-  setToolCat(TOOL_CAT[t]||'more', false);
-  updateDockToolName(t);
   mobCursor=null;
   stopMobStick();
   document.body.classList.toggle('find-mode', t==='find');
@@ -3775,18 +3769,18 @@ let dockCollapsed=false;
 function syncDockPeekBtns(collapsed){
   const hide=$('dockHide');
   if(hide){
-    hide.innerHTML=collapsed?'<span class="lbl-hide">Show tools</span> ▲':'<span class="lbl-hide">Hide tools</span> ▼';
-    hide.setAttribute('aria-label', collapsed?'Show tool list':'Hide tool list');
+    if(mqCompact.matches){
+      hide.textContent='';
+      hide.setAttribute('aria-label', collapsed?'Show full tools':'Hide tools');
+    } else {
+      hide.textContent=collapsed?'▶':'◀ hide';
+      hide.setAttribute('aria-label', collapsed?'Show full tools':'Hide tools');
+    }
   }
-  if(dockPeek){
-    dockPeek.classList.toggle('on', collapsed);
-    dockPeek.textContent='🛠';
-    dockPeek.title='Show tools';
-  }
-  if(barPeek){
+  if(dockPeek){ dockPeek.classList.toggle('on', collapsed); dockPeek.textContent='🛠'; dockPeek.title='Show full tools'; }
+  if(barPeek && mqCompact.matches){
     barPeek.classList.toggle('on', document.body.classList.contains('bar-collapsed'));
     barPeek.textContent=document.body.classList.contains('bar-collapsed')?'⏸':'▾';
-    barPeek.setAttribute('aria-label', document.body.classList.contains('bar-collapsed')?'Show game controls':'Hide game controls');
   }
 }
 function setDockCollapsed(v){
@@ -3800,26 +3794,26 @@ function setDockCollapsed(v){
 function setBarCollapsed(v){
   if(!document.body) return;
   document.body.classList.toggle('bar-collapsed', v);
-  syncDockPeekBtns(dockCollapsed);
-  updateMobUI();
+  if(barPeek){
+    barPeek.classList.toggle('on', !v);
+    barPeek.textContent=v?'⏸':'▾';
+  }
 }
 function toggleDockCollapsed(){
   setDockCollapsed(!dockCollapsed);
 }
-if(mqCompact.matches){ setDockCollapsed(true); setBarCollapsed(true); }
-else { setDockCollapsed(false); setBarCollapsed(false); }
+if(mqCompact.matches) setDockCollapsed(true);
 if(document.body) document.body.classList.toggle('dock-expanded', !dockCollapsed);
-setToolCat('look', false);
-updateDockToolName(tool);
 $('dockHide')?.addEventListener('click', toggleDockCollapsed);
 dockPeek?.addEventListener('click', ()=> setDockCollapsed(false));
+if(mqCompact.matches) setBarCollapsed(true);
 barPeek?.addEventListener('click', ()=>{
-  if(document.body?.classList.contains('bar-collapsed')){
+  if(document.body?.classList.contains('dock-collapsed') && mqCompact.matches){
+    setDockCollapsed(false);
     setBarCollapsed(false);
-    if(mqCompact.matches && dockCollapsed) setDockCollapsed(false);
     return;
   }
-  if(document.body) setBarCollapsed(true);
+  if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
 });
 mqCompact.addEventListener('change', e=>{
   if(e.matches){ setDockCollapsed(true); setBarCollapsed(true); }
