@@ -463,7 +463,8 @@ A(H.getDistrictCount() >= 1, 'city has districts before big-city switch');
 H.startBigCity();
 A(H.getCitySize() === 'big', 'big city mode active');
 A(H.getDistrictCount() === 10, 'big city seeds ten districts');
-A(H.getDistricts().has('2,0') && H.getDistricts().has('-1,0'), 'big city spans east and west');
+A(H.getDistricts().has('3,0') && H.getDistricts().has('-3,0'), 'big city spans spread east and west hubs');
+A(H.getDistricts().has('-2,-2') && H.getDistricts().has('1,-4'), 'big city includes isolated districts');
 A(H.computeRoadReach().size > 20, 'road spine links the main districts');
 
 console.log('\n' + (failures ? `${failures} FAILURE(S)` : 'ALL TESTS PASSED (v0.5)'));

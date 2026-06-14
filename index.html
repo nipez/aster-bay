@@ -524,7 +524,7 @@
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50</small></span></button>
   <div class="gap adv"></div>
   <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
-  <button type="button" id="bBigCity"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · new map</small></span></button>
+  <button type="button" id="bBigCity"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · road-linked</small></span></button>
   <input type="file" id="fileIn" accept=".json,.asterbay,application/json" style="display:none">
 </div>
 
@@ -997,15 +997,57 @@ function nearestExpansion(x,y){
   return bestD<3.5 ? best : null;
 }
 
-// ---------- big city (10 districts, partial road links) ----------
+// ---------- big city (10 spread districts, linked by wilderness roads) ----------
 let citySize='normal';
 const BIG_CITY_SLOTS=[
   {dgx:0,dgy:0,origin:true},
-  {dgx:1,dgy:0},{dgx:2,dgy:0},
-  {dgx:0,dgy:1},{dgx:0,dgy:-1},
-  {dgx:-1,dgy:0},{dgx:-1,dgy:1},{dgx:1,dgy:1},{dgx:2,dgy:1},{dgx:-2,dgy:0},
+  {dgx:3,dgy:0},{dgx:-3,dgy:0},{dgx:0,dgy:3},{dgx:0,dgy:-3},
+  {dgx:2,dgy:2},{dgx:-2,dgy:-2},{dgx:4,dgy:-2},{dgx:-4,dgy:1},{dgx:1,dgy:-4},
 ];
-const BIG_CITY_LINKS=[[0,0,1,0],[1,0,2,0],[0,0,0,1],[0,0,0,-1]];
+const BIG_CITY_LINKS=[
+  [0,0,3,0],[0,0,-3,0],[0,0,0,3],[0,0,0,-3],
+  [3,0,4,-2],[0,3,2,2],
+];
+function districtGridDist(dgx1,dgy1,dgx2,dgy2){
+  return Math.abs(dgx1-dgx2)+Math.abs(dgy1-dgy2);
+}
+function findDistrictGate(dgx,dgy,tgx,tgy){
+  const b=distBounds(dgx,dgy);
+  const cx=(b.x0+b.x1)/2, cy=(b.y0+b.y1)/2;
+  const dx=tgx-cx, dy=tgy-cy;
+  let best=null, bestDot=-1e9;
+  for(let x=b.x0;x<=b.x1;x++) for(let y=b.y0;y<=b.y1;y++){
+    if(!roadAt(x,y)) continue;
+    const onEdge=x===b.x0||x===b.x1||y===b.y0||y===b.y1;
+    if(!onEdge) continue;
+    const dot=(x-cx)*dx+(y-cy)*dy;
+    if(dot>bestDot){ bestDot=dot; best=[x,y]; }
+  }
+  if(best) return best;
+  if(Math.abs(dx)>=Math.abs(dy)){
+    const x=dx>0?b.x1:b.x0;
+    return [x, Math.round(cy)];
+  }
+  const y=dy>0?b.y1:b.y0;
+  return [Math.round(cx), y];
+}
+function paveWildernessStep(x,y){
+  if(tileInAnyDistrict(x,y)) return;
+  const k=tkey(x,y);
+  removeTreeAt(x,y);
+  removedTrees.add(k);
+  setTile(x,y,'road');
+}
+function paveDistrictConnector(dgx1,dgy1,dgx2,dgy2){
+  const bA=distBounds(dgx1,dgy1), bB=distBounds(dgx2,dgy2);
+  const [x0,y0]=findDistrictGate(dgx1,dgy1,(bB.x0+bB.x1)/2,(bB.y0+bB.y1)/2);
+  const [x1,y1]=findDistrictGate(dgx2,dgy2,(bA.x0+bA.x1)/2,(bA.y0+bA.y1)/2);
+  let x=x0, y=y0;
+  const runX=()=>{ while(x!==x1){ x+=Math.sign(x1-x)||0; if(x===x1) break; paveWildernessStep(x,y); } };
+  const runY=()=>{ while(y!==y1){ y+=Math.sign(y1-y)||0; if(y===y1) break; paveWildernessStep(x,y); } };
+  if(Math.abs(x1-x0)>=Math.abs(y1-y0)){ runX(); runY(); }
+  else { runY(); runX(); }
+}
 function clearWorldForSeed(){
   edits.clear(); removedTrees.clear(); terrainMemo.clear();
   buildings.length=0; bldMap.clear();
@@ -1019,23 +1061,6 @@ function clearWorldForSeed(){
   cars.length=0; fireTrucks.length=0; peds.length=0;
   walkers.length=0; walkerNextId=1; trackWalkerId=null;
 }
-function pairKey(a,b){ return a[0]+','+a[1]+'|'+b[0]+','+b[1]; }
-function isBigCityLink(dgx1,dgy1,dgx2,dgy2){
-  const fwd=pairKey([dgx1,dgy1],[dgx2,dgy2]), back=pairKey([dgx2,dgy2],[dgx1,dgy1]);
-  return BIG_CITY_LINKS.some(([ax,ay,bx,by])=>pairKey([ax,ay],[bx,by])===fwd||pairKey([ax,ay],[bx,by])===back);
-}
-function severSharedBorder(dgx1,dgy1,dgx2,dgy2){
-  const b1=distBounds(dgx1,dgy1), b2=distBounds(dgx2,dgy2);
-  if(dgx1===dgx2){
-    const y=dgy1<dgy2?b1.y1:b2.y1;
-    const x0=Math.max(b1.x0,b2.x0), x1=Math.min(b1.x1,b2.x1);
-    for(let x=x0;x<=x1;x++) if(isRoadT(tileAt(x,y))) clearTile(x,y);
-  } else if(dgy1===dgy2){
-    const x=dgx1<dgx2?b1.x1:b2.x1;
-    const y0=Math.max(b1.y0,b2.y0), y1=Math.min(b1.y1,b2.y1);
-    for(let y=y0;y<=y1;y++) if(isRoadT(tileAt(x,y))) clearTile(x,y);
-  }
-}
 function seedBigCity(){
   clearWorldForSeed();
   citySize='big';
@@ -1043,14 +1068,7 @@ function seedBigCity(){
     districts.add(`${slot.dgx},${slot.dgy}`);
     seedDistrict(slot.dgx,slot.dgy, !!slot.origin);
   }
-  for(let i=0;i<BIG_CITY_SLOTS.length;i++){
-    const a=BIG_CITY_SLOTS[i];
-    for(let j=i+1;j<BIG_CITY_SLOTS.length;j++){
-      const b=BIG_CITY_SLOTS[j];
-      const adj=(Math.abs(a.dgx-b.dgx)===1&&a.dgy===b.dgy)||(Math.abs(a.dgy-b.dgy)===1&&a.dgx===b.dgx);
-      if(adj && !isBigCityLink(a.dgx,a.dgy,b.dgx,b.dgy)) severSharedBorder(a.dgx,a.dgy,b.dgx,b.dgy);
-    }
-  }
+  for(const [ax,ay,bx,by] of BIG_CITY_LINKS) paveDistrictConnector(ax,ay,bx,by);
   rebuildLights();
 }
 function startBigCity(){
@@ -1065,7 +1083,7 @@ function startBigCity(){
   updateHUD();
   renderWalkerList();
   updateFindPanel();
-  toast('🏙️ Big city — 10 districts · main spine linked by roads','ok');
+  toast('🏙️ Big city — 10 spread districts · long roads link some hubs','ok');
 }
 districts.add('0,0');
 seedDistrict(0,0,true);
