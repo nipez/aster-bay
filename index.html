@@ -113,7 +113,7 @@
   .people.expanded .people-chip{display:none;}
   .people.expanded .people-close{display:block; pointer-events:auto;}
   .people .sub{font-size:10px; letter-spacing:1.2px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
-  .people-panel .you-list{max-height:148px;}
+  .people-panel .you-list{max-height:210px;}
   body.find-mode .people:not(.expanded){
     top:calc(10px + env(safe-area-inset-top) + min(42vh, 320px) + 10px);
   }
@@ -135,26 +135,33 @@
   .you-list{display:flex; flex-direction:column; gap:4px; margin-top:6px; max-height:112px; overflow-y:auto;}
   .you-empty{font-size:11px; color:var(--dim); padding:2px 2px 0;}
   .you-item{
-    display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:8px;
+    display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:10px;
     background:#ffffff08; font-size:11.5px; border:1px solid transparent;
   }
   .you-item.track{background:#ffce6b18; border-color:#ffce6b44;}
-  .you-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .you-dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
   .you-item .nm{
     flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     font-weight:700; color:var(--ink); text-align:left;
     appearance:none; border:none; cursor:pointer; background:transparent;
-    padding:2px 0; font:700 11.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    padding:6px 2px; font:700 11.5px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
   }
   .you-item .nm:hover{color:var(--accent);}
   .you-item .nm:active{transform:scale(.98);}
-  .you-item button{
-    appearance:none; border:none; cursor:pointer; background:#ffffff14; color:var(--ink);
-    border-radius:7px; padding:3px 7px; font:700 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  .you-item .you-act{
+    flex-shrink:0; appearance:none; border:1px solid #ffffff28; cursor:pointer;
+    min-width:42px; min-height:42px; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:11px; background:#ffffff18; color:var(--ink);
+    font:800 18px/1 ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    touch-action:manipulation;
   }
-  .you-item button.on{background:var(--accent); color:#23201a;}
-  .you-item button.remove{color:var(--bad); padding:3px 6px; font-size:13px; line-height:1;}
-  .you-item button:active{transform:scale(.94);}
+  .you-item .track-btn.on{background:var(--accent); color:#23201a; border-color:#ffce6b88;}
+  .you-item .remove-btn{
+    color:var(--bad); font-size:24px; font-weight:800;
+    background:#ff6b5e22; border-color:#ff6b5e66;
+  }
+  .you-item .you-act:active{transform:scale(.94);}
   .you-item .task{font-weight:600; color:var(--accent); font-size:10px;}
   .you-cmd{display:flex; gap:6px; margin-top:6px;}
   .you-cmd input{
@@ -1831,8 +1838,8 @@ function renderWalkerList(){
       +escapeHtml(w.name)
       +(w.goalLabel?' <span class="task">→ '+escapeHtml(w.goalLabel)+'</span>':'')
       +'</button>'
-      +'<button type="button" class="'+(trackWalkerId===w.id?'on':'')+'" data-act="find" data-id="'+w.id+'" aria-label="Track '+escapeHtml(w.name)+'">📍</button>'
-      +'<button type="button" class="remove" data-act="remove" data-id="'+w.id+'" aria-label="Remove '+escapeHtml(w.name)+'">×</button>';
+      +'<button type="button" class="you-act track-btn '+(trackWalkerId===w.id?'on':'')+'" data-act="find" data-id="'+w.id+'" aria-label="Track '+escapeHtml(w.name)+'">📍</button>'
+      +'<button type="button" class="you-act remove-btn" data-act="remove" data-id="'+w.id+'" aria-label="Remove '+escapeHtml(w.name)+'">×</button>';
     el.appendChild(row);
   }
   syncTrackBtn();
