@@ -61,7 +61,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   getCam:()=>({px:cam.px,py:cam.py}),
   instructWalker,parseWalkerCommand,updatePeds,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
-  fitCityView,cityBounds,getCamZ:()=>cam.z,
+  fitCityView,cityBounds,getCamZ:()=>cam.z,setCamZ:z=>{cam.z=z;},
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,roadNeighbors,roadAt,
   startBigCity,getCitySize:()=>citySize,getDistrictCount:()=>districts.size,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
@@ -243,10 +243,13 @@ H.toggleTrackWalker(sam.id);
 A(H.getTrackWalkerId() === sam.id, 'can track a chosen walker');
 H.resetCam();
 const cam0 = H.getCam();
+H.setCamZ(0.22);
+const zOut = H.getCamZ();
 H.goToWalker(sam.id);
 for (let i = 0; i < 50; i++) run(1);
 const cam1 = H.getCam();
 A(cam0.px !== cam1.px || cam0.py !== cam1.py, 'click name glides camera to walker');
+A(H.getCamZ() > zOut + 0.15, 'locate flies in when zoomed out');
 H.exportCity();
 const dPlayer = JSON.parse(global.__blob);
 A(Array.isArray(dPlayer.walkers) && dPlayer.walkers.length === 2, 'all walkers saved in export');

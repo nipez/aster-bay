@@ -768,7 +768,11 @@ let viewRot=0;
 const ROT_DUR=0.85; // seconds for a 90° spin
 let rotAnimating=false, rotAnimT=0, rotAnimFrom=0, rotAnimTo=0, rotAnimTarget=0;
 const PAN_DUR=1.5; // seconds for camera glide to a walker
-let panAnimating=false, panAnimT=0, panFromPx=0, panFromPy=0, panToPx=0, panToPy=0;
+const LOCATE_ZOOM=1.35; // zoom when flying to a person
+const FIND_HINT_ZOOM=1.05; // zoom when hinting a general area
+const TRACK_ZOOM=1.2; // keep at least this close while tracking
+let panAnimating=false, panAnimT=0, panFromZ=1, panToZ=1;
+let panFocusWx=0, panFocusWy=0, panFollowWalker=null;
 
 function rotAngle(){
   if(!rotAnimating) return -viewRot*Math.PI/2;
@@ -785,19 +789,37 @@ function finishViewRot(){
   rotAnimating=false;
   rotAnimT=1;
 }
+function panForWorldCenter(wx,wy,z){
+  const center=camCenter(), p=iso(wx,wy,0);
+  return {px:-(p.x-center.x)*z, py:-(p.y-center.y)*z};
+}
+function startCameraFly(wx,wy,targetZ,followWalker=null){
+  panFocusWx=wx; panFocusWy=wy; panFollowWalker=followWalker||null;
+  panFromZ=cam.z;
+  panToZ=cam.z<targetZ ? targetZ : cam.z;
+  panAnimating=true;
+  panAnimT=0;
+}
 function finishPanAnim(){
   if(!panAnimating) return;
-  cam.px=panToPx;
-  cam.py=panToPy;
+  cam.z=panToZ;
+  const pan=panForWorldCenter(panFocusWx,panFocusWy,cam.z);
+  cam.px=pan.px; cam.py=pan.py;
   panAnimating=false;
   panAnimT=1;
+  panFollowWalker=null;
 }
 function updatePanAnim(dt){
   if(!panAnimating) return;
+  if(panFollowWalker){
+    const pos=pedPos(panFollowWalker);
+    panFocusWx=pos.x; panFocusWy=pos.y;
+  }
   panAnimT+=dt/PAN_DUR;
   const t=easeInOut(Math.min(1, panAnimT));
-  cam.px=lerp(panFromPx, panToPx, t);
-  cam.py=lerp(panFromPy, panToPy, t);
+  cam.z=lerp(panFromZ, panToZ, t);
+  const pan=panForWorldCenter(panFocusWx,panFocusWy,cam.z);
+  cam.px=pan.px; cam.py=pan.py;
   if(panAnimT>=1) finishPanAnim();
 }
 
@@ -1341,14 +1363,8 @@ function findGoalLocation(g){
   }
   return {area:g.hint||'keep exploring'};
 }
-function panToWorldPoint(wx,wy){
-  const p=iso(wx,wy,0), s=worldToScreen(p.x,p.y);
-  panFromPx=cam.px;
-  panFromPy=cam.py;
-  panToPx=cam.px+(CW/2-s.x);
-  panToPy=cam.py+(CH/2-s.y);
-  panAnimating=true;
-  panAnimT=0;
+function panToWorldPoint(wx,wy,z=FIND_HINT_ZOOM){
+  startCameraFly(wx,wy,z);
 }
 function showFindHint(id){
   const g=findGoals.find(x=>x.id===id);
@@ -2019,19 +2035,10 @@ function renderWalkerList(){
   }
   syncTrackBtn();
 }
-function walkerScreenTarget(w){
-  const pos=pedPos(w), p=iso(pos.x,pos.y,0);
-  return worldToScreen(p.x,p.y);
-}
 function panToWalker(w){
   if(!w) return;
-  const s=walkerScreenTarget(w);
-  panFromPx=cam.px;
-  panFromPy=cam.py;
-  panToPx=cam.px+(CW/2-s.x);
-  panToPy=cam.py+(CH/2-s.y);
-  panAnimating=true;
-  panAnimT=0;
+  const pos=pedPos(w);
+  startCameraFly(pos.x, pos.y, LOCATE_ZOOM, w);
 }
 function pulseWalker(id){
   walkerPulseId=id; walkerPulseT=2.5;
@@ -4238,9 +4245,11 @@ function frame(now){
   }
   const tw=getTrackedWalker();
   if(tw && !panAnimating){
-    const s=walkerScreenTarget(tw);
-    cam.px += (CW/2-s.x)*0.14;
-    cam.py += (CH/2-s.y)*0.14;
+    const pos=pedPos(tw);
+    if(cam.z<TRACK_ZOOM) cam.z+=(TRACK_ZOOM-cam.z)*0.08;
+    const pan=panForWorldCenter(pos.x,pos.y,cam.z);
+    cam.px=lerp(cam.px,pan.px,0.14);
+    cam.py=lerp(cam.py,pan.py,0.14);
   }
   render(animT);
   hudTick+=dt;
