@@ -55,22 +55,70 @@
   .hud.expanded .hud-panel{display:block; pointer-events:auto;}
   .hud.expanded .hud-chip{display:none;}
   .hud.expanded .hud-close{display:block; pointer-events:auto;}
-  .hud .sub{font-size:10px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
-  #cash{font-size:20px; font-weight:800; color:var(--good); letter-spacing:.5px;}
+  .hud .sub{font-size:10px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:4px;}
+  .hud-hero{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+    margin:4px 0 10px; padding-bottom:10px; border-bottom:1px solid #ffffff14;
+  }
+  .hud-hero .hero-money{flex:1; min-width:0;}
+  .hud-hero .hero-time{text-align:right; flex-shrink:0;}
+  #cash{font-size:20px; font-weight:800; color:var(--good); letter-spacing:.5px; margin:0; line-height:1.1;}
   #cash.broke{color:var(--bad);}
-  #clock{font-size:18px; font-weight:800; letter-spacing:1px; margin-top:4px;}
-  #phase{font-size:11px; color:var(--accent); letter-spacing:1px; margin-bottom:7px;}
+  #clock{font-size:17px; font-weight:800; letter-spacing:1px; margin:0;}
+  #phase{font-size:10.5px; color:var(--accent); letter-spacing:.8px; margin:2px 0 0;}
+  .stat-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin-bottom:8px;
+  }
   .stat{display:flex; justify-content:space-between; gap:18px; font-size:12.5px; padding:2px 0;}
-  .stat .k{color:var(--dim);}
+  .stat-grid .stat{flex-direction:column; align-items:flex-start; gap:1px; padding:0;}
+  .stat .k{color:var(--dim); font-size:10px; letter-spacing:.3px;}
   .stat .v{font-variant-numeric:tabular-nums; font-weight:700;}
-  .bars{margin-top:8px; border-top:1px solid #ffffff14; padding-top:7px;}
+  .stat-grid .stat .v{font-size:13px;}
+  .bars{margin-top:2px; border-top:1px solid #ffffff14; padding-top:8px;}
+  .bars-label{font-size:10px; letter-spacing:1.2px; color:var(--dim); text-transform:uppercase; margin-bottom:5px;}
   .brow{display:flex; align-items:center; gap:8px; padding:2px 0;}
   .brow .bl{font-size:10px; width:14px; color:var(--dim); font-weight:800;}
   .btrack{flex:1; height:6px; background:#ffffff14; border-radius:4px; overflow:hidden;}
   .bfill{height:100%; border-radius:4px; transition:width .4s;}
   #dR .bfill{background:#67d18a;} #dC .bfill{background:#4f9dde;} #dG .bfill{background:#a3c9a8;}
 
-  .you-row{display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14; pointer-events:auto;}
+  .people{
+    position:fixed; top:14px; right:14px; z-index:10; pointer-events:none;
+  }
+  .people-panel{
+    background:var(--panel); color:var(--ink);
+    border-radius:14px; padding:12px 14px; backdrop-filter:blur(8px);
+    box-shadow:0 6px 24px #0008; min-width:220px; max-width:min(92vw, 280px);
+    border:1px solid #ffffff14; pointer-events:auto;
+  }
+  .people-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:2px;}
+  .people-head h2{font-size:13px; letter-spacing:2px; color:var(--accent); font-weight:800; margin:0;}
+  .people-close{
+    display:none; appearance:none; border:none; cursor:pointer;
+    background:#ffffff14; color:var(--dim); border-radius:8px;
+    width:28px; height:28px; font-size:12px; line-height:1; flex-shrink:0;
+  }
+  .people-close:active{transform:scale(.94);}
+  .people-chip{
+    display:flex; appearance:none; border:1px solid #ffffff14; cursor:pointer;
+    background:var(--panel); color:var(--ink); border-radius:999px;
+    padding:7px 12px; backdrop-filter:blur(8px); box-shadow:0 4px 16px #0008;
+    font:700 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    align-items:center; gap:7px; pointer-events:auto;
+  }
+  .people-chip:active{transform:scale(.97);}
+  .people-chip .chip-caret{color:var(--dim); font-size:10px; margin-left:2px;}
+  .people:not(.expanded) .people-panel{display:none;}
+  .people.expanded .people-panel{display:block;}
+  .people.expanded .people-chip{display:none;}
+  .people.expanded .people-close{display:block; pointer-events:auto;}
+  .people .sub{font-size:10px; letter-spacing:1.2px; color:var(--dim); text-transform:uppercase; margin-bottom:8px;}
+  .people-panel .you-list{max-height:148px;}
+  body.find-mode .people:not(.expanded){
+    top:calc(10px + env(safe-area-inset-top) + min(42vh, 320px) + 10px);
+  }
+
+  .you-row{display:flex; gap:6px; margin-top:0; pointer-events:auto;}
   .you-row input{
     flex:1; min-width:0; appearance:none; border:1px solid #ffffff22; background:#ffffff10;
     color:var(--ink); border-radius:9px; padding:6px 9px;
@@ -84,7 +132,6 @@
     white-space:nowrap;
   }
   .you-row button:active,.you-status button:active{transform:scale(.96);}
-  .you-section{margin-top:8px; padding-top:8px; border-top:1px solid #ffffff14; pointer-events:auto;}
   .you-list{display:flex; flex-direction:column; gap:4px; margin-top:6px; max-height:112px; overflow-y:auto;}
   .you-empty{font-size:11px; color:var(--dim); padding:2px 2px 0;}
   .you-item{
@@ -381,6 +428,14 @@
       min-width:0; max-width:min(92vw, 280px);
       padding:10px 12px 11px;
     }
+    .people{
+      top:calc(10px + env(safe-area-inset-top));
+      right:calc(10px + env(safe-area-inset-right));
+    }
+    .people.expanded .people-panel{
+      min-width:0; max-width:min(92vw, 280px);
+      padding:10px 12px 11px;
+    }
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
     #toasts{bottom:calc(168px + env(safe-area-inset-bottom));}
@@ -477,30 +532,49 @@
       <button type="button" class="hud-close" id="hudClose" aria-label="Hide stats">▴</button>
     </div>
     <div class="sub" id="rank">hamlet · mayor mode v0.5</div>
-    <div id="cash">$25,000</div>
-    <div id="clock">08:00</div>
-    <div id="phase">Morning · Day 1</div>
-    <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
-    <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
-    <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
-    <div class="stat"><span class="k">Vehicles on road</span><span class="v" id="sCars">0</span></div>
+    <div class="hud-hero">
+      <div class="hero-money"><div id="cash">$25,000</div></div>
+      <div class="hero-time">
+        <div id="clock">08:00</div>
+        <div id="phase">Morning · Day 1</div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><span class="k">Population</span><span class="v" id="sPop">0</span></div>
+      <div class="stat"><span class="k">Jobs</span><span class="v" id="sJobs">0</span></div>
+      <div class="stat"><span class="k">Happiness</span><span class="v" id="sHap">—</span></div>
+      <div class="stat"><span class="k">Vehicles</span><span class="v" id="sCars">0</span></div>
+    </div>
     <div class="bars">
+      <div class="bars-label">Demand</div>
       <div class="brow" id="dR"><span class="bl">R</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
       <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
       <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
     </div>
-    <div class="you-section" id="youSection">
-      <div class="you-row" id="youRow">
-        <input id="youName" type="text" maxlength="18" placeholder="Add a name" autocomplete="nickname" enterkeyhint="go">
-        <button type="button" id="youJoin">Add</button>
-      </div>
-      <div class="you-list" id="youList"></div>
-      <div class="you-cmd">
-        <input id="youCmd" type="text" maxlength="48" placeholder="Nora - go to fire station" enterkeyhint="go">
-        <button type="button" id="youGo">Go</button>
-      </div>
-      <div class="you-hint">fire station · school · park · shop · home · town square</div>
+  </div>
+</div>
+
+<div class="people" id="people">
+  <button type="button" class="people-chip" id="peopleChip" aria-expanded="false" aria-controls="peoplePanel" aria-label="Show people panel">
+    <span id="peopleChipLbl">👥 People</span>
+    <span class="chip-caret" aria-hidden="true">▾</span>
+  </button>
+  <div class="people-panel" id="peoplePanel">
+    <div class="people-head">
+      <h2>PEOPLE</h2>
+      <button type="button" class="people-close" id="peopleClose" aria-label="Hide people panel">▴</button>
     </div>
+    <div class="sub">Add friends · track on the map</div>
+    <div class="you-row" id="youRow">
+      <input id="youName" type="text" maxlength="18" placeholder="Add a name" autocomplete="nickname" enterkeyhint="go">
+      <button type="button" id="youJoin">Add</button>
+    </div>
+    <div class="you-list" id="youList"></div>
+    <div class="you-cmd">
+      <input id="youCmd" type="text" maxlength="48" placeholder="Nora - go to fire station" enterkeyhint="go">
+      <button type="button" id="youGo">Go</button>
+    </div>
+    <div class="you-hint">fire station · school · park · shop · home · town square</div>
   </div>
 </div>
 
@@ -1727,10 +1801,19 @@ function getWalker(id){ return walkers.find(w=>w.id===id); }
 function getTrackedWalker(){ return trackWalkerId!=null ? getWalker(trackWalkerId) : null; }
 function syncTrackBtn(){
   const w=getTrackedWalker();
-  $('bYou').disabled=!walkers.length;
+  $('bYou').disabled=false;
   $('bYou').classList.toggle('on', !!w);
   const short=w ? w.name.split(' ')[0] : '';
   $('bYou').textContent=w ? '📍 '+short : '📍 Walkers';
+  syncPeopleChip();
+}
+function syncPeopleChip(){
+  const lbl=$('peopleChipLbl');
+  if(!lbl) return;
+  const w=getTrackedWalker();
+  if(w) lbl.textContent='📍 '+w.name.split(' ')[0];
+  else if(walkers.length) lbl.textContent='👥 '+walkers.length;
+  else lbl.textContent='👥 People';
 }
 function renderWalkerList(){
   const el=$('youList');
@@ -1770,6 +1853,7 @@ function goToWalker(id){
   panToWalker(w);
   pulseWalker(id);
   if(hudExpanded()) collapseHud();
+  if(peopleExpanded()) collapsePeople();
   toast('📍 '+w.name,'ok');
   return true;
 }
@@ -3283,6 +3367,16 @@ function setHudExpanded(open){
 function collapseHud(){ setHudExpanded(false); }
 hudChip.addEventListener('click', ()=> setHudExpanded(true));
 hudClose.addEventListener('click', ()=> collapseHud());
+const people=$('people'), peopleChip=$('peopleChip'), peopleClose=$('peopleClose');
+function peopleExpanded(){ return people.classList.contains('expanded'); }
+function setPeopleExpanded(open){
+  people.classList.toggle('expanded', open);
+  peopleChip.setAttribute('aria-expanded', open?'true':'false');
+  if(open && walkers.length===0) setTimeout(()=> $('youName')?.focus(), 0);
+}
+function collapsePeople(){ setPeopleExpanded(false); }
+peopleChip.addEventListener('click', ()=> setPeopleExpanded(true));
+peopleClose.addEventListener('click', ()=> collapsePeople());
 function phaseName(h){
   if(h<5)return'Deep night'; if(h<7)return'Dawn'; if(h<11)return'Morning';
   if(h<14)return'Midday'; if(h<17.5)return'Afternoon'; if(h<19.5)return'Dusk';
@@ -3669,7 +3763,11 @@ document.addEventListener('fullscreenchange', onFsChange);
 document.addEventListener('webkitfullscreenchange', onFsChange);
 syncFsBtn();
 $('bYou').onclick=()=>{
-  if(!walkers.length){ toast('Add a name in the stats panel first','err'); return; }
+  setPeopleExpanded(true);
+  if(!walkers.length){
+    toast('Add a name to walk the city','ok');
+    return;
+  }
   const id=focusWalkerId!=null ? focusWalkerId : walkers[0].id;
   toggleTrackWalker(id);
 };
