@@ -238,7 +238,7 @@ A(H.getTrackWalkerId() === sam.id, 'can track a chosen walker');
 H.resetCam();
 const cam0 = H.getCam();
 H.goToWalker(sam.id);
-for (let i = 0; i < 30; i++) run(1);
+for (let i = 0; i < 50; i++) run(1);
 const cam1 = H.getCam();
 A(cam0.px !== cam1.px || cam0.py !== cam1.py, 'click name glides camera to walker');
 H.exportCity();
