@@ -768,9 +768,8 @@ let viewRot=0;
 const ROT_DUR=0.85; // seconds for a 90° spin
 let rotAnimating=false, rotAnimT=0, rotAnimFrom=0, rotAnimTo=0, rotAnimTarget=0;
 const PAN_DUR=1.5; // seconds for camera glide to a walker
-const LOCATE_ZOOM=1.35; // zoom when flying to a person
+const LOCATE_ZOOM=1.35; // zoom when flying to a person (initial fly only)
 const FIND_HINT_ZOOM=1.05; // zoom when hinting a general area
-const TRACK_ZOOM=1.2; // keep at least this close while tracking
 let panAnimating=false, panAnimT=0, panFromZ=1, panToZ=1;
 let panFocusWx=0, panFocusWy=0, panFollowWalker=null;
 
@@ -4246,7 +4245,6 @@ function frame(now){
   const tw=getTrackedWalker();
   if(tw && !panAnimating){
     const pos=pedPos(tw);
-    if(cam.z<TRACK_ZOOM) cam.z+=(TRACK_ZOOM-cam.z)*0.08;
     const pan=panForWorldCenter(pos.x,pos.y,cam.z);
     cam.px=lerp(cam.px,pan.px,0.14);
     cam.py=lerp(cam.py,pan.py,0.14);
