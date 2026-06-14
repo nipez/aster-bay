@@ -415,9 +415,19 @@
   }
   .find-item.found{opacity:.55; border-color:#67d18a44;}
   .find-item.found .find-lbl{text-decoration:line-through;}
-  .find-item .find-lbl{font-weight:800; display:block;}
-  .find-item .find-hint{color:var(--dim); font-size:10.5px;}
+  .find-item .find-lbl{font-weight:800; display:block; font-size:13px;}
+  .find-item .find-hint{color:var(--dim); font-size:10.5px; margin-top:2px;}
   .find-item.found .find-hint::after{content:' ✓ found!';}
+  .find-item-row{display:flex; align-items:flex-start; gap:6px;}
+  .find-item-body{flex:1; min-width:0;}
+  .find-hint-btn{
+    flex-shrink:0; appearance:none; border:1px solid #ffce6b55; cursor:pointer;
+    background:#ffce6b22; color:var(--accent); border-radius:8px;
+    padding:5px 8px; font:800 10px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    white-space:nowrap;
+  }
+  .find-hint-btn:active{transform:scale(.96);}
+  .find-item.found .find-hint-btn{display:none;}
   body.find-mode canvas{cursor:crosshair;}
 
   body.no-mob-stick .mob-ctrl,
@@ -1265,6 +1275,94 @@ function rebuildFindGoals(){
   }
 }
 const findFound=new Set();
+let findHintPulse=null;
+function findAreaLabel(tx,ty){
+  const b=cityBounds();
+  const mx=(b.x0+b.x1)/2, my=(b.y0+b.y1)/2;
+  const dx=tx-mx, dy=ty-my;
+  const parts=[];
+  if(dy<-3) parts.push('north');
+  else if(dy>3) parts.push('south');
+  if(dx>3) parts.push('east');
+  else if(dx<-3) parts.push('west');
+  if(!parts.length) return 'near the city center';
+  return 'the '+parts.join('-')+' part of town';
+}
+function findGoalLocation(g){
+  if(!g||g.found) return null;
+  const pack=(tx,ty,x,y,area)=> ({tx,ty,x,y,area});
+  switch(g.kind){
+    case 'hidden':
+      if(g.ref) return pack(g.ref.x|0,g.ref.y|0,g.ref.x,g.ref.y,findAreaLabel(g.ref.x|0,g.ref.y|0));
+      break;
+    case 'spire': {
+      const sp=buildings.find(b=>b.landmark);
+      if(sp) return pack(sp.x,sp.y,sp.x+0.5,sp.y+0.5,'near the tall spire downtown');
+      break;
+    }
+    case 'fountain':
+      if(fountain) return pack(fountain.x,fountain.y,fountain.x+0.5,fountain.y+0.5,'around the plaza fountain');
+      break;
+    case 'bench':
+      if(benches.length){
+        const bn=benches[(hash(g.id.length,g.id.charCodeAt(0)|0,77)*benches.length)|0];
+        return pack(bn.x,bn.y,bn.x+0.5,bn.y+0.5,findAreaLabel(bn.x,bn.y)+' · look in green spaces');
+      }
+      return {area:'in a park or green space'};
+    case 'block':
+      if(blocks.length){
+        const bk=blocks[(hash(g.id.length,3,88)*blocks.length)|0];
+        return pack(bk.x,bk.y,bk.x+0.5,bk.y+0.5,findAreaLabel(bk.x,bk.y)+' · colorful stacks');
+      }
+      return {area:'somewhere someone stacked blocks'};
+    case 'fire_truck': {
+      const ft=fireTrucks[0];
+      if(ft){ const p=carPos(ft); return pack(ft.tx|0,ft.ty|0,p.x,p.y,'rolling on the roads'); }
+      return {area:'on the roads — watch for a fire truck'};
+    }
+    case 'car_red': {
+      const rc=cars.find(c=>c.color==='#e2574c');
+      if(rc){ const p=carPos(rc); return pack(rc.tx|0,rc.ty|0,p.x,p.y,'driving around the streets'); }
+      return {area:'cruising on the roads — look for a red car'};
+    }
+    case 'walker': {
+      const w=walkers.find(x=>!findFound.has('walker'))||walkers[0];
+      if(w){ const p=pedPos(w); return pack(w.tx|0,w.ty|0,p.x,p.y,findAreaLabel(w.tx|0,w.ty|0)+' · look for '+w.name); }
+      return {area:'add someone in the People panel first'};
+    }
+    case 'ped': {
+      if(peds.length){
+        const p0=peds[(hash(5,g.id.length,44)*peds.length)|0];
+        const q=pedPos(p0);
+        return pack(p0.tx|0,p0.ty|0,q.x,q.y,'strolling on sidewalks nearby');
+      }
+      return {area:'walking on sidewalks around town'};
+    }
+  }
+  return {area:g.hint||'keep exploring'};
+}
+function panToWorldPoint(wx,wy){
+  const p=iso(wx,wy,0), s=worldToScreen(p.x,p.y);
+  panFromPx=cam.px;
+  panFromPy=cam.py;
+  panToPx=cam.px+(CW/2-s.x);
+  panToPy=cam.py+(CH/2-s.y);
+  panAnimating=true;
+  panAnimT=0;
+}
+function showFindHint(id){
+  const g=findGoals.find(x=>x.id===id);
+  if(!g||g.found){ toast('Already found!','ok'); return false; }
+  const loc=findGoalLocation(g);
+  if(!loc){ toast(g.hint||'Keep looking!','ok'); return false; }
+  if(loc.x!=null && loc.y!=null){
+    findHintPulse={x:loc.x,y:loc.y,until:performance.now()+9000};
+    panToWorldPoint(loc.x,loc.y);
+  }
+  const name=g.label.replace(/^[^\s]+\s/,'');
+  toast('💡 Try '+loc.area+(name?(' · '+name):''),'ok');
+  return true;
+}
 function findScore(){ return findGoals.filter(g=>g.found).length; }
 function markFound(id){
   const g=findGoals.find(x=>x.id===id);
@@ -1285,7 +1383,8 @@ function tryFindAt(clientX,clientY){
     if(h.found) continue;
     const s=worldToScreen(iso(h.x,h.y,0).x, iso(h.x,h.y,0).y);
     const d=screenDist(p.x,p.y,s.x,s.y);
-    if(d<bestD){ bestD=d; hit={id:h.id}; }
+    const hitR=clamp(36*Math.sqrt(cam.z), 32, 56);
+    if(d<hitR && d<bestD){ bestD=d; hit={id:h.id}; }
   }
   if(fountain){
     const s=worldToScreen(iso(fountain.x,fountain.y,0).x, iso(fountain.x,fountain.y,0).y);
@@ -1318,11 +1417,35 @@ function tryFindAt(clientX,clientY){
 function drawFindHidden(h, animT){
   if(h.found) return;
   const g=iso(h.x,h.y,0);
-  const bob=Math.sin(animT*3+h.x)*1.2;
-  ctx.font=(11+Math.sin(animT*2+h.y)*1)+'px ui-rounded,system-ui,sans-serif';
+  const bob=Math.sin(animT*3+h.x)*2.5;
+  const size=clamp(30*Math.sqrt(cam.z), 26, 52);
+  const cy=g.y-14+bob;
+  ctx.fillStyle='rgba(18,21,38,0.72)';
+  ctx.beginPath();
+  ctx.arc(g.x,cy,size*0.58,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='rgba(255,206,107,0.85)';
+  ctx.lineWidth=2.2;
+  ctx.stroke();
+  ctx.font=size+'px ui-rounded,system-ui,sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(h.icon, g.x, g.y-10+bob);
+  ctx.fillText(h.icon, g.x, cy);
   ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+}
+function drawFindHintPulse(animT){
+  if(!findHintPulse) return;
+  if(performance.now()>findHintPulse.until){ findHintPulse=null; return; }
+  const pulse=(Math.sin(animT*3.5)+1)*0.5;
+  const c=iso(findHintPulse.x,findHintPulse.y,0);
+  const rx=(5+pulse*1.5)*TW, ry=(5+pulse*1.5)*TH;
+  ctx.fillStyle='rgba(255,206,107,'+(0.1+pulse*0.14)+')';
+  ctx.strokeStyle='rgba(255,206,107,'+(0.45+pulse*0.35)+')';
+  ctx.lineWidth=2.5;
+  ctx.setLineDash([8,6]);
+  ctx.beginPath();
+  ctx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.setLineDash([]);
 }
 function updateFindPanel(){
   const panel=$('findPanel'), list=$('findList'), score=$('findScore');
@@ -1335,7 +1458,11 @@ function updateFindPanel(){
   for(const g of findGoals){
     const li=document.createElement('li');
     li.className='find-item'+(g.found?' found':'');
-    li.innerHTML='<span class="find-lbl">'+g.label+'</span><span class="find-hint">'+g.hint+'</span>';
+    li.innerHTML='<div class="find-item-row"><div class="find-item-body">'
+      +'<span class="find-lbl">'+g.label+'</span>'
+      +'<span class="find-hint">'+g.hint+'</span></div>'
+      +(g.found?'':'<button type="button" class="find-hint-btn" data-hint-id="'+g.id+'">💡 Hint</button>')
+      +'</div>';
     list.appendChild(li);
   }
 }
@@ -3334,6 +3461,8 @@ function render(animT){
 
   if(tool==='road') drawRoadHints(rng, animT);
 
+  drawFindHintPulse(animT);
+
   // build ghost
   const gt=ghostTile();
   if(tool!=='inspect'&&gt&&inB(gt.x,gt.y)){
@@ -3900,6 +4029,7 @@ function setTool(t){
   mobCursor=null;
   stopMobStick();
   document.body.classList.toggle('find-mode', t==='find');
+  if(t!=='find') findHintPulse=null;
   document.body.classList.toggle('building', t!=='inspect'&&t!=='find'&&!interior);
   document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   cv.classList.toggle('building',t!=='inspect'&&t!=='find');
@@ -4029,6 +4159,10 @@ mqCompact.addEventListener('change', e=>{
   updateMobUI();
 });
 $('findMin')?.addEventListener('click', ()=> setTool('inspect'));
+$('findList')?.addEventListener('click', e=>{
+  const btn=e.target.closest('[data-hint-id]');
+  if(btn) showFindHint(btn.dataset.hintId);
+});
 function typingInField(){
   const el=document.activeElement;
   if(!el||el===document.body) return false;

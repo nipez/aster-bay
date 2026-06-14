@@ -71,7 +71,8 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   nudgeMobCursor,mobPlaceAction,syncMobCursor,getMobCursor:()=>mobCursor,setInteriorFloor,
   setDockCollapsed,getDockCollapsed:()=>dockCollapsed,
   setTool,getTool:()=>tool,markFound,getFindScore:()=>findScore(),getFindGoals:()=>findGoals,
-  getFindHidden:()=>findHidden,rebuildFindGoals,importFindFound};`;
+  getFindHidden:()=>findHidden,rebuildFindGoals,importFindFound,showFindHint,findGoalLocation,
+  getFindHintPulse:()=>findHintPulse};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -416,6 +417,10 @@ A(H.getFindHidden().length >= 4, 'hidden critters seeded in the city');
 A(H.getFindGoals().length >= 8, 'find checklist built');
 H.setTool('find');
 A(H.getTool() === 'find', 'find mode tool');
+const spireGoal=H.getFindGoals().find(g=>g.id==='spire');
+A(!!H.findGoalLocation(spireGoal)?.area, 'find hint resolves spire area');
+A(H.showFindHint('fountain'), 'find hint pans toward a target');
+A(!!H.getFindHintPulse(), 'find hint shows map pulse zone');
 A(H.markFound('spire'), 'can mark spire found');
 A(H.getFindScore() >= 1, 'find score updates');
 H.exportCity();
