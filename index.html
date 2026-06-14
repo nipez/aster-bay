@@ -500,6 +500,7 @@
   <button class="tool" data-t="block" data-cat="green"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · stack cubes</small></span></button>
   <button class="tool" data-t="dozer" data-cat="green"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50 · clear tile</small></span></button>
   <button id="bEvents" class="adv" data-cat="more"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
+  <button type="button" id="bBigCity" data-cat="more"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · new map</small></span></button>
   <input type="file" id="fileIn" accept=".json,.asterbay,application/json" style="display:none">
   </div>
   <div class="bar" role="toolbar" aria-label="Simulation controls">
@@ -970,6 +971,78 @@ function nearestExpansion(x,y){
   }
   return bestD<3.5 ? best : null;
 }
+
+// ---------- big city (10 districts, partial road links) ----------
+let citySize='normal';
+const BIG_CITY_SLOTS=[
+  {dgx:0,dgy:0,origin:true},
+  {dgx:1,dgy:0},{dgx:2,dgy:0},
+  {dgx:0,dgy:1},{dgx:0,dgy:-1},
+  {dgx:-1,dgy:0},{dgx:-1,dgy:1},{dgx:1,dgy:1},{dgx:2,dgy:1},{dgx:-2,dgy:0},
+];
+const BIG_CITY_LINKS=[[0,0,1,0],[1,0,2,0],[0,0,0,1],[0,0,0,-1]];
+function clearWorldForSeed(){
+  edits.clear(); removedTrees.clear(); terrainMemo.clear();
+  buildings.length=0; bldMap.clear();
+  trees.length=0; treeMap.clear();
+  blocks.length=0; blockMap.clear();
+  parkSet.clear(); scorch.clear();
+  lamps.length=0; benches.length=0; fountain=null;
+  districts.clear();
+  undoStack.length=0;
+  findFound.clear();
+  cars.length=0; fireTrucks.length=0; peds.length=0;
+  walkers.length=0; walkerNextId=1; trackWalkerId=null;
+}
+function pairKey(a,b){ return a[0]+','+a[1]+'|'+b[0]+','+b[1]; }
+function isBigCityLink(dgx1,dgy1,dgx2,dgy2){
+  const fwd=pairKey([dgx1,dgy1],[dgx2,dgy2]), back=pairKey([dgx2,dgy2],[dgx1,dgy1]);
+  return BIG_CITY_LINKS.some(([ax,ay,bx,by])=>pairKey([ax,ay],[bx,by])===fwd||pairKey([ax,ay],[bx,by])===back);
+}
+function severSharedBorder(dgx1,dgy1,dgx2,dgy2){
+  const b1=distBounds(dgx1,dgy1), b2=distBounds(dgx2,dgy2);
+  if(dgx1===dgx2){
+    const y=dgy1<dgy2?b1.y1:b2.y1;
+    const x0=Math.max(b1.x0,b2.x0), x1=Math.min(b1.x1,b2.x1);
+    for(let x=x0;x<=x1;x++) if(isRoadT(tileAt(x,y))) clearTile(x,y);
+  } else if(dgy1===dgy2){
+    const x=dgx1<dgx2?b1.x1:b2.x1;
+    const y0=Math.max(b1.y0,b2.y0), y1=Math.min(b1.y1,b2.y1);
+    for(let y=y0;y<=y1;y++) if(isRoadT(tileAt(x,y))) clearTile(x,y);
+  }
+}
+function seedBigCity(){
+  clearWorldForSeed();
+  citySize='big';
+  for(const slot of BIG_CITY_SLOTS){
+    districts.add(`${slot.dgx},${slot.dgy}`);
+    seedDistrict(slot.dgx,slot.dgy, !!slot.origin);
+  }
+  for(let i=0;i<BIG_CITY_SLOTS.length;i++){
+    const a=BIG_CITY_SLOTS[i];
+    for(let j=i+1;j<BIG_CITY_SLOTS.length;j++){
+      const b=BIG_CITY_SLOTS[j];
+      const adj=(Math.abs(a.dgx-b.dgx)===1&&a.dgy===b.dgy)||(Math.abs(a.dgy-b.dgy)===1&&a.dgx===b.dgx);
+      if(adj && !isBigCityLink(a.dgx,a.dgy,b.dgx,b.dgy)) severSharedBorder(a.dgx,a.dgy,b.dgx,b.dgy);
+    }
+  }
+  rebuildLights();
+}
+function startBigCity(){
+  citySize='big';
+  cash=25000; day=1; simClock=0; lastHour=hourNow(); rankIdx=0;
+  seedBigCity();
+  seedFindHidden();
+  rebuildFindGoals();
+  recompute();
+  adjustAgents();
+  fitCityView();
+  updateHUD();
+  renderWalkerList();
+  updateFindPanel();
+  toast('🏙️ Big city — 10 districts · main spine linked by roads','ok');
+}
+districts.add('0,0');
 seedDistrict(0,0,true);
 
 // ---------- find game (Where's Waldo) ----------
@@ -3210,7 +3283,7 @@ function toast(msg, kind){
 
 // ---------- save / load ----------
 function exportCity(){
-  const data={v:4, mode, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
+  const data={v:4, mode, citySize, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
     districts:[...districts],
     edits:[...edits], removedTrees:[...removedTrees],
     parks:[...parkSet], scorch:[...scorch],
@@ -3252,6 +3325,7 @@ function importCity(data){
   parkSet.clear(); for(const k of (data.parks||[])) parkSet.add(k);
   scorch.clear(); for(const k of (data.scorch||[])) scorch.add(k);
   if(data.eventsOn!==undefined) setEvents(data.eventsOn);
+  citySize=data.citySize==='big'?'big':'normal';
   cash=data.cash; day=data.day; simClock=data.simClock; lastHour=hourNow();
   if(data.camRot!=null){ finishViewRot(); viewRot=(data.camRot|0)&3; cam.rot=viewRot; }
   districts.clear();
@@ -3299,9 +3373,15 @@ document.getElementById('bMode').onclick=()=>{
     : '🏛️ Mayor mode — budgets are back on','ok');
 };
 function applyBootParams(){
-  const m=new URLSearchParams(location.search).get('mode');
+  const p=new URLSearchParams(location.search);
+  const m=p.get('mode');
   if(m==='creative'||m==='mayor') setMode(m);
+  if(p.get('city')==='big') startBigCity();
 }
+document.getElementById('bBigCity')?.addEventListener('click', ()=>{
+  if(citySize==='big'){ toast('Already playing a big city — pave roads to reach the islands','ok'); return; }
+  startBigCity();
+});
 // block color palette
 (function buildPalette(){
   const pal=document.getElementById('palette');

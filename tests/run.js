@@ -63,6 +63,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
   fitCityView,cityBounds,getCamZ:()=>cam.z,
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,roadNeighbors,roadAt,
+  startBigCity,getCitySize:()=>citySize,getDistrictCount:()=>districts.size,
   undoLastBuild,getUndoLen:()=>undoStack.length,congestionPenalty,roadCong,recompute,getHappy:()=>stats.happy,
   screenToTile,getViewRot:()=>viewRot,tilePickRoundtrip,sortD,
   toggleFullscreen,isFsView,setImmersive,
@@ -455,6 +456,15 @@ if (bridgeSpot) {
   A(H.getCash() === cashB - 360, 'bridge costs 3× road price');
   A(H.roadNeighbors(bridgeSpot[0], bridgeSpot[1]).length > 0, 'bridge connects to road graph');
 }
+
+// ---------- big city mode ----------
+console.log('\nbig city');
+A(H.getDistrictCount() >= 1, 'city has districts before big-city switch');
+H.startBigCity();
+A(H.getCitySize() === 'big', 'big city mode active');
+A(H.getDistrictCount() === 10, 'big city seeds ten districts');
+A(H.getDistricts().has('2,0') && H.getDistricts().has('-1,0'), 'big city spans east and west');
+A(H.computeRoadReach().size > 20, 'road spine links the main districts');
 
 console.log('\n' + (failures ? `${failures} FAILURE(S)` : 'ALL TESTS PASSED (v0.5)'));
 process.exit(failures ? 1 : 0);
