@@ -691,16 +691,16 @@
   <button class="tool on" data-t="inspect"><span class="ico">🖐</span><span class="lbl">Inspect<small>hover the city</small></span></button>
   <button class="tool" data-t="find"><span class="ico">🔍</span><span class="lbl">Find<small>spot people & pets</small></span></button>
   <div class="gap"></div>
-  <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>$120 land · $360 bridge</small></span></button>
-  <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>$500 · needs a sidewalk</small></span></button>
-  <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>$900 · needs a sidewalk</small></span></button>
-  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>$1,200 · trucks roll on roads</small></span></button>
-  <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>$800 · happier residents</small></span></button>
-  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>$4,500 · edge or road link</small></span></button>
-  <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>$200</small></span></button>
-  <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>$40</small></span></button>
-  <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>$25 · tap to stack</small></span></button>
-  <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>$50</small></span></button>
+  <button class="tool" data-t="road"><span class="ico">🛣️</span><span class="lbl">Road<small>land · water becomes a bridge</small></span></button>
+  <button class="tool" data-t="house"><span class="ico">🏠</span><span class="lbl">Housing<small>needs a sidewalk</small></span></button>
+  <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>needs a sidewalk</small></span></button>
+  <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>trucks roll on roads</small></span></button>
+  <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>happier residents</small></span></button>
+  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>edge or road link</small></span></button>
+  <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>grass &amp; benches</small></span></button>
+  <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>plant anywhere</small></span></button>
+  <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>tap to stack</small></span></button>
+  <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>clear one thing</small></span></button>
   <div class="gap adv"></div>
   <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
   <button type="button" id="bBigCity"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · road-linked</small></span></button>
@@ -2657,10 +2657,10 @@ function canPlace(t,x,y){
 }
 function spend(n){
   if(!MONEY_ENABLED || mode==='creative') return true;
-  if(cash<n){ toast(`Not enough cash — need $${n}`, 'err'); return false; }
+  if(cash<n){ toast('Not enough city funds for that', 'err'); return false; }
   cash-=n; return true;
 }
-const costTxt=n=> (!MONEY_ENABLED || mode==='creative') ? '' : ' · −$'+n;
+const costTxt=()=>'';
 function buildOk(msg){
   if(UX.buildOkToasts) toast(msg,'ok');
 }
@@ -2843,7 +2843,7 @@ function placeInteriorRoom(f,rx,ry,type){
   pushUndo(snap);
   recompute();
   updateInteriorUI();
-  toast(rt.icon+' '+rt.name+' placed'+costTxt(rt.cost),'ok');
+  toast(rt.icon+' '+rt.name+' placed'+costTxt(),'ok');
   return true;
 }
 function clearInteriorRoom(f,rx,ry){
@@ -3037,7 +3037,7 @@ function tryPlace(x,y){
       const open=((emptyGroundType(ty)||ty==='walk'||ty==='water') && !bldMap.has(k) && !blockMap.has(k));
       toast(open
         ? (isWaterTile(x,y)
-          ? 'Tap water right beside a road — bridges cost 3× ($360)'
+          ? 'Tap water right beside a road — it becomes a bridge'
           : 'Tap a green tile right beside a road — extend one piece at a time')
         : 'Can\u2019t pave here — need open ground or water next to a road','err');
     }
@@ -3842,7 +3842,7 @@ function render(animT){
   }
   if(tool==='expand'){
     const pulse=(Math.sin(animT*3)+1)*0.5;
-    const priceLbl=mode==='creative'?'free':('$'+COST.expand.toLocaleString());
+    const districtLbl='4×4 · tap to add';
     ctx.font='700 10px ui-rounded, "Segoe UI", sans-serif';
     ctx.textAlign='center';
     for(const e of availableExpansions()){
@@ -3857,7 +3857,7 @@ function render(animT){
       }
       const c=iso((b.x0+b.x1)/2+0.5,(b.y0+b.y1)/2+0.5,0);
       ctx.fillStyle='rgba(18,21,38,.82)';
-      ctx.fillText('4×4 · '+priceLbl, c.x, c.y-2);
+      ctx.fillText(districtLbl, c.x, c.y-2);
       ctx.fillStyle='rgba(255,206,107,.95)';
       ctx.fillText('tap to grow '+e.label, c.x, c.y+10);
     }
