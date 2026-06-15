@@ -3,7 +3,8 @@
 A calm, kid-safe isometric city-builder that runs entirely in the browser. One HTML file for the game (`play/index.html`), vanilla JavaScript, zero dependencies, canvas-rendered. Build roads, zone housing and shops, stack Minecraft-style blocks, add named walkers, and watch a cozy town live through a full day/night cycle.
 
 **Marketing site:** [calmsafecity.com](https://calmsafecity.com) (root `index.html`)  
-**Play the game:** `/play/` — or open `play/index.html` locally.
+**Play the game:** `play/` — on GitHub Pages: `/aster-bay/play/`  
+Use **relative** links (`play/`, not `/play/`) so CTAs work on both the custom domain and `github.io/aster-bay`.
 
 ## Features (v0.5)
 
