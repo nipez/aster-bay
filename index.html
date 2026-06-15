@@ -9,6 +9,9 @@
 <meta property="og:description" content="A calm, kid-safe city builder. SimCity nostalgia meets Minecraft-style blocks — in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://calmsafecity.com/">
+<meta property="og:image" content="https://calmsafecity.com/assets/screenshots/city-overview.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://calmsafecity.com/assets/screenshots/city-overview.webp">
 <title>Calm Safe City — A calm, kid-safe city builder</title>
 <style>
   :root{
@@ -117,66 +120,30 @@
   .hero-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
   .hero-note{font-size:13px;color:#ffffff66;}
 
-  /* isometric scene (CSS) */
-  .scene{
-    position:relative;aspect-ratio:1.05;max-width:440px;margin:0 auto;
+  .shot{
+    position:relative;border-radius:20px;overflow:hidden;
+    border:1px solid #ffffff18;
+    box-shadow:0 24px 60px #0009, 0 0 0 1px #00000044 inset;
+    background:#141a2e;
   }
-  .scene-card{
-    position:absolute;inset:8% 4% 4%;
-    background:linear-gradient(180deg,#1c2030 0%,#141a2e 100%);
-    border:1px solid #ffffff18;border-radius:20px;
-    box-shadow:0 24px 60px #0009;
-    overflow:hidden;
+  .shot img{display:block;width:100%;height:auto;vertical-align:middle;}
+  .shot-hero{margin:0 auto;max-width:520px;}
+  .shot-cap{
+    position:absolute;left:0;right:0;bottom:0;
+    padding:18px 16px 14px;
+    background:linear-gradient(180deg, transparent 0%, #0a0f24cc 55%, #0a0f24ee 100%);
+    font-size:13px;color:#ffffffaa;line-height:1.4;
   }
-  .scene-sky{
-    height:42%;
-    background:linear-gradient(180deg,#3a5f8a 0%,#6db8ea 45%,#ffe7ba 100%);
+  .shot-cap strong{color:var(--ink);display:block;font-size:14px;margin-bottom:2px;}
+
+  .shots{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:18px;
   }
-  .scene-sun{
-    position:absolute;top:14%;right:18%;
-    width:36px;height:36px;border-radius:50%;
-    background:#ffe9a8;box-shadow:0 0 40px #ffe9a888;
+  .shots .shot{align-self:start;}
+  .shots figcaption{
+    margin-top:10px;font-size:14px;color:var(--dim);line-height:1.45;
   }
-  .scene-ground{
-    position:absolute;left:0;right:0;bottom:0;height:62%;
-    background:linear-gradient(180deg,#0a0f24 0%, transparent 30%);
-  }
-  .iso{
-    position:absolute;left:50%;bottom:18%;
-    transform:translateX(-50%) rotateX(58deg) rotateZ(-45deg);
-    transform-style:preserve-3d;
-    width:220px;height:220px;
-  }
-  .tile{
-    position:absolute;width:44px;height:44px;
-    background:#83bd72;border:1px solid #ffffff22;
-    box-shadow:inset 0 0 0 1px #00000022;
-  }
-  .tile.road{background:#565b68;}
-  .tile.water{background:#5fb6d9;}
-  .block{
-    position:absolute;width:28px;height:28px;border-radius:4px;
-    box-shadow:0 6px 0 #00000044, 0 10px 20px #0006;
-  }
-  .b1{background:#ef8fb2;left:88px;top:70px;}
-  .b2{background:#4f9dde;left:118px;top:88px;height:40px;}
-  .b3{background:#ffce6b;left:58px;top:100px;}
-  .house{
-    position:absolute;width:32px;height:28px;
-    background:#d6453c;border-radius:3px 3px 0 0;
-    left:140px;top:58px;
-    box-shadow:0 8px 0 #00000033;
-  }
-  .house::after{
-    content:'';position:absolute;left:50%;top:-14px;transform:translateX(-50%);
-    border:16px solid transparent;border-bottom-color:#f3cf7a;
-  }
-  .walker{
-    position:absolute;left:50%;bottom:28%;transform:translateX(-50%);
-    font-size:28px;filter:drop-shadow(0 4px 8px #0008);
-    animation:bob 2.8s ease-in-out infinite;
-  }
-  @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-6px);}}
+  .shots figcaption strong{color:var(--ink);font-weight:700;}
 
   /* ---------- sections ---------- */
   section{padding:64px 0;}
@@ -222,6 +189,7 @@
     font-size:15px;color:var(--dim);
   }
   .calm-list strong{color:var(--ink);display:block;font-size:16px;margin-bottom:2px;}
+  .calm-shot .shot{max-width:100%;}
   .check{
     flex-shrink:0;width:24px;height:24px;border-radius:8px;
     background:#67d18a22;color:var(--good);
@@ -244,10 +212,10 @@
 
   @media (max-width:860px){
     .hero-grid,.calm-band{grid-template-columns:1fr;}
-    .features,.steps{grid-template-columns:1fr;}
+    .features,.steps,.shots{grid-template-columns:1fr;}
     .nav-links{display:none;}
     .hero{padding-top:32px;}
-    .scene{max-width:320px;}
+    .shot-hero{max-width:100%;}
   }
 </style>
 </head>
@@ -261,6 +229,7 @@
     </a>
     <div class="nav-links">
       <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#calm">Kid-safe</a>
       <a href="#how">How it works</a>
     </div>
@@ -285,24 +254,15 @@
       </div>
       <p class="hero-note">Works on phone, tablet, and desktop · Saves to your device</p>
     </div>
-    <div class="scene" aria-hidden="true">
-      <div class="scene-card">
-        <div class="scene-sky"></div>
-        <div class="scene-sun"></div>
-        <div class="scene-ground"></div>
-        <div class="iso">
-          <div class="tile" style="left:44px;top:44px"></div>
-          <div class="tile road" style="left:88px;top:44px"></div>
-          <div class="tile road" style="left:132px;top:44px"></div>
-          <div class="tile" style="left:44px;top:88px"></div>
-          <div class="tile road" style="left:88px;top:88px"></div>
-          <div class="tile water" style="left:132px;top:88px"></div>
-          <div class="house"></div>
-          <div class="block b1"></div>
-          <div class="block b2"></div>
-          <div class="block b3"></div>
-        </div>
-        <div class="walker">🚶</div>
+    <div class="shot shot-hero">
+      <picture>
+        <source srcset="assets/screenshots/living-city.webp" type="image/webp">
+        <img src="assets/screenshots/living-city.png" width="2880" height="1800"
+             alt="Calm Safe City gameplay — isometric town with named walkers, roads, and colorful buildings">
+      </picture>
+      <div class="shot-cap">
+        <strong>Real gameplay</strong>
+        Name friends, pave roads, and watch your town come alive.
       </div>
     </div>
   </div>
@@ -349,17 +309,47 @@
   </div>
 </section>
 
+<section id="screenshots">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>See it in your browser</h2>
+      <p>No mockups — these are straight from the game. Cozy isometric blocks, living traffic, and named people wandering the streets.</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <div class="shot">
+          <picture>
+            <source srcset="assets/screenshots/city-overview.webp" type="image/webp">
+            <img src="assets/screenshots/city-overview.png" width="2880" height="1800" loading="lazy"
+                 alt="Creative mode city overview with stats panel, roads, parks, and a downtown skyline">
+          </picture>
+        </div>
+        <figcaption><strong>Plan your town</strong> — expand districts, watch demand bars, and grow from hamlet to metropolis.</figcaption>
+      </figure>
+      <figure>
+        <div class="shot">
+          <picture>
+            <source srcset="assets/screenshots/living-city.webp" type="image/webp">
+            <img src="assets/screenshots/living-city.png" width="2880" height="1800" loading="lazy"
+                 alt="Close-up of roads, traffic lights, and named walkers Biscuit and Pepper">
+          </picture>
+        </div>
+        <figcaption><strong>Meet your people</strong> — add names, track friends on the map, and send them to the park or school.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section id="calm">
   <div class="wrap calm-band">
-    <div>
+    <div class="calm-copy">
       <span class="eyebrow">Built for families</span>
       <h2>Calm by design</h2>
-      <p class="lead" style="margin-bottom:0">
+      <p class="lead" style="margin-bottom:20px">
         Calm Safe City is E-rated at heart: cartoon fires at most, a calm mode that
         turns off random events entirely, and creative sandbox for stress-free building.
       </p>
-    </div>
-    <ul class="calm-list">
+      <ul class="calm-list">
       <li>
         <span class="check">✓</span>
         <span><strong>No violence</strong>Cartoon-style emergencies only — and you can disable random fires completely.</span>
@@ -377,6 +367,16 @@
         <span><strong>Touch-friendly</strong>Tap to build, drag to pan, pinch to zoom — made for phones and tablets.</span>
       </li>
     </ul>
+    </div>
+    <div class="calm-shot">
+      <div class="shot">
+        <picture>
+          <source srcset="assets/screenshots/city-overview.webp" type="image/webp">
+          <img src="assets/screenshots/city-overview.png" width="2880" height="1800" loading="lazy"
+               alt="Kid-friendly city builder with parks, schools, and colorful blocks">
+        </picture>
+      </div>
+    </div>
   </div>
 </section>
 
