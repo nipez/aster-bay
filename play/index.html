@@ -4361,20 +4361,21 @@ $('youList').addEventListener('click', e=>{
 });
 const bPause=$('bPause');
 function syncPauseBtn(){
+  if(!bPause) return;
   if(mqCompact.matches){
     bPause.textContent=paused?'▶':'⏸';
-    bPause.setAttribute('aria-label', paused?'Resume game':'Pause game');
+    bPause.setAttribute?.('aria-label', paused?'Resume game':'Pause game');
   } else {
     bPause.textContent=paused?'▶ Resume':'⏸ Pause';
-    bPause.removeAttribute('aria-label');
+    bPause.removeAttribute?.('aria-label');
   }
 }
 function setPause(v){
   paused=v;
   syncPauseBtn();
-  bPause.classList.toggle('on',paused);
+  bPause?.classList?.toggle('on',paused);
 }
-bPause.onclick=()=>setPause(!paused);
+bPause?.addEventListener('click', ()=>setPause(!paused));
 document.querySelectorAll('.spd').forEach(b=>{
   b.onclick=()=>{
     speed=+b.dataset.s;

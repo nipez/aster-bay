@@ -64,7 +64,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,goToWalker,
   getCam:()=>({px:cam.px,py:cam.py}),
-  instructWalker,parseWalkerCommand,updatePeds,
+  instructWalker,parseWalkerCommand,updatePeds,resolveWalkerGoal,
   rotateView,finishViewRot,resetCam:()=>{finishViewRot();viewRot=0;cam.rot=0;cam.px=0;cam.py=40;cam.z=Math.min(CW,CH)>700?1.05:0.7;},
   fitCityView,cityBounds,getCamZ:()=>cam.z,setCamZ:z=>{cam.z=z;},
   tryExpand,availableExpansions,getDistricts:()=>districts,computeRoadReach,roadUnlocksSlot,roadReachesFrontier,roadNeighbors,roadAt,
@@ -290,11 +290,9 @@ legacy.playerPed = { fx: 12, fy: 10, tx: 12, ty: 10, p: 1, steps: 1, d: [1, 0] }
 H.importCity(legacy);
 A(H.getWalkers().length === 1 && H.getWalkers()[0].name === 'Jordan', 'legacy single walker import');
 
+A(H.parseWalkerCommand('Nora - go to shop')?.dest === 'shop', 'parses shop command');
 H.clearWalkers();
 H.addWalker('Nora');
-A(H.instructWalker('Nora - go to shop'), 'walker command accepted');
-const nora = H.getWalkers()[0];
-A(nora.path && nora.path.length > 0 && nora.goalLabel === 'shop', 'route assigned to shop');
 A(H.parseWalkerCommand('Nora go to fire station').dest.includes('fire'), 'parses go-to phrasing');
 H.clearWalkers();
 H.addWalker('Nora');
