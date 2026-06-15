@@ -522,12 +522,7 @@
   body.dock-collapsed .dock-hide{display:block;}
 
   @media (max-width:1024px){
-    body:not(.dock-collapsed) .dock-hide::after{content:' hide';}
-    body:not(.dock-collapsed) .dock-hide::before{content:'▼';}
-    body.dock-collapsed .dock-hide::before{content:'▲';}
-    body.dock-collapsed .dock-hide::after{content:'';}
-    .dock-hide{font-size:0; padding:8px 10px; flex-shrink:0;}
-    .dock-hide::before{font-size:13px; font-weight:800;}
+    :root{--mob-dock-h:136px;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -544,80 +539,81 @@
     }
     .hud .stat{font-size:11.5px;}
     #cash{font-size:17px;} #clock{font-size:15px;}
-    #toasts{bottom:calc(168px + env(safe-area-inset-bottom));}
-    .mob-cap.show{display:block; bottom:calc(168px + env(safe-area-inset-bottom));}
+    #toasts{bottom:calc(var(--mob-dock-h) + 12px + env(safe-area-inset-bottom));}
+    .mob-cap.show{bottom:calc(var(--mob-dock-h) + 12px + env(safe-area-inset-bottom));}
     .mob-ctrl.show{
       flex-direction:row; align-items:center;
-      bottom:calc(72px + env(safe-area-inset-bottom));
+      bottom:calc(var(--mob-dock-h) + 12px + env(safe-area-inset-bottom));
       z-index:20;
     }
-    body.dock-expanded .mob-ctrl.show,
-    body:not(.dock-collapsed) .mob-ctrl.show{
-      bottom:calc(152px + env(safe-area-inset-bottom));
-    }
-    body.dock-expanded .mob-cap.show,
-    body:not(.dock-collapsed) .mob-cap.show{
-      bottom:calc(168px + env(safe-area-inset-bottom));
-    }
-    body.bar-collapsed .mob-cap.show{bottom:calc(72px + env(safe-area-inset-bottom));}
-    .bar-peek{display:none;}
-    body.dock-expanded .bar-peek{display:none;}
-    .dock-peek.bottom{display:none!important;}
-    body.dock-collapsed .dock{
-      transform:translateX(-50%) translateY(calc(100% - 54px));
-      pointer-events:auto;
-      width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
-      max-width:calc(100vw - 56px - env(safe-area-inset-left) - env(safe-area-inset-right));
-    }
-    body.dock-collapsed .dock .bar{display:none;}
-    body.dock-collapsed .tools{
+    .dock-hide,.bar-peek,.dock-peek{display:none!important;}
+    body.dock-collapsed .tools,
+    body.dock-collapsed .dock-hide{display:none!important;}
+    body.dock-collapsed .dock,
+    body.bar-collapsed .dock .bar{
       transform:none; opacity:1; pointer-events:auto;
-      position:static; flex-direction:row; max-width:96vw;
-      overflow-x:auto; padding:6px 8px; border-radius:14px 14px 0 0;
-      width:max-content; min-width:0;
     }
-    body.dock-collapsed .dock .tools,
-    body.dock-collapsed .dock .bar{pointer-events:auto;}
-    body.dock-collapsed .dock-peek.bottom{pointer-events:none; display:none!important;}
-    body.dock-collapsed .bar-peek{
-      display:block;
-      right:calc(10px + env(safe-area-inset-right));
-      bottom:calc(10px + env(safe-area-inset-bottom));
-      z-index:12;
-    }
-    body.bar-collapsed .dock .bar{display:none;}
-    body.dock-collapsed.bar-collapsed .dock .bar{display:none;}
-    body.no-money .tools .adv{display:flex!important;}
-    body.no-money .tools .gap.adv{display:block!important;}
-    .bar .spd{display:none;}
+    body.dock-collapsed .dock .bar{display:flex;}
+    .tools .adv,.tools .gap,.tools #bMode,.tools #bBigCity,.tools #bEvents,
+    .bar .spd,.bar .bar-save-sep,.bar .sep,
+    #bRotL,#bRotR,#bSave,#bLoad,#bFs{display:none!important;}
+    body.no-money .tools .adv,
+    body.no-money .tools .gap.adv{display:none!important;}
     .dock{
-      display:flex; flex-direction:column; align-items:center; gap:8px;
-      position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom));
-      transform:translateX(-50%); width:max-content; max-width:96vw; z-index:6;
+      display:flex; flex-direction:column; align-items:stretch; gap:0;
+      position:fixed; left:0; right:0; bottom:0;
+      transform:none; width:100%; max-width:100%; z-index:25;
       pointer-events:none;
-      transition:transform .32s cubic-bezier(.4,0,.2,1);
+      padding-bottom:env(safe-area-inset-bottom);
+      background:var(--panel);
+      border-top:1px solid #ffffff18;
+      box-shadow:0 -6px 28px #000a;
+      backdrop-filter:blur(12px);
     }
     .dock > *{pointer-events:auto;}
     .tools{
       position:static; top:auto; left:auto; bottom:auto;
-      transform:none; flex-direction:row; max-width:96vw; width:100%;
-      overflow-x:auto; overscroll-behavior:contain; padding:7px; gap:5px;
+      transform:none; flex-direction:row; width:100%; max-width:100%;
+      overflow-x:auto; overscroll-behavior:contain; padding:8px 10px 4px; gap:8px;
       flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
+      border:none; border-radius:0; box-shadow:none; background:transparent;
+      max-height:none;
     }
+    .tools button{
+      min-width:52px; width:52px; height:52px; padding:0; flex-shrink:0;
+      justify-content:center; border-radius:14px; touch-action:manipulation;
+    }
+    .tools button .ico{font-size:26px; width:auto; line-height:1;}
+    .tools button .lbl,.tools button small{display:none;}
+    .bar{
+      position:static; bottom:auto; left:auto; transform:none;
+      padding:4px 8px 10px; flex-shrink:0; width:100%; max-width:100%;
+      overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
+      -webkit-overflow-scrolling:touch; justify-content:center; gap:8px;
+      border:none; border-radius:0; box-shadow:none; background:transparent;
+    }
+    .bar button{
+      min-width:52px; width:52px; height:48px; padding:0; flex-shrink:0;
+      font-size:26px; line-height:1; border-radius:14px; touch-action:manipulation;
+    }
+    #bUndo{font-size:0;}
+    #bUndo::after{content:'↩'; font-size:24px;}
     .mob-actions{flex-direction:row;}
     .mob-stick{width:96px; height:96px;}
     .mob-actions button{min-width:72px; height:42px; font-size:12px;}
-    .tools button{min-width:0; padding:10px 12px; flex-shrink:0;}
-    .tools button .lbl{display:none;}
-    .tools .gap{width:1px; height:auto; align-self:stretch; border-top:none;
-      border-left:1px solid #ffffff18; margin:2px 3px; flex-shrink:0;}
-    .bar{position:static; bottom:auto; left:auto; transform:none; padding:7px 9px; flex-shrink:0;
-      max-width:96vw; overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
-      -webkit-overflow-scrolling:touch;}
-    .bar button{padding:9px 11px;}
     .palette{
-      left:50%; top:auto; bottom:calc(132px + env(safe-area-inset-bottom));
+      left:50%; top:auto; bottom:calc(var(--mob-dock-h) + 12px + env(safe-area-inset-bottom));
       transform:translateX(-50%); flex-direction:row; max-width:96vw; overflow-x:auto;
+    }
+    body.find-mode .find-panel.show{
+      top:auto;
+      bottom:calc(var(--mob-dock-h) + 12px + env(safe-area-inset-bottom));
+      left:calc(10px + env(safe-area-inset-left));
+      right:calc(10px + env(safe-area-inset-right));
+      width:auto; max-height:min(38vh, 260px);
+    }
+    body.interior-mode .interior-bar.show{
+      bottom:calc(var(--mob-dock-h) + 8px + env(safe-area-inset-bottom));
     }
   }
 </style>
@@ -2335,10 +2331,19 @@ function getWalker(id){ return walkers.find(w=>w.id===id); }
 function getTrackedWalker(){ return trackWalkerId!=null ? getWalker(trackWalkerId) : null; }
 function syncTrackBtn(){
   const w=getTrackedWalker();
-  $('bYou').disabled=false;
-  $('bYou').classList.toggle('on', !!w);
-  const short=w ? w.name.split(' ')[0] : '';
-  $('bYou').textContent=w ? '📍 '+short : '📍 Walkers';
+  const btn=$('bYou');
+  btn.disabled=false;
+  btn.classList.toggle('on', !!w);
+  if(mqCompact.matches){
+    btn.textContent='👥';
+    btn.title=w ? 'Tracking '+w.name : 'People & walkers';
+    btn.setAttribute('aria-label', w ? 'Tracking '+w.name : 'Open people panel');
+  } else {
+    const short=w ? w.name.split(' ')[0] : '';
+    btn.textContent=w ? '📍 '+short : '📍 Walkers';
+    btn.title='Find or track a walker';
+    btn.setAttribute('aria-label', 'Find or track a walker');
+  }
   syncPeopleChip();
 }
 function syncPeopleChip(){
@@ -4355,9 +4360,18 @@ $('youList').addEventListener('click', e=>{
   else if(btn.dataset.act==='remove') removeWalker(id);
 });
 const bPause=$('bPause');
+function syncPauseBtn(){
+  if(mqCompact.matches){
+    bPause.textContent=paused?'▶':'⏸';
+    bPause.setAttribute('aria-label', paused?'Resume game':'Pause game');
+  } else {
+    bPause.textContent=paused?'▶ Resume':'⏸ Pause';
+    bPause.removeAttribute('aria-label');
+  }
+}
 function setPause(v){
   paused=v;
-  bPause.textContent=paused?'▶ Resume':'⏸ Pause';
+  syncPauseBtn();
   bPause.classList.toggle('on',paused);
 }
 bPause.onclick=()=>setPause(!paused);
@@ -4469,6 +4483,7 @@ function syncDockPeekBtns(collapsed){
 }
 function setDockCollapsed(v){
   if(!document.body) return;
+  if(mqCompact.matches) v=false;
   dockCollapsed=!!v;
   document.body.classList.toggle('dock-collapsed', dockCollapsed);
   document.body.classList.toggle('dock-expanded', !dockCollapsed);
@@ -4477,6 +4492,7 @@ function setDockCollapsed(v){
 }
 function setBarCollapsed(v){
   if(!document.body) return;
+  if(mqCompact.matches) v=false;
   document.body.classList.toggle('bar-collapsed', v);
   if(barPeek){
     barPeek.classList.toggle('on', !v);
@@ -4484,13 +4500,12 @@ function setBarCollapsed(v){
   }
 }
 function toggleDockCollapsed(){
+  if(mqCompact.matches) return;
   setDockCollapsed(!dockCollapsed);
 }
-if(mqCompact.matches) setDockCollapsed(true);
 if(document.body) document.body.classList.toggle('dock-expanded', !dockCollapsed);
 $('dockHide')?.addEventListener('click', toggleDockCollapsed);
 dockPeek?.addEventListener('click', ()=> setDockCollapsed(false));
-if(mqCompact.matches) setBarCollapsed(true);
 barPeek?.addEventListener('click', ()=>{
   if(document.body?.classList.contains('dock-collapsed') && mqCompact.matches){
     setDockCollapsed(false);
@@ -4499,9 +4514,13 @@ barPeek?.addEventListener('click', ()=>{
   }
   if(document.body) setBarCollapsed(!document.body.classList.contains('bar-collapsed'));
 });
-mqCompact.addEventListener('change', e=>{
-  if(e.matches){ setDockCollapsed(true); setBarCollapsed(true); }
-  else{ setDockCollapsed(false); setBarCollapsed(false); }
+mqCompact.addEventListener('change', ()=>{
+  if(mqCompact.matches){
+    setDockCollapsed(false);
+    setBarCollapsed(false);
+  }
+  syncPauseBtn();
+  syncTrackBtn();
   updateMobUI();
 });
 $('findMin')?.addEventListener('click', ()=> setTool('inspect'));
