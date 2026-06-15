@@ -1,7 +1,7 @@
 {
-  "name": "Aster Bay",
-  "short_name": "Aster Bay",
-  "description": "A cozy isometric city builder",
+  "name": "Calm Safe City",
+  "short_name": "Calm City",
+  "description": "A calm, kid-safe isometric city builder",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

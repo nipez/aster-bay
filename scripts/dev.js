@@ -14,8 +14,15 @@ const types = {
 };
 
 http.createServer((req, res) => {
-  const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
-  let file = path.join(root, urlPath === '/' ? 'index.html' : urlPath.replace(/^\//, ''));
+  let urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  let rel;
+  if (urlPath === '/' || urlPath === '') rel = 'index.html';
+  else {
+    rel = urlPath.replace(/^\//, '');
+    if (rel.endsWith('/')) rel += 'index.html';
+    else if (!path.extname(rel)) rel = path.join(rel, 'index.html');
+  }
+  let file = path.join(root, rel);
   if (!file.startsWith(root)) {
     res.writeHead(403);
     return res.end('Forbidden');
@@ -29,6 +36,7 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(port, '127.0.0.1', () => {
-  console.log(`Aster Bay → http://127.0.0.1:${port}/`);
-  console.log(`Creative sandbox → http://127.0.0.1:${port}/?mode=creative`);
+  console.log(`Calm Safe City marketing → http://127.0.0.1:${port}/`);
+  console.log(`Play the game          → http://127.0.0.1:${port}/play/`);
+  console.log(`Creative sandbox       → http://127.0.0.1:${port}/play/?mode=creative`);
 });

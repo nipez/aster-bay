@@ -2,17 +2,17 @@
 
 ## What this project is
 
-Aster Bay: a browser city-builder. Currently a single self-contained file (`index.html`) with zero dependencies. The long-term plan is a hosted web game: GitHub for source, Railway for the backend, Supabase for auth/saves/leaderboards. Owner: Nick (fast-moving, ship-oriented; prefers working increments over big rewrites).
+Aster Bay (public name: **Calm Safe City**, calmsafecity.com): a browser city-builder. The game lives in `play/index.html` as a single self-contained file with zero dependencies. Marketing landing page at root `index.html`. Long-term plan: GitHub for source, Railway for the backend, Supabase for auth/saves/leaderboards.
 
 ## Hard rules
 
 - `node tests/run.js` must pass before any change is considered done. Extend the suite when you add systems.
-- Until Phase 2 (Vite split) is explicitly started, keep the game playable as a single `index.html` with no external scripts, fonts, or CDNs.
+- Until Phase 2 (Vite split) is explicitly started, keep the game playable as a single `play/index.html` with no external scripts, fonts, or CDNs.
 - Never break save compatibility silently. Current format is v4 (sparse `edits` over procedural terrain). If the schema changes, bump `v`, keep an import path for every previous version (v2/v3 dense grids convert on import), and update the README save-format section.
 - Do not use `localStorage` for primary persistence — saves are explicit JSON export/import today, Supabase later.
 - Keep it kid-safe (E rating): no violence beyond cartoon fires, no dark themes. The "Fires: off" calm mode must always fully disable random destructive events.
 
-## Map of index.html
+## Map of play/index.html
 
 Everything lives in one `<script>`. Sections are delimited by `// ---------- name ----------` comments, in this order:
 
@@ -33,7 +33,7 @@ Everything lives in one `<script>`. Sections are delimited by `// ---------- nam
 
 ## Testing pattern
 
-`tests/run.js` extracts the `<script>` from `index.html`, stubs `window/document/canvas` with proxies, appends a `global.__h={...}` hook export, and drives `requestAnimationFrame` manually (33ms steps). To expose new internals to tests, add them to the hook list in `tests/run.js`, not to the game file.
+`tests/run.js` extracts the `<script>` from `play/index.html`, stubs `window/document/canvas` with proxies, appends a `global.__h={...}` hook export, and drives `requestAnimationFrame` manually (33ms steps). To expose new internals to tests, add them to the hook list in `tests/run.js`, not to the game file.
 
 ## Backlog (in priority order)
 

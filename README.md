@@ -1,8 +1,9 @@
-# Aster Bay 🏙️
+# Calm Safe City 🏙️
 
-A cozy isometric city-builder that runs entirely in the browser. One HTML file, vanilla JavaScript, zero dependencies, canvas-rendered. Build roads, zone housing and shops, place fire stations and schools, manage a daily budget, and watch named little citizens and cars live their lives through a full day/night cycle.
+A calm, kid-safe isometric city-builder that runs entirely in the browser. One HTML file for the game (`play/index.html`), vanilla JavaScript, zero dependencies, canvas-rendered. Build roads, zone housing and shops, stack Minecraft-style blocks, add named walkers, and watch a cozy town live through a full day/night cycle.
 
-**Play it:** open `index.html` in any modern browser. That's the whole game.
+**Marketing site:** [calmsafecity.com](https://calmsafecity.com) (root `index.html`)  
+**Play the game:** `/play/` — or open `play/index.html` locally.
 
 ## Features (v0.5)
 
@@ -33,7 +34,9 @@ A cozy isometric city-builder that runs entirely in the browser. One HTML file, 
 ## Repo layout
 
 ```
-index.html                  the entire game (see CLAUDE.md for an internal map)
+index.html                  marketing landing page (calmsafecity.com)
+play/index.html             the entire game (see CLAUDE.md for an internal map)
+CNAME                       custom domain hint for GitHub Pages
 demo/aster-bay-ambient.html v1 ambient sim (no gameplay) — kept as a reference/demo
 supabase/schema.sql         cloud saves + leaderboard schema, ready to run
 tests/run.js                headless regression suite (node tests/run.js)
@@ -78,3 +81,13 @@ The world is procedural terrain everywhere; only changes are saved.
 v2/v3 dense-grid saves are converted to sparse edits on import.
 
 This blob is the unit of persistence everywhere — file export today, Supabase `jsonb` column tomorrow.
+
+## Custom domain (GitHub Pages)
+
+1. Repo **Settings → Pages → Custom domain** → `calmsafecity.com` → enforce HTTPS.
+2. DNS at your registrar:
+   - **Apex** `calmsafecity.com` → GitHub Pages A records (`185.199.108.153`, `.109.153`, `.110.153`, `.111.153`)
+   - **www** → CNAME to `<user>.github.io`
+3. The repo root `CNAME` file is set to `calmsafecity.com`.
+
+Deploys on every push to `main` via `.github/workflows/static-pages.yml` (static site — marketing at `/`, game at `/play/`).

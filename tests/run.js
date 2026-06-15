@@ -48,7 +48,7 @@ let rafCb = null;
 global.requestAnimationFrame = cb => { rafCb = cb; };
 
 // ---------- load game script with test hooks ----------
-const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'play', 'index.html'), 'utf8');
 const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildings,bldMap,tkey,
   INTERS,peds,cars,stats,recompute,exportCity,importCity,getDay:()=>day,
