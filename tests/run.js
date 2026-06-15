@@ -383,6 +383,51 @@ A(tower.colors.length === 1, 'dozer pops one block at a time');
 H.tryPlace(bspot[0], bspot[1]);
 A(!H.blockMap.has(H.tkey(bspot[0], bspot[1])), 'empty tower removed');
 
+// ---------- water tool ----------
+console.log('\nwater tool');
+H.setMode('creative');
+H.setTool('water');
+let wspot = null;
+outerW: for (let x = -12; x < 32; x++) for (let y = -12; y < 32; y++) {
+  const t = H.tileAt(x, y);
+  if (t === 'water' || t === 'road' || t === 'walk' || t === 'bridge') continue;
+  if (H.canPlace('water', x, y)) { wspot = [x, y]; break outerW; }
+}
+A(!!wspot, 'found open spot for a pond');
+H.tryPlace(wspot[0], wspot[1]);
+A(H.tileAt(wspot[0], wspot[1]) === 'water', 'pond tile placed');
+let bridgeFromPond = null;
+outerWB: for (let x = 1; x < 31; x++) for (let y = 1; y < 31; y++) {
+  const rt = H.tileAt(x, y);
+  if (rt !== 'road' && rt !== 'bridge' && rt !== 'xing') continue;
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const nx = x + dx, ny = y + dy;
+    if (H.tileAt(nx, ny) === 'water') continue;
+    if (!H.canPlace('water', nx, ny)) continue;
+    H.setTool('water');
+    H.tryPlace(nx, ny);
+    if (H.canPlace('road', nx, ny)) { bridgeFromPond = [nx, ny]; break outerWB; }
+  }
+  if (bridgeFromPond) break;
+}
+A(!!bridgeFromPond, 'road can bridge player-placed water');
+H.setTool('road');
+H.tryPlace(bridgeFromPond[0], bridgeFromPond[1]);
+A(H.tileAt(bridgeFromPond[0], bridgeFromPond[1]) === 'bridge', 'pond can become a bridge');
+let wspot2 = null;
+outerW2: for (let x = 8; x < 24; x++) for (let y = 8; y < 24; y++) {
+  if (x === wspot[0] && y === wspot[1]) continue;
+  if (H.canPlace('water', x, y) && H.tileAt(x, y) !== 'water') { wspot2 = [x, y]; break outerW2; }
+}
+if (wspot2) {
+  H.setTool('water');
+  H.tryPlace(wspot2[0], wspot2[1]);
+  H.setTool('dozer');
+  A(H.canPlace('dozer', wspot2[0], wspot2[1]), 'dozer can fill a pond');
+  H.tryPlace(wspot2[0], wspot2[1]);
+  A(H.tileAt(wspot2[0], wspot2[1]) !== 'water', 'pond filled in by bulldoze');
+}
+
 // mayor mode charges for blocks
 H.setMode('mayor');
 H.setTool('block');

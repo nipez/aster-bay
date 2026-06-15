@@ -698,6 +698,7 @@
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>happier residents</small></span></button>
   <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>edge or road link</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>grass &amp; benches</small></span></button>
+  <button class="tool" data-t="water"><span class="ico">💧</span><span class="lbl">Water<small>ponds &amp; lakes</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>plant anywhere</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>tap to stack</small></span></button>
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>clear one thing</small></span></button>
@@ -2477,7 +2478,7 @@ function exportWalkers(data){
 
 // ---------- economy & demand ----------
 let cash=25000, day=1;
-const COST={road:120,bridge:360,house:500,shop:900,park:200,tree:40,dozer:50,fire:1200,school:800,block:25,expand:4500};
+const COST={road:120,bridge:360,house:500,shop:900,park:200,water:100,tree:40,dozer:50,fire:1200,school:800,block:25,expand:4500};
 function tryExpand(dgx,dgy){
   const k=`${dgx},${dgy}`;
   if(districts.has(k)) return false;
@@ -2646,10 +2647,13 @@ function canPlace(t,x,y){
     case 'fire':
     case 'school': return emptyGroundType(ty) && tileFree(x,y) && nearWalkOrRoad(x,y);
     case 'park':  return (ty==='lot'||((ty==='grass'||ty==='forest')&&!parkSet.has(k))) && tileFree(x,y);
+    case 'water': return tileFree(x,y) && !isRoadT(ty) && ty!=='walk' && ty!=='xing' && ty!=='bridge'
+                         && (emptyGroundType(ty) || ty==='water');
     case 'tree':  return emptyGroundType(ty) && tileFree(x,y);
     case 'block': return blockMap.has(k) ? blockMap.get(k).colors.length<MAX_STACK
                          : (emptyGroundType(ty) && tileFree(x,y));
     case 'dozer': return blockMap.has(k) || bldMap.has(k) || treeMap.has(k)
+                         || isWaterTile(x,y)
                          || (ty==='grass'&&edits.has(k)) || hasProcTree(x,y) || scorch.has(k);
     case 'expand': return !!nearestExpansion(x,y);
     default: return false;
@@ -3042,6 +3046,8 @@ function tryPlace(x,y){
         : 'Can\u2019t pave here — need open ground or water next to a road','err');
     }
     else if(tool==='house'||tool==='shop'||tool==='fire'||tool==='school') toast('Needs an empty lot next to a sidewalk or road','err');
+    else if(tool==='park') toast('Tap open ground for a park','err');
+    else if(tool==='water') toast('Tap grass or meadow — not roads or sidewalks','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
     else if(tool==='expand') toast('Pave roads to a glowing zone first, then tap it','err');
@@ -3121,6 +3127,18 @@ function tryPlace(x,y){
       done=true;
       break;
     }
+    case 'water': {
+      if(!spend(COST.water)) return;
+      const k=tkey(x,y);
+      if(snap) snapTile(snap,k);
+      if(parkSet.has(k)){ parkSet.delete(k); if(snap) snap.parks.push({k,added:false}); }
+      if(hasProcTree(x,y)&&snap) snap.removedTree={k,had:removedTrees.has(k)};
+      removeTreeAt(x,y); removedTrees.add(k);
+      setTile(x,y,'water');
+      buildOk('Pond added');
+      done=true;
+      break;
+    }
     case 'tree': {
       if(!spend(COST.tree)) return;
       const t={x:x+rand(.3,.7),y:y+rand(.3,.7),s:rand(.7,1.2)};
@@ -3172,6 +3190,14 @@ function tryPlace(x,y){
         if(inCore(x,y)) setTile(x,y,'lot'); else clearTile(x,y);
         parkSet.delete(k);
         buildOk('Park cleared');
+        done=true;
+      }
+      else if(isWaterTile(x,y)){
+        if(snap) snapTile(snap,k);
+        parkSet.delete(k);
+        if(inCore(x,y)) setTile(x,y,'lot');
+        else setTile(x,y,'grass');
+        buildOk('Pond filled in');
         done=true;
       }
       else if(hasProcTree(x,y)){
@@ -4383,7 +4409,7 @@ document.querySelectorAll('.spd').forEach(b=>{
     if(paused) setPause(false);
   };
 });
-let expandToolHinted=false, roadToolHinted=false, buildStickHinted=false;
+let expandToolHinted=false, roadToolHinted=false, waterToolHinted=false, buildStickHinted=false;
 function setTool(t){
   if(viewOnly && t!=='inspect'){ toast('View-only — looking at a shared city','err'); return; }
   tool=t;
@@ -4412,6 +4438,10 @@ function setTool(t){
     roadToolHinted=true;
     toast('Green tiles beside roads · water tiles become bridges','ok');
   }
+  if(t==='water'&&!waterToolHinted){
+    waterToolHinted=true;
+    toast('Tap grass or forest to dig a pond · bulldoze to fill it in','ok');
+  }
   updateMobUI();
 }
 document.querySelectorAll('.tool').forEach(b=>{ b.onclick=()=>setTool(b.dataset.t); });
@@ -4425,6 +4455,7 @@ const TOOL_HINTS={
   fire:'tap an empty lot by a sidewalk',
   school:'tap an empty lot by a sidewalk',
   park:'tap open ground for a park',
+  water:'tap open ground for a pond',
   tree:'tap open ground to plant',
   block:'tap to stack colored blocks',
   expand:'pave roads to a glowing zone, then tap it',
