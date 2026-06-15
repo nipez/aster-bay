@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Calm Safe City — a cozy browser city builder for kids and families. Build roads, stack blocks, add friends, and watch your town come alive. No downloads.">
+<meta name="description" content="Calm Safe City — a free browser city builder for kids and families. No chat, no strangers, no in-app purchases. Creative sandbox, gentle session timers, and saves on your device.">
 <meta name="theme-color" content="#0a0f24">
 <meta property="og:title" content="Calm Safe City">
-<meta property="og:description" content="A calm, kid-safe city builder. SimCity nostalgia meets Minecraft-style blocks — in your browser.">
+<meta property="og:description" content="The calm alternative to Roblox and Minecraft servers — build a cozy city in the browser with no chat, no Robux, and no strangers.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://calmsafecity.com/">
 <meta property="og:image" content="https://calmsafecity.com/assets/screenshots/city-overview.webp">
@@ -196,6 +196,25 @@
     display:grid;place-items:center;font-size:13px;font-weight:800;
   }
 
+  .not-list{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:720px;margin:0 auto;
+  }
+  .not-item{
+    display:flex;gap:10px;align-items:flex-start;padding:14px 14px;
+    background:#ffffff06;border:1px solid var(--line);border-radius:14px;
+    font-size:14px;color:var(--dim);line-height:1.4;
+  }
+  .not-item .x{
+    flex-shrink:0;width:22px;height:22px;border-radius:7px;
+    background:#ff6b5e22;color:#ff9a90;display:grid;place-items:center;font-weight:800;font-size:12px;
+  }
+  .not-item strong{color:var(--ink);display:block;margin-bottom:2px;}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+    background:#67d18a18;border:1px solid #67d18a44;color:#b8eaca;font-size:12px;font-weight:700;
+  }
+
   .cta-band{
     text-align:center;padding:72px 20px;
     background:linear-gradient(180deg,#141a2e,#0a0f24);
@@ -212,7 +231,7 @@
 
   @media (max-width:860px){
     .hero-grid,.calm-band{grid-template-columns:1fr;}
-    .features,.steps,.shots{grid-template-columns:1fr;}
+    .features,.steps,.shots,.not-list{grid-template-columns:1fr;}
     .nav-links{display:none;}
     .hero{padding-top:32px;}
     .shot-hero{max-width:100%;}
@@ -229,6 +248,7 @@
     </a>
     <div class="nav-links">
       <a href="#features">Features</a>
+      <a href="#parents">For parents</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#calm">Kid-safe</a>
       <a href="#how">How it works</a>
@@ -241,18 +261,24 @@
   <div class="hero-glow" aria-hidden="true"></div>
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow">Browser city builder</span>
+      <span class="eyebrow">Built for families · not another Roblox</span>
       <h1>Build a little city.<br><em>Calm. Safe. Yours.</em></h1>
       <p class="lead">
-        SimCity nostalgia meets Minecraft-style blocks — a cozy isometric town you can
-        build in the browser. Pave roads, stack colorful cubes, add friends by name,
-        and watch cars, walkers, and day-night life unfold. No install. No account required.
+        A cozy browser city builder with the creative joy of Minecraft-style blocks and the
+        peaceful pacing of a toy SimCity — without strangers, chat, loot boxes, or surprise charges.
+        Name family members as walkers, build at your pace, and close the tab when dusk hits.
       </p>
       <div class="hero-ctas">
-        <a class="btn btn-primary" href="play/">▶ Play now — free</a>
-        <a class="btn btn-ghost" href="play/?mode=creative">🎨 Creative sandbox</a>
+        <a class="btn btn-primary" href="play/?mode=creative&amp;calm=1">▶ Family-safe play</a>
+        <a class="btn btn-ghost" href="play/">Explore the city</a>
       </div>
-      <p class="hero-note">Works on phone, tablet, and desktop · Saves to your device</p>
+      <div class="pill-row" aria-label="Safety highlights">
+        <span class="pill">✓ No chat</span>
+        <span class="pill">✓ No account</span>
+        <span class="pill">✓ No in-app purchases</span>
+        <span class="pill">✓ Saves on device</span>
+      </div>
+      <p class="hero-note" style="margin-top:14px">Phone, tablet, and desktop · Parent settings built in</p>
     </div>
     <div class="shot shot-hero">
       <picture>
@@ -301,11 +327,38 @@
         <p>Full sky cycle with dawn, dusk, streetlights, and headlights. Your city feels alive around the clock.</p>
       </article>
       <article class="feat">
-        <div class="feat-icon">🏙️</div>
-        <h3>Big city mode</h3>
-        <p>Grow spread-out districts linked by long roads — a whole region to explore, not just one square block.</p>
+        <div class="feat-icon">🔒</div>
+        <h3>Parent settings</h3>
+        <p>Session timers, dusk “save &amp; rest” reminders, optional PIN, and a one-tap family-safe link — no buried Xbox menus.</p>
+      </article>
+      <article class="feat">
+        <div class="feat-icon">👀</div>
+        <h3>View-only sharing</h3>
+        <p>Grandparents can watch a shared city link — read-only, no building, no contact with strangers.</p>
       </article>
     </div>
+  </div>
+</section>
+
+<section id="parents" class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>What worried parents told us they want gone</h2>
+      <p>Roblox and Minecraft can be wonderful — but public servers, chat, and spending traps keep showing up in parent forums. Calm Safe City is deliberately smaller and safer.</p>
+    </div>
+    <div class="not-list">
+      <div class="not-item"><span class="x">✕</span><span><strong>Strangers &amp; grooming</strong>No live chat, no DMs, no public lobbies — walkers are names you type, not other players.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Surprise bills</strong>No Robux, Minecoins, loot boxes, or real-money store — creative mode is free.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Server roulette</strong>No joining random worlds where rules and moderation vary block to block.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Bullying &amp; griefing</strong>Your child’s city is theirs — nobody else can log in and smash it.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Endless “one more block”</strong>Day/night rhythm plus optional session limits and dusk save reminders.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Scary surprises</strong>Cartoon emergencies at most — fires can be turned off completely in calm mode.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Off-platform traps</strong>No pushes to Discord, Snapchat, or external chat apps.</span></div>
+      <div class="not-item"><span class="x">✕</span><span><strong>Mod malware</strong>Runs in the browser — nothing to download, no sketchy mod sites.</span></div>
+    </div>
+    <p style="text-align:center;margin-top:28px;color:var(--dim);max-width:36em;margin-inline:auto">
+      Open <a href="play/?mode=creative&amp;calm=1">Family-safe play</a> for creative mode, fires off, and a gentle 30-minute session timer. Tap <strong>Parent settings</strong> in the stats panel to adjust.
+    </p>
   </div>
 </section>
 
@@ -346,25 +399,25 @@
       <span class="eyebrow">Built for families</span>
       <h2>Calm by design</h2>
       <p class="lead" style="margin-bottom:20px">
-        Calm Safe City is E-rated at heart: cartoon fires at most, a calm mode that
-        turns off random events entirely, and creative sandbox for stress-free building.
+        E-rated at heart: optional cartoon fires, a calm mode that disables random events entirely,
+        creative sandbox for stress-free building, and parent controls you can actually find.
       </p>
       <ul class="calm-list">
       <li>
         <span class="check">✓</span>
-        <span><strong>No violence</strong>Cartoon-style emergencies only — and you can disable random fires completely.</span>
+        <span><strong>No strangers</strong>Single-player city on your device — not a social network dressed as a game.</span>
       </li>
       <li>
         <span class="check">✓</span>
-        <span><strong>Creative mode</strong>Everything free, undo-friendly building, pure sandbox play.</span>
+        <span><strong>No wallet</strong>Free creative building — no loot boxes, no “rare” skins, no pressure to spend.</span>
       </li>
       <li>
         <span class="check">✓</span>
-        <span><strong>Privacy-first today</strong>Saves stay on your device as JSON — no account required to play.</span>
+        <span><strong>Healthy stops</strong>Session timer, dusk “save &amp; rest,” pause anytime — built for bedtime battles.</span>
       </li>
       <li>
         <span class="check">✓</span>
-        <span><strong>Touch-friendly</strong>Tap to build, drag to pan, pinch to zoom — made for phones and tablets.</span>
+        <span><strong>Privacy-first</strong>Saves export to your device as JSON — no account required to play today.</span>
       </li>
     </ul>
     </div>
@@ -400,16 +453,16 @@
       <article class="step">
         <div class="step-num">3</div>
         <h3>Make it yours</h3>
-        <p>Add named walkers, save your city, and come back tomorrow.</p>
+        <p>Add named walkers, use Parent settings for calm defaults, save your city, and share a view-only link with family.</p>
       </article>
     </div>
   </div>
 </section>
 
 <div class="cta-band">
-  <h2>Your calm city is waiting</h2>
-  <p>Free to play. Save files export to your device. Cloud saves and leaderboards are on the roadmap.</p>
-  <a class="btn btn-primary" href="play/">▶ Start building</a>
+  <h2>A calm city is waiting — without the chaos</h2>
+  <p>Free in your browser. No chat. No Robux. Optional session limits and a family-safe link parents can bookmark.</p>
+  <a class="btn btn-primary" href="play/?mode=creative&amp;calm=1">▶ Start family-safe play</a>
 </div>
 
 <footer>

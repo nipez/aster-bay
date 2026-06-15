@@ -430,6 +430,86 @@
   .find-item.found .find-hint-btn{display:none;}
   body.find-mode canvas{cursor:crosshair;}
 
+  .hud-foot{margin-top:10px;padding-top:10px;border-top:1px solid #ffffff14;}
+  .parent-open{
+    appearance:none;border:1px solid #ffffff22;cursor:pointer;width:100%;
+    background:#ffffff08;color:var(--dim);border-radius:10px;padding:8px 10px;
+    font:700 11px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;text-align:left;
+  }
+  .parent-open:active{transform:scale(.98);}
+  .parent-panel{
+    display:none;position:fixed;z-index:30;inset:0;background:#0a0f24bb;
+    backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;
+  }
+  .parent-panel.show{display:flex;}
+  .parent-card{
+    width:min(92vw,360px);max-height:min(88vh,560px);overflow-y:auto;
+    background:var(--panel);border:1px solid #ffffff18;border-radius:16px;
+    padding:16px 16px 14px;box-shadow:0 16px 48px #000c;
+  }
+  .parent-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .parent-head h2{flex:1;font-size:14px;letter-spacing:1.5px;color:var(--accent);margin:0;}
+  .parent-close{
+    appearance:none;border:none;cursor:pointer;background:#ffffff14;color:var(--dim);
+    border-radius:8px;width:28px;height:28px;font-size:12px;
+  }
+  .parent-row{margin-bottom:12px;}
+  .parent-row label{display:block;font-size:10px;font-weight:800;letter-spacing:1px;
+    text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+  .parent-row select,.parent-row input[type="password"],.parent-row input[type="text"]{
+    width:100%;appearance:none;border:1px solid #ffffff22;background:#ffffff08;color:var(--ink);
+    border-radius:10px;padding:8px 10px;font:600 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .parent-toggles{display:grid;gap:8px;}
+  .parent-toggle{
+    display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);cursor:pointer;
+  }
+  .parent-toggle input{width:16px;height:16px;accent-color:var(--accent);}
+  .parent-actions{display:grid;gap:8px;margin-top:14px;}
+  .parent-actions button{
+    appearance:none;border:1px solid #ffffff22;cursor:pointer;background:#ffffff10;color:var(--ink);
+    border-radius:11px;padding:10px 12px;font:800 12px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .parent-actions button.primary{background:var(--accent);color:#23201a;border-color:transparent;}
+  .parent-actions button:active{transform:scale(.98);}
+  .parent-note{font-size:11px;color:var(--dim);line-height:1.45;margin-top:10px;}
+  .parent-pin-gate{display:grid;gap:8px;margin-bottom:12px;}
+  .view-banner{
+    display:none;position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+    z-index:12;pointer-events:auto;background:#15182af0;color:var(--ink);border:1px solid #ffffff22;
+    border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:700;box-shadow:0 6px 20px #0009;
+    max-width:min(92vw,420px);text-align:center;
+  }
+  body.view-only .view-banner{display:block;}
+  .view-banner a{color:var(--accent);font-weight:800;margin-left:6px;}
+  .rest-chip{
+    display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:11;pointer-events:auto;
+    bottom:calc(var(--mob-dock-h, 74px) + 14px + env(safe-area-inset-bottom));
+    appearance:none;border:none;cursor:pointer;background:var(--accent);color:#23201a;
+    border-radius:999px;padding:10px 18px;font:800 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+    box-shadow:0 8px 24px #ffce6b44;
+  }
+  .rest-chip.show{display:block;}
+  .rest-overlay{
+    display:none;position:fixed;inset:0;z-index:40;background:#0a0f24d9;
+    backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;
+  }
+  .rest-overlay.show{display:flex;}
+  .rest-card{
+    width:min(92vw,340px);background:var(--panel);border:1px solid #ffffff18;border-radius:18px;
+    padding:22px 18px;text-align:center;box-shadow:0 16px 48px #000c;
+  }
+  .rest-card h2{font-size:20px;margin-bottom:8px;}
+  .rest-card p{color:var(--dim);font-size:14px;margin-bottom:16px;line-height:1.45;}
+  .rest-card button{
+    appearance:none;border:none;cursor:pointer;border-radius:12px;padding:11px 16px;margin:4px;
+    font:800 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
+  }
+  .rest-card .primary{background:var(--accent);color:#23201a;}
+  .rest-card .ghost{background:#ffffff12;color:var(--ink);border:1px solid #ffffff22;}
+  body.view-only .dock{display:none!important;}
+  body.view-only .people{display:none!important;}
+  body.creative-lock #bMode{display:none!important;}
   body.no-mob-stick .mob-ctrl,
   body.no-mob-stick .mob-cap{display:none!important;}
   body.no-money #bMode,
@@ -577,6 +657,9 @@
       <div class="brow" id="dC"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
       <div class="brow" id="dG"><span class="bl">G</span><div class="btrack"><div class="bfill" style="width:40%"></div></div></div>
     </div>
+    <div class="hud-foot">
+      <button type="button" class="parent-open" id="parentOpen">🔒 Parent settings</button>
+    </div>
   </div>
 </div>
 
@@ -673,6 +756,61 @@
 </div>
 <button type="button" id="barPeek" class="bar-peek" aria-label="Show pause and zoom controls">⏸</button>
 <button type="button" id="dockPeek" class="dock-peek side" aria-label="Show build tools">🛠</button>
+<div id="viewBanner" class="view-banner" aria-live="polite">
+  👀 View-only city —
+  <a href="?mode=creative&amp;calm=1">Play your own</a>
+</div>
+<button type="button" id="restChip" class="rest-chip" hidden>🌆 Save &amp; rest</button>
+<div id="restOverlay" class="rest-overlay" aria-hidden="true">
+  <div class="rest-card">
+    <h2>Time to rest 🌙</h2>
+    <p id="restMsg">Your city is saved on this device. See you next time!</p>
+    <div>
+      <button type="button" class="primary" id="restSave">💾 Save again</button>
+      <button type="button" class="ghost" id="restDone">OK, goodbye</button>
+    </div>
+  </div>
+</div>
+<div id="parentPanel" class="parent-panel" aria-hidden="true">
+  <div class="parent-card">
+    <div class="parent-head">
+      <h2>PARENT SETTINGS</h2>
+      <button type="button" class="parent-close" id="parentClose" aria-label="Close">✕</button>
+    </div>
+    <div id="parentPinGate" class="parent-pin-gate" hidden>
+      <label for="parentPinIn">Enter PIN</label>
+      <input id="parentPinIn" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+      <button type="button" class="parent-open" id="parentPinGo">Unlock</button>
+    </div>
+    <div id="parentBody">
+      <div class="parent-row">
+        <label for="parentSession">Session limit</label>
+        <select id="parentSession">
+          <option value="0">Off</option>
+          <option value="15">15 minutes</option>
+          <option value="30" selected>30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">60 minutes</option>
+        </select>
+      </div>
+      <div class="parent-toggles">
+        <label class="parent-toggle"><input type="checkbox" id="parentDusk" checked> Dusk “Save &amp; rest” reminder</label>
+        <label class="parent-toggle"><input type="checkbox" id="parentCreative"> Lock to creative mode</label>
+        <label class="parent-toggle"><input type="checkbox" id="parentFiresOff" checked> Start with fires off</label>
+      </div>
+      <div class="parent-row" style="margin-top:12px">
+        <label for="parentPinSet">Optional 4-digit PIN</label>
+        <input id="parentPinSet" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Leave blank for no PIN">
+      </div>
+      <div class="parent-actions">
+        <button type="button" class="primary" id="parentSave">Save settings</button>
+        <button type="button" id="parentShare">Copy view-only link</button>
+        <button type="button" id="parentCalmLink">Copy family-safe link</button>
+      </div>
+      <p class="parent-note">Family-safe link opens creative mode with fires off and a gentle session timer. View-only links let grandparents watch — no building, no chat, no strangers.</p>
+    </div>
+  </div>
+</div>
 <div id="findPanel" class="find-panel" aria-hidden="true">
   <div class="find-head">
     <span>🔍 Find game</span>
@@ -728,6 +866,205 @@ if(document.body){
   if(!UX.money) document.body.classList.add('no-money');
   if(!UX.interior) document.body.classList.add('no-interior');
 }
+
+// ---------- parent / calm / share ----------
+const PARENT_STORE='csc-parent-v1';
+const SHARE_MAX_URL=12000;
+const DEFAULT_PARENT={pin:'', sessionMins:30, sessionWarnMins:5, duskRest:true, creativeLock:false, firesOffDefault:true};
+let parentSettings={...DEFAULT_PARENT};
+let sessionStart=performance.now();
+let sessionWarned=false;
+let sessionEnded=false;
+let duskRestPromptedDay=0;
+let viewOnly=false;
+let parentUnlocked=!DEFAULT_PARENT.pin;
+
+function loadParentSettings(){
+  try{
+    const raw=localStorage.getItem(PARENT_STORE);
+    if(raw) parentSettings={...DEFAULT_PARENT, ...JSON.parse(raw)};
+  }catch{}
+  parentUnlocked=!parentSettings.pin;
+}
+function saveParentSettings(){
+  try{ localStorage.setItem(PARENT_STORE, JSON.stringify(parentSettings)); }catch{}
+}
+function syncParentForm(){
+  const s=$('parentSession'), d=$('parentDusk'), c=$('parentCreative'), f=$('parentFiresOff'), p=$('parentPinSet');
+  if(s) s.value=String(parentSettings.sessionMins|0);
+  if(d) d.checked=!!parentSettings.duskRest;
+  if(c) c.checked=!!parentSettings.creativeLock;
+  if(f) f.checked=!!parentSettings.firesOffDefault;
+  if(p) p.value='';
+  if(document.body) document.body.classList.toggle('creative-lock', !!parentSettings.creativeLock);
+}
+function readParentForm(){
+  parentSettings.sessionMins=+$('parentSession')?.value||0;
+  parentSettings.duskRest=!!$('parentDusk')?.checked;
+  parentSettings.creativeLock=!!$('parentCreative')?.checked;
+  parentSettings.firesOffDefault=!!$('parentFiresOff')?.checked;
+  const pin=$('parentPinSet')?.value?.trim()||'';
+  if(pin){
+    if(!/^\d{4}$/.test(pin)){ toast('PIN must be 4 digits','err'); return false; }
+    parentSettings.pin=pin;
+    parentUnlocked=true;
+  }
+  saveParentSettings();
+  syncParentForm();
+  sessionStart=performance.now();
+  sessionWarned=false;
+  sessionEnded=false;
+  if(parentSettings.creativeLock) setMode('creative');
+  if(parentSettings.firesOffDefault) setEvents(false);
+  toast('Parent settings saved','ok');
+  return true;
+}
+function parentNeedsPin(){ return !!parentSettings.pin && !parentUnlocked; }
+function showParentPanel(open){
+  const panel=$('parentPanel'), gate=$('parentPinGate'), body=$('parentBody');
+  if(!panel) return;
+  panel.classList.toggle('show', open);
+  panel.setAttribute('aria-hidden', open?'false':'true');
+  if(!open) return;
+  syncParentForm();
+  const locked=parentNeedsPin();
+  if(gate) gate.hidden=!locked;
+  if(body) body.hidden=locked;
+  if(locked) setTimeout(()=> $('parentPinIn')?.focus(), 0);
+}
+function tryParentPin(){
+  const v=$('parentPinIn')?.value?.trim()||'';
+  if(v===parentSettings.pin){
+    parentUnlocked=true;
+    $('parentPinIn').value='';
+    showParentPanel(true);
+    toast('Unlocked','ok');
+  } else toast('Wrong PIN','err');
+}
+function applyCalmProfile(){
+  setMode('creative');
+  setEvents(false);
+  if(document.body) document.body.classList.add('calm-boot');
+  if(!parentSettings.sessionMins) parentSettings.sessionMins=30;
+  sessionStart=performance.now();
+  sessionWarned=false;
+  sessionEnded=false;
+}
+function setViewOnly(v){
+  viewOnly=!!v;
+  if(document.body) document.body.classList.toggle('view-only', viewOnly);
+  if(viewOnly){
+    setTool('inspect');
+    setPause(true);
+    toast('View-only — shared city, no building','ok');
+  } else {
+    setPause(false);
+  }
+}
+function isViewOnly(){ return viewOnly; }
+function buildExportData(){
+  const data={v:4, mode, citySize, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
+    districts:[...districts],
+    edits:[...edits], removedTrees:[...removedTrees],
+    parks:[...parkSet], scorch:[...scorch],
+    blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
+    buildings:buildings.map(b=>{const o={...b}; o.fire=null; return o;}),
+    trees:trees.map(t=>({x:t.x,y:t.y,s:t.s})),
+    findFound:[...findFound]};
+  exportWalkers(data);
+  return data;
+}
+function encodeShare(data){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data))))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function decodeShare(s){
+  const b64=s.replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(decodeURIComponent(escape(atob(b64))));
+}
+function shareViewUrl(data){
+  const enc=encodeShare(data);
+  const base=location.pathname+location.search.replace(/([?&])view=1&?/,'$1').replace(/[?&]$/,'');
+  const q=base.includes('?')?'&view=1':'?view=1';
+  return location.origin+base+q+'#city='+enc;
+}
+function copyText(text){
+  if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch{}
+  ta.remove();
+  return Promise.resolve();
+}
+function copyViewLink(){
+  if(viewOnly){ toast('Already viewing a shared city','err'); return; }
+  const url=shareViewUrl(buildExportData());
+  if(url.length>SHARE_MAX_URL){ toast('City too big for a link — use Save file instead','err'); return; }
+  copyText(url).then(()=> toast('View-only link copied','ok'));
+}
+function copyCalmLink(){
+  let path=location.pathname;
+  if(!path.includes('/play')) path=path.replace(/\/?$/,'/')+'play/';
+  else if(!path.endsWith('/')) path=path.replace(/\/[^/]*$/,'/')||path+'/';
+  const link=location.origin+path+'?mode=creative&calm=1';
+  copyText(link).then(()=> toast('Family-safe link copied','ok'));
+}
+function loadShareFromHash(){
+  const hash=location.hash||'';
+  const m=hash.match(/^#city=([^&]+)/);
+  if(!m) return false;
+  try{
+    importCity(decodeShare(m[1]));
+    setViewOnly(true);
+    return true;
+  }catch{
+    toast('Could not open shared city link','err');
+    return false;
+  }
+}
+function showRestOverlay(msg){
+  const o=$('restOverlay'), chip=$('restChip');
+  if(chip){ chip.classList.remove('show'); chip.hidden=true; }
+  if(o){
+    if(msg) $('restMsg').textContent=msg;
+    o.classList.add('show');
+    o.setAttribute('aria-hidden','false');
+  }
+  setPause(true);
+}
+function saveAndRest(reason){
+  if(viewOnly) return;
+  exportCity();
+  showRestOverlay(reason||'Your city is saved on this device. See you next time!');
+}
+function tickSessionTimer(){
+  if(viewOnly || sessionEnded) return;
+  const limit=parentSettings.sessionMins|0;
+  if(!limit) return;
+  const elapsed=(performance.now()-sessionStart)/60000;
+  const warnAt=Math.max(0, limit-(parentSettings.sessionWarnMins|0));
+  if(!sessionWarned && elapsed>=warnAt){
+    sessionWarned=true;
+    toast('🌅 About '+parentSettings.sessionWarnMins+' min left — good time to save & rest','ok');
+    const chip=$('restChip');
+    if(chip && parentSettings.duskRest){ chip.hidden=false; chip.classList.add('show'); }
+  }
+  if(elapsed>=limit){
+    sessionEnded=true;
+    saveAndRest('Session time is up — great job building today!');
+  }
+}
+function checkDuskRest(h){
+  if(viewOnly || !parentSettings.duskRest) return;
+  if(h>=17.5 && duskRestPromptedDay!==day){
+    duskRestPromptedDay=day;
+    toast('🌆 Dusk in the city — tap Save & rest when you are ready','ok');
+    const chip=$('restChip');
+    if(chip){ chip.hidden=false; chip.classList.add('show'); }
+  }
+}
+loadParentSettings();
 
 // ---------- rng / helpers ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
@@ -2687,6 +3024,7 @@ function ghostTile(){
 }
 
 function tryPlace(x,y){
+  if(viewOnly){ toast('View-only city — tap Play your own to build','err'); return; }
   if(tool==='inspect') return;
   if(!canPlace(tool,x,y)){
     if(tool==='road'){
@@ -3630,6 +3968,7 @@ function updateHUD(){
   document.querySelector('#dR .bfill').style.width=(stats.dR*100)+'%';
   document.querySelector('#dC .bfill').style.width=(stats.dC*100)+'%';
   document.querySelector('#dG .bfill').style.width=(stats.dG*100)+'%';
+  checkDuskRest(h);
 }
 function toast(msg, kind){
   const now=Date.now();
@@ -3645,15 +3984,7 @@ function toast(msg, kind){
 
 // ---------- save / load ----------
 function exportCity(){
-  const data={v:4, mode, citySize, cash, day, simClock, eventsOn, rankIdx, camRot:viewRot,
-    districts:[...districts],
-    edits:[...edits], removedTrees:[...removedTrees],
-    parks:[...parkSet], scorch:[...scorch],
-    blocks:blocks.map(b=>({x:b.x,y:b.y,colors:[...b.colors]})),
-    buildings:buildings.map(b=>{const o={...b}; o.fire=null; return o;}),
-    trees:trees.map(t=>({x:t.x,y:t.y,s:t.s})),
-    findFound:[...findFound]};
-  exportWalkers(data);
+  const data=buildExportData();
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -3718,6 +4049,10 @@ document.getElementById('bEvents').onclick=()=>{
   toast(eventsOn?'Random fires enabled':'Calm mode — no random fires','ok');
 };
 function setMode(m){
+  if(parentSettings.creativeLock && m!=='creative'){
+    toast('Creative mode only — change in Parent settings','err');
+    return;
+  }
   mode=m;
   if(mode!=='creative') undoStack.length=0;
   if(document.body) document.body.classList.toggle('creative', mode==='creative');
@@ -3739,6 +4074,9 @@ function applyBootParams(){
   const m=p.get('mode');
   if(m==='creative'||m==='mayor') setMode(m);
   if(p.get('city')==='big') startBigCity();
+  if(p.get('calm')==='1'||p.get('calm')==='true') applyCalmProfile();
+  else if(parentSettings.firesOffDefault) setEvents(false);
+  if(parentSettings.creativeLock) setMode('creative');
 }
 document.getElementById('bBigCity')?.addEventListener('click', ()=>{
   if(citySize==='big'){ toast('Already playing a big city — pave roads to reach the islands','ok'); return; }
@@ -3758,9 +4096,10 @@ document.getElementById('bBigCity')?.addEventListener('click', ()=>{
     pal.appendChild(b);
   });
 })();
-$('bSave').onclick=exportCity;
-$('bLoad').onclick=()=>$('fileIn').click();
+$('bSave').onclick=()=>{ if(viewOnly) return; exportCity(); };
+$('bLoad').onclick=()=>{ if(viewOnly) return; $('fileIn').click(); };
 $('fileIn').addEventListener('change', e=>{
+  if(viewOnly) return;
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
   rd.onload=()=>{ try{ importCity(JSON.parse(rd.result)); }catch(err){ toast('Couldn\u2019t open that save file — try Save/Load from this game','err'); } };
@@ -4031,6 +4370,7 @@ document.querySelectorAll('.spd').forEach(b=>{
 });
 let expandToolHinted=false, roadToolHinted=false, buildStickHinted=false;
 function setTool(t){
+  if(viewOnly && t!=='inspect'){ toast('View-only — looking at a shared city','err'); return; }
   tool=t;
   mobCursor=null;
   stopMobStick();
@@ -4219,6 +4559,21 @@ rankIdx=currentRank();
 adjustAgents();
 if(!UX.money && document.body) document.body.classList.add('creative');
 applyBootParams();
+loadShareFromHash();
+syncParentForm();
+$('parentOpen')?.addEventListener('click', ()=> showParentPanel(true));
+$('parentClose')?.addEventListener('click', ()=> showParentPanel(false));
+$('parentPinGo')?.addEventListener('click', tryParentPin);
+$('parentPinIn')?.addEventListener('keydown', e=>{ if(e.key==='Enter') tryParentPin(); });
+$('parentSave')?.addEventListener('click', ()=>{ if(readParentForm()) showParentPanel(false); });
+$('parentShare')?.addEventListener('click', copyViewLink);
+$('parentCalmLink')?.addEventListener('click', copyCalmLink);
+$('restChip')?.addEventListener('click', ()=> saveAndRest('Nice building today — your city is saved!'));
+$('restSave')?.addEventListener('click', ()=> exportCity());
+$('restDone')?.addEventListener('click', ()=>{
+  $('restOverlay')?.classList.remove('show');
+  $('restOverlay')?.setAttribute('aria-hidden','true');
+});
 renderWalkerList();
 if(mode==='creative' && UX.money) toast('🎨 Creative mode — build anything · ↩ Undo is ready', 'ok');
 updateUndoBtn();
@@ -4235,6 +4590,7 @@ function frame(now){
     }
   }
   updatePanAnim(dt);
+  tickSessionTimer();
   if(!paused){
     const sdt=dt*speed;
     simClock+=sdt;

@@ -32,7 +32,7 @@ const elStub = () => ({
 });
 global.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener: noop, scrollTo: noop,
   visualViewport: { width: 1280, height: 800, addEventListener: noop } };
-global.location = { search: '' };
+global.location = { search: '', hash: '', pathname: '/play/', origin: 'http://test' };
 const docEl = elStub();
 global.document = {
   getElementById: () => elStub(), querySelector: () => elStub(),
@@ -43,6 +43,9 @@ global.document = {
 global.performance = { now: () => Date.now() };
 global.Blob = class { constructor(parts) { global.__blob = parts[0]; } };
 global.URL = { createObjectURL: () => 'x', revokeObjectURL: noop };
+global.localStorage = { _data: {}, getItem(k){ return this._data[k] ?? null; }, setItem(k,v){ this._data[k]=String(v); } };
+global.btoa = s => Buffer.from(s, 'binary').toString('base64');
+global.atob = s => Buffer.from(s, 'base64').toString('binary');
 global.FileReader = class { readAsText() {} };
 let rafCb = null;
 global.requestAnimationFrame = cb => { rafCb = cb; };
@@ -55,7 +58,9 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   igniteAt,updateFires,coveredBy,stationsOf,scorch,setEvents,fireTrucks,findFireDispatch,
   getRank:()=>rankIdx,checkMilestones,
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,setMoneyEnabled,setUxInterior,
-  setBlockColor:c=>{blockColor=c;},applyBootParams,
+  setBlockColor:c=>{blockColor=c;},applyBootParams,applyCalmProfile,getEventsOn:()=>eventsOn,
+  isViewOnly,setViewOnly,buildExportData,encodeShare,decodeShare,shareViewUrl,tickSessionTimer,
+  saveAndRest,getParentSettings:()=>parentSettings,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,goToWalker,
   getCam:()=>({px:cam.px,py:cam.py}),
@@ -224,7 +229,26 @@ A(H.getMode() === 'creative', '?mode=creative URL param');
 global.location.search = '?mode=mayor';
 H.applyBootParams();
 A(H.getMode() === 'mayor', '?mode=mayor URL param');
+global.location.search = '?calm=1';
+H.applyBootParams();
+A(H.getMode() === 'creative', '?calm=1 sets creative mode');
+A(!H.getEventsOn(), '?calm=1 turns fires off');
 global.location.search = '';
+H.applyBootParams();
+
+// ---------- parent calm / share ----------
+console.log('\nparent calm & share');
+H.setViewOnly(false);
+const dShare = H.buildExportData();
+const enc = H.encodeShare(dShare);
+const dec = H.decodeShare(enc);
+A(dec.v === 4 && dec.mode === H.getMode(), 'share encode/decode round trip');
+const url = H.shareViewUrl(dShare);
+A(url.includes('view=1') && url.includes('#city='), 'share URL is view-only');
+H.setViewOnly(true);
+A(H.isViewOnly(), 'view-only mode');
+A(!H.tryPlace(10, 10), 'view-only blocks building');
+H.setViewOnly(false);
 
 // ---------- player walker ----------
 console.log('\nplayer walker');
