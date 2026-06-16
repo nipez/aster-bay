@@ -522,7 +522,7 @@
   body.dock-collapsed .dock-hide{display:block;}
 
   @media (max-width:1024px){
-    :root{--mob-dock-h:136px;}
+    :root{--mob-dock-h:148px;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -564,7 +564,7 @@
       position:fixed; left:0; right:0; bottom:0;
       transform:none; width:100%; max-width:100%; z-index:25;
       pointer-events:none;
-      padding-bottom:env(safe-area-inset-bottom);
+      padding-bottom:max(10px, env(safe-area-inset-bottom));
       background:var(--panel);
       border-top:1px solid #ffffff18;
       box-shadow:0 -6px 28px #000a;
@@ -587,14 +587,17 @@
     .tools button .lbl,.tools button small{display:none;}
     .bar{
       position:static; bottom:auto; left:auto; transform:none;
-      padding:4px 8px 10px; flex-shrink:0; width:100%; max-width:100%;
+      padding:6px 10px 8px; flex-shrink:0; width:100%; max-width:100%;
       overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
       -webkit-overflow-scrolling:touch; justify-content:center; gap:8px;
       border:none; border-radius:0; box-shadow:none; background:transparent;
+      align-items:center;
     }
     .bar button{
-      min-width:52px; width:52px; height:48px; padding:0; flex-shrink:0;
+      min-width:52px; width:52px; height:52px; padding:0; flex-shrink:0;
       font-size:26px; line-height:1; border-radius:14px; touch-action:manipulation;
+      display:inline-flex; align-items:center; justify-content:center;
+      white-space:nowrap; overflow:hidden;
     }
     #bUndo{font-size:0;}
     #bUndo::after{content:'↩'; font-size:24px;}
@@ -615,6 +618,13 @@
     body.interior-mode .interior-bar.show{
       bottom:calc(var(--mob-dock-h) + 8px + env(safe-area-inset-bottom));
     }
+  }
+  /* iPad / tablet portrait — keep controls above home indicator */
+  @media (max-width:1024px) and (min-width:600px) and (orientation:portrait){
+    :root{--mob-dock-h:152px;}
+    .dock{padding-bottom:max(14px, env(safe-area-inset-bottom));}
+    .tools{padding:8px 14px 6px;}
+    .bar{padding:6px 14px 10px;}
   }
 </style>
 </head>
@@ -709,7 +719,7 @@
 </div>
 
 <div class="bar" role="toolbar" aria-label="Simulation controls">
-  <button id="bPause" title="Pause / resume (Space)">⏸ Pause</button>
+  <button id="bPause" title="Pause / resume (Space)" aria-label="Pause game">⏸</button>
   <span class="sep"></span>
   <button class="spd on" data-s="1">1×</button>
   <button class="spd" data-s="2">2×</button>
@@ -725,7 +735,7 @@
   <button id="bSave" title="Save game to this device">💾 Save</button>
   <button id="bLoad" title="Load a saved game file">📂 Load</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
-  <button id="bYou" title="Find or track a walker">📍 Walkers</button>
+  <button id="bYou" title="Find or track a walker" aria-label="Open people panel">👥</button>
 </div>
 </div>
 </div>
@@ -2333,6 +2343,7 @@ function getTrackedWalker(){ return trackWalkerId!=null ? getWalker(trackWalkerI
 function syncTrackBtn(){
   const w=getTrackedWalker();
   const btn=$('bYou');
+  if(!btn) return;
   btn.disabled=false;
   btn.classList.toggle('on', !!w);
   if(mqCompact.matches){
@@ -4612,6 +4623,8 @@ if(!UX.money && document.body) document.body.classList.add('creative');
 applyBootParams();
 loadShareFromHash();
 syncParentForm();
+syncPauseBtn();
+syncTrackBtn();
 $('parentOpen')?.addEventListener('click', ()=> showParentPanel(true));
 $('parentClose')?.addEventListener('click', ()=> showParentPanel(false));
 $('parentPinGo')?.addEventListener('click', tryParentPin);
