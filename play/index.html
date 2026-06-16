@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=7">
+<link rel="manifest" href="manifest.webmanifest?v=8">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -519,7 +519,7 @@
   body.no-money .hero-money,
   body.no-money .chip-cash,
   body.no-money .chip-sep{display:none!important;}
-  body.no-interior .interior-bar{display:none!important;}
+  body.no-rest-prompts .rest-chip{display:none!important;}
   body.no-interior [data-enter-bld]{display:none!important;}
 
   body.dock-collapsed .dock-hide{display:block;}
@@ -557,10 +557,11 @@
       transform:none; opacity:1; pointer-events:auto;
     }
     body.dock-collapsed .dock .bar{display:flex;}
-    .tools .adv,.tools .gap,.tools #bMode,.tools #bBigCity,.tools #bEvents,
+    .tools .adv:not([data-t="expand"]),
+    .tools .gap,.tools #bMode,.tools #bEvents,
     .bar .spd,.bar .bar-save-sep,.bar .sep,
     #bRotL,#bRotR,#bSave,#bLoad,#bFs{display:none!important;}
-    body.no-money .tools .adv,
+    body.no-money .tools .adv:not([data-t="expand"]),
     body.no-money .tools .gap.adv{display:none!important;}
     .dock{
       display:flex; flex-direction:column; align-items:stretch; gap:0;
@@ -734,7 +735,7 @@
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>trucks roll on roads</small></span></button>
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>happier residents</small></span></button>
-  <button class="tool adv" data-t="expand"><span class="ico">🏙️</span><span class="lbl">District<small>edge or road link</small></span></button>
+  <button class="tool adv" data-t="expand"><span class="ico">🏗️</span><span class="lbl">District<small>edge or road link</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>grass &amp; benches</small></span></button>
   <button class="tool" data-t="water"><span class="ico">💧</span><span class="lbl">Water<small>ponds &amp; lakes</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>plant anywhere</small></span></button>
@@ -860,7 +861,7 @@
 <script>
 'use strict';
 (function(){
-  var V='7',k='csc-ui';
+  var V='8',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
@@ -900,6 +901,7 @@ const UX={
   mobStick:false,
   buildOkToasts:false,
   money:false,
+  restPrompts:false,
 };
 let MONEY_ENABLED=UX.money;
 function setMoneyEnabled(v){ MONEY_ENABLED=!!v; }
@@ -911,6 +913,7 @@ if(document.body){
   if(!UX.mobStick) document.body.classList.add('no-mob-stick');
   if(!UX.money) document.body.classList.add('no-money');
   if(!UX.interior) document.body.classList.add('no-interior');
+  if(!UX.restPrompts) document.body.classList.add('no-rest-prompts');
 }
 
 // ---------- parent / calm / share ----------
@@ -1090,19 +1093,22 @@ function tickSessionTimer(){
   if(!limit) return;
   const elapsed=(performance.now()-sessionStart)/60000;
   const warnAt=Math.max(0, limit-(parentSettings.sessionWarnMins|0));
-  if(!sessionWarned && elapsed>=warnAt){
+  if(UX.restPrompts && !sessionWarned && elapsed>=warnAt){
     sessionWarned=true;
     toast('🌅 About '+parentSettings.sessionWarnMins+' min left — good time to save & rest','ok');
     const chip=$('restChip');
     if(chip && parentSettings.duskRest){ chip.hidden=false; chip.classList.add('show'); }
+  } else if(!UX.restPrompts && !sessionWarned && elapsed>=warnAt){
+    sessionWarned=true;
   }
   if(elapsed>=limit){
     sessionEnded=true;
-    saveAndRest('Session time is up — great job building today!');
+    if(UX.restPrompts) saveAndRest('Session time is up — great job building today!');
+    else{ setPause(true); toast('Session time is up — nice building today!','ok'); }
   }
 }
 function checkDuskRest(h){
-  if(viewOnly || !parentSettings.duskRest) return;
+  if(!UX.restPrompts || viewOnly || !parentSettings.duskRest) return;
   if(h>=17.5 && duskRestPromptedDay!==day){
     duskRestPromptedDay=day;
     toast('🌆 Dusk in the city — tap Save & rest when you are ready','ok');
