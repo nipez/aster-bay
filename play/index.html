@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=6">
+<link rel="manifest" href="manifest.webmanifest?v=7">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -578,15 +578,17 @@
     .tools{
       position:static; top:auto; left:auto; bottom:auto;
       transform:none; flex-direction:row; width:100%; max-width:100%;
-      overflow-x:auto; overscroll-behavior:contain; padding:10px 12px 6px; gap:10px;
-      flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
+      overflow:visible; padding:8px 8px 4px; gap:4px;
+      flex-wrap:nowrap; justify-content:space-evenly; align-items:center;
       border:none; border-radius:0; box-shadow:none; background:transparent;
-      max-height:none; scrollbar-width:none;
+      max-height:none;
     }
-    .tools::-webkit-scrollbar{display:none;}
     .tools button{
-      min-width:52px; width:52px; height:52px; padding:0; flex-shrink:0;
-      justify-content:center; border-radius:14px; touch-action:manipulation;
+      min-width:44px; width:auto; flex:1 1 0; max-width:72px; height:52px;
+      max-height:52px; padding:0; flex-shrink:1;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius:14px; touch-action:manipulation;
+      -webkit-appearance:none; appearance:none;
     }
     .tools button .ico{font-size:26px; width:auto; line-height:1;}
     .tools button .lbl,.tools button small{display:none;}
@@ -647,7 +649,8 @@
          ((hover: none) and (pointer: coarse) and (min-width:600px) and (orientation:portrait)){
     :root{--mob-dock-h:168px;}
     .dock{padding-bottom:max(34px, env(safe-area-inset-bottom, 34px));}
-    .tools{padding:10px 16px 8px; gap:12px;}
+    .tools{padding:10px 12px 6px; gap:6px;}
+    .tools button{max-width:80px; height:54px; max-height:54px;}
     .bar{padding:6px 12px 4px; gap:6px;}
     .bar button{max-width:80px; height:54px; max-height:54px;}
   }
@@ -857,7 +860,7 @@
 <script>
 'use strict';
 (function(){
-  var V='6',k='csc-ui';
+  var V='7',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
