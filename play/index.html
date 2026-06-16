@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest?v=3">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -249,6 +249,7 @@
   .bar button.on{background:var(--accent); color:#23201a;}
   .bar .sep{width:1px; height:22px; background:#ffffff22;}
   .bar button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .bar .bar-glyph,.bar .bar-txt{display:inline;}
   #bUndo[disabled]{opacity:.42; cursor:default;}
 
   .palette{
@@ -521,8 +522,8 @@
 
   body.dock-collapsed .dock-hide{display:block;}
 
-  @media (max-width:1024px){
-    :root{--mob-dock-h:148px;}
+  @media (max-width:1024px), ((hover: none) and (pointer: coarse)){
+    :root{--mob-dock-h:160px;}
     .hint{display:none;}
     .hud{top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left));}
     .hud.expanded .hud-panel{
@@ -564,7 +565,7 @@
       position:fixed; left:0; right:0; bottom:0;
       transform:none; width:100%; max-width:100%; z-index:25;
       pointer-events:none;
-      padding-bottom:max(10px, env(safe-area-inset-bottom));
+      padding-bottom:max(34px, env(safe-area-inset-bottom, 0px));
       background:var(--panel);
       border-top:1px solid #ffffff18;
       box-shadow:0 -6px 28px #000a;
@@ -594,11 +595,13 @@
       align-items:center;
     }
     .bar button{
-      min-width:52px; width:52px; height:52px; padding:0; flex-shrink:0;
+      min-width:52px; width:52px; height:52px; max-height:52px; padding:0; flex-shrink:0;
       font-size:26px; line-height:1; border-radius:14px; touch-action:manipulation;
       display:inline-flex; align-items:center; justify-content:center;
       white-space:nowrap; overflow:hidden;
     }
+    .bar .bar-txt{display:none!important;}
+    .bar .bar-glyph{display:block; font-size:26px; line-height:1;}
     #bUndo{font-size:0;}
     #bUndo::after{content:'↩'; font-size:24px;}
     .mob-actions{flex-direction:row;}
@@ -619,12 +622,13 @@
       bottom:calc(var(--mob-dock-h) + 8px + env(safe-area-inset-bottom));
     }
   }
-  /* iPad / tablet portrait — keep controls above home indicator */
-  @media (max-width:1024px) and (min-width:600px) and (orientation:portrait){
-    :root{--mob-dock-h:152px;}
-    .dock{padding-bottom:max(14px, env(safe-area-inset-bottom));}
+  /* iPad / tablet portrait — extra clearance for home indicator (Safari often reports 0 inset) */
+  @media (max-width:1024px) and (min-width:600px) and (orientation:portrait),
+         ((hover: none) and (pointer: coarse) and (min-width:600px) and (orientation:portrait)){
+    :root{--mob-dock-h:168px;}
+    .dock{padding-bottom:max(40px, env(safe-area-inset-bottom, 0px));}
     .tools{padding:8px 14px 6px;}
-    .bar{padding:6px 14px 10px;}
+    .bar{padding:6px 14px 4px;}
   }
 </style>
 </head>
@@ -719,7 +723,7 @@
 </div>
 
 <div class="bar" role="toolbar" aria-label="Simulation controls">
-  <button id="bPause" title="Pause / resume (Space)" aria-label="Pause game">⏸</button>
+  <button id="bPause" title="Pause / resume (Space)" aria-label="Pause game"><span class="bar-glyph">⏸</span><span class="bar-txt"> Pause</span></button>
   <span class="sep"></span>
   <button class="spd on" data-s="1">1×</button>
   <button class="spd" data-s="2">2×</button>
@@ -735,7 +739,7 @@
   <button id="bSave" title="Save game to this device">💾 Save</button>
   <button id="bLoad" title="Load a saved game file">📂 Load</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
-  <button id="bYou" title="Find or track a walker" aria-label="Open people panel">👥</button>
+  <button id="bYou" title="Find or track a walker" aria-label="Open people panel"><span class="bar-glyph">👥</span><span class="bar-txt"> People</span></button>
 </div>
 </div>
 </div>
@@ -2344,15 +2348,20 @@ function syncTrackBtn(){
   const w=getTrackedWalker();
   const btn=$('bYou');
   if(!btn) return;
+  const glyph=btn.querySelector?.('.bar-glyph');
+  const txt=btn.querySelector?.('.bar-txt');
   btn.disabled=false;
   btn.classList.toggle('on', !!w);
   if(mqCompact.matches){
-    btn.textContent='👥';
+    if(glyph) glyph.textContent='👥';
+    if(txt) txt.textContent='';
     btn.title=w ? 'Tracking '+w.name : 'People & walkers';
     btn.setAttribute('aria-label', w ? 'Tracking '+w.name : 'Open people panel');
   } else {
     const short=w ? w.name.split(' ')[0] : '';
-    btn.textContent=w ? '📍 '+short : '📍 Walkers';
+    if(glyph) glyph.textContent='📍';
+    if(txt) txt.textContent=w ? ' '+short : ' Walkers';
+    else btn.textContent=w ? '📍 '+short : '📍 Walkers';
     btn.title='Find or track a walker';
     btn.setAttribute('aria-label', 'Find or track a walker');
   }
@@ -3953,12 +3962,23 @@ const elCash=$('cash'), elClock=$('clock'), elPhase=$('phase'),
 const hud=$('hud'), hudChip=$('hudChip'), hudClose=$('hudClose'),
       chipCash=$('chipCash'), chipClock=$('chipClock');
 const mqMobile=typeof window.matchMedia==='function'
-  ? window.matchMedia('(max-width:1024px)')
+  ? window.matchMedia('(max-width:1024px), ((hover: none) and (pointer: coarse))')
   : {matches:false, addEventListener:()=>{}};
 const mqCompact=mqMobile;
 const mqCoarse=typeof window.matchMedia==='function'
   ? window.matchMedia('(pointer: coarse)')
-  : {matches:false};
+  : {matches:false, addEventListener:()=>{}};
+function syncMobDockH(){
+  if(!mqCompact.matches) return;
+  const dock=document.querySelector('.dock');
+  if(!dock) return;
+  const h=dock.getBoundingClientRect().height;
+  if(h>0) document.documentElement.style.setProperty('--mob-dock-h', Math.ceil(h)+'px');
+}
+function syncTouchUi(){
+  if(!document.body) return;
+  document.body.classList.toggle('touch-ui', mqCompact.matches);
+}
 function showMobBuildUI(){
   if(interior) return true;
   if(tool==='inspect'||tool==='find') return false;
@@ -4399,11 +4419,18 @@ $('youList').addEventListener('click', e=>{
 const bPause=$('bPause');
 function syncPauseBtn(){
   if(!bPause) return;
+  const glyph=bPause.querySelector?.('.bar-glyph');
+  const txt=bPause.querySelector?.('.bar-txt');
   if(mqCompact.matches){
-    bPause.textContent=paused?'▶':'⏸';
+    const sym=paused?'▶':'⏸';
+    if(glyph){ glyph.textContent=sym; if(txt) txt.textContent=''; }
+    else bPause.textContent=sym;
     bPause.setAttribute?.('aria-label', paused?'Resume game':'Pause game');
   } else {
-    bPause.textContent=paused?'▶ Resume':'⏸ Pause';
+    const sym=paused?'▶':'⏸';
+    const label=paused?' Resume':' Pause';
+    if(glyph){ glyph.textContent=sym; if(txt) txt.textContent=label; }
+    else bPause.textContent=sym+label.trim();
     bPause.removeAttribute?.('aria-label');
   }
 }
@@ -4562,10 +4589,14 @@ mqCompact.addEventListener('change', ()=>{
     setDockCollapsed(false);
     setBarCollapsed(false);
   }
+  syncTouchUi();
   syncPauseBtn();
   syncTrackBtn();
   updateMobUI();
+  syncMobDockH();
 });
+window.addEventListener('resize', syncMobDockH, {passive:true});
+window.addEventListener('orientationchange', ()=> setTimeout(syncMobDockH, 120), {passive:true});
 $('findMin')?.addEventListener('click', ()=> setTool('inspect'));
 $('findList')?.addEventListener('click', e=>{
   const btn=e.target.closest('[data-hint-id]');
@@ -4623,8 +4654,11 @@ if(!UX.money && document.body) document.body.classList.add('creative');
 applyBootParams();
 loadShareFromHash();
 syncParentForm();
+syncTouchUi();
 syncPauseBtn();
 syncTrackBtn();
+syncMobDockH();
+requestAnimationFrame(syncMobDockH);
 $('parentOpen')?.addEventListener('click', ()=> showParentPanel(true));
 $('parentClose')?.addEventListener('click', ()=> showParentPanel(false));
 $('parentPinGo')?.addEventListener('click', tryParentPin);
