@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=8">
+<link rel="manifest" href="manifest.webmanifest?v=9">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -97,8 +97,9 @@
   .people-head h2{font-size:13px; letter-spacing:2px; color:var(--accent); font-weight:800; margin:0;}
   .people-close{
     display:none; appearance:none; border:none; cursor:pointer;
-    background:#ffffff14; color:var(--dim); border-radius:8px;
-    width:28px; height:28px; font-size:12px; line-height:1; flex-shrink:0;
+    background:#ffffff18; color:var(--ink); border-radius:10px;
+    min-width:52px; height:40px; padding:0 14px; font-size:13px; line-height:1; flex-shrink:0;
+    font:800 13px ui-rounded,'SF Pro Rounded','Segoe UI',sans-serif;
   }
   .people-close:active{transform:scale(.94);}
   .people-chip{
@@ -557,11 +558,13 @@
       transform:none; opacity:1; pointer-events:auto;
     }
     body.dock-collapsed .dock .bar{display:flex;}
-    .tools .adv:not([data-t="expand"]),
+    .tools [data-t="shop"],.tools [data-t="fire"],.tools [data-t="school"],
     .tools .gap,.tools #bMode,.tools #bEvents,
     .bar .spd,.bar .bar-save-sep,.bar .sep,
-    #bRotL,#bRotR,#bSave,#bLoad,#bFs{display:none!important;}
-    body.no-money .tools .adv:not([data-t="expand"]),
+    #bRotL,#bHome,#bSave,#bLoad,#bFs{display:none!important;}
+    body.no-money .tools [data-t="shop"],
+    body.no-money .tools [data-t="fire"],
+    body.no-money .tools [data-t="school"],
     body.no-money .tools .gap.adv{display:none!important;}
     .dock{
       display:flex; flex-direction:column; align-items:stretch; gap:0;
@@ -626,7 +629,9 @@
     .bar #bYou::before{content:'👥';}
     .bar #bYou.on::before{content:'📍';}
     #bUndo{font-size:0;}
-    #bUndo::after{content:'↩'; font-size:24px;}
+    #bUndo::after{content:'↩'; font-size:24px; color:var(--ink);}
+    #bRotR{font-size:0;}
+    #bRotR::after{content:'↻'; font-size:26px; color:var(--ink);}
     .mob-actions{flex-direction:row;}
     .mob-stick{width:96px; height:96px;}
     .mob-actions button{min-width:72px; height:42px; font-size:12px;}
@@ -706,7 +711,7 @@
   <div class="people-panel" id="peoplePanel">
     <div class="people-head">
       <h2>PEOPLE</h2>
-      <button type="button" class="people-close" id="peopleClose" aria-label="Hide people panel">▴</button>
+      <button type="button" class="people-close" id="peopleClose" aria-label="Hide people panel">Close</button>
     </div>
     <div class="sub">Add friends · track on the map</div>
     <div class="you-row" id="youRow">
@@ -735,15 +740,15 @@
   <button class="tool adv" data-t="shop"><span class="ico">🏬</span><span class="lbl">Shop<small>needs a sidewalk</small></span></button>
   <button class="tool adv" data-t="fire"><span class="ico">🚒</span><span class="lbl">Fire station<small>trucks roll on roads</small></span></button>
   <button class="tool adv" data-t="school"><span class="ico">🏫</span><span class="lbl">School<small>happier residents</small></span></button>
-  <button class="tool adv" data-t="expand"><span class="ico">🏗️</span><span class="lbl">District<small>edge or road link</small></span></button>
   <button class="tool" data-t="park"><span class="ico">🌿</span><span class="lbl">Park<small>grass &amp; benches</small></span></button>
   <button class="tool" data-t="water"><span class="ico">💧</span><span class="lbl">Water<small>ponds &amp; lakes</small></span></button>
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>plant anywhere</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>tap to stack</small></span></button>
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>clear one thing</small></span></button>
+  <button class="tool" data-t="expand" title="Add district — tap a glowing zone"><span class="ico">➕</span><span class="lbl">District<small>edge or road link</small></span></button>
+  <button type="button" id="bBigCity" title="Big city — 10 districts"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · road-linked</small></span></button>
   <div class="gap adv"></div>
   <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
-  <button type="button" id="bBigCity"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · road-linked</small></span></button>
   <input type="file" id="fileIn" accept=".json,.asterbay,application/json" style="display:none">
 </div>
 
@@ -758,7 +763,7 @@
   <button id="bIn" title="Zoom in (+)">＋</button>
   <button id="bHome" title="Fit entire city in view">⌖</button>
   <button id="bRotL" title="Rotate left (Q)">↺</button>
-  <button id="bRotR" title="Rotate right (E)">↻</button>
+  <button id="bRotR" title="Rotate view">↻</button>
   <button id="bUndo" title="Undo last build (Ctrl+Z / ⌘Z)" disabled>↩ Undo</button>
   <span class="sep bar-save-sep"></span>
   <button id="bSave" title="Save game to this device">💾 Save</button>
@@ -803,6 +808,16 @@
     <div>
       <button type="button" class="primary" id="restSave">💾 Save again</button>
       <button type="button" class="ghost" id="restDone">OK, goodbye</button>
+    </div>
+  </div>
+</div>
+<div id="bigCityOverlay" class="rest-overlay" aria-hidden="true">
+  <div class="rest-card">
+    <h2>Build a big city?</h2>
+    <p>This starts a huge 10-district map with long roads between hubs. Your current city layout will be replaced.</p>
+    <div>
+      <button type="button" class="primary" id="bigCityYes">Yes — let’s go!</button>
+      <button type="button" class="ghost" id="bigCityNo">Not now</button>
     </div>
   </div>
 </div>
@@ -861,7 +876,7 @@
 <script>
 'use strict';
 (function(){
-  var V='8',k='csc-ui';
+  var V='9',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
@@ -4040,7 +4055,11 @@ function setPeopleExpanded(open){
   if(open && walkers.length===0) setTimeout(()=> $('youName')?.focus(), 0);
 }
 function collapsePeople(){ setPeopleExpanded(false); }
-peopleChip.addEventListener('click', ()=> setPeopleExpanded(true));
+function togglePeoplePanel(){
+  if(peopleExpanded()) collapsePeople();
+  else setPeopleExpanded(true);
+}
+peopleChip.addEventListener('click', togglePeoplePanel);
 peopleClose.addEventListener('click', ()=> collapsePeople());
 function phaseName(h){
   if(h<5)return'Deep night'; if(h<7)return'Dawn'; if(h<11)return'Morning';
@@ -4182,8 +4201,25 @@ function applyBootParams(){
 }
 document.getElementById('bBigCity')?.addEventListener('click', ()=>{
   if(citySize==='big'){ toast('Already playing a big city — pave roads to reach the islands','ok'); return; }
+  showBigCityConfirm();
+});
+function showBigCityConfirm(){
+  const o=$('bigCityOverlay');
+  if(!o) return;
+  o.classList.add('show');
+  o.setAttribute('aria-hidden','false');
+}
+function hideBigCityConfirm(){
+  const o=$('bigCityOverlay');
+  if(!o) return;
+  o.classList.remove('show');
+  o.setAttribute('aria-hidden','true');
+}
+$('bigCityYes')?.addEventListener('click', ()=>{
+  hideBigCityConfirm();
   startBigCity();
 });
+$('bigCityNo')?.addEventListener('click', hideBigCityConfirm);
 // block color palette
 (function buildPalette(){
   const pal=document.getElementById('palette');
@@ -4431,6 +4467,7 @@ document.addEventListener('fullscreenchange', onFsChange);
 document.addEventListener('webkitfullscreenchange', onFsChange);
 syncFsBtn();
 $('bYou').onclick=()=>{
+  if(peopleExpanded()){ collapsePeople(); return; }
   setPeopleExpanded(true);
   if(!walkers.length){
     toast('Add a name to walk the city','ok');
