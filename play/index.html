@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=4">
+<link rel="manifest" href="manifest.webmanifest?v=5">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -564,10 +564,11 @@
     body.no-money .tools .gap.adv{display:none!important;}
     .dock{
       display:flex; flex-direction:column; align-items:stretch; gap:0;
-      position:fixed; left:0; right:0; bottom:0;
+      position:fixed; left:0; right:0;
+      bottom:max(44px, env(safe-area-inset-bottom, 44px));
       transform:none; width:100%; max-width:100%; z-index:25;
       pointer-events:none;
-      padding-bottom:max(44px, env(safe-area-inset-bottom, 44px));
+      padding-bottom:8px;
       background:var(--panel);
       border-top:1px solid #ffffff18;
       box-shadow:0 -6px 28px #000a;
@@ -601,6 +602,7 @@
       font-size:26px; line-height:1; border-radius:14px; touch-action:manipulation;
       display:inline-flex; align-items:center; justify-content:center;
       white-space:nowrap; overflow:hidden;
+      -webkit-appearance:none; appearance:none;
     }
     .bar .bar-txt{display:none!important;}
     .bar .bar-glyph{display:none!important;}
@@ -611,7 +613,7 @@
     }
     .bar #bPause::before,
     .bar #bYou::before{
-      font-size:26px; line-height:1; color:var(--ink);
+      display:block; font-size:26px; line-height:1; color:var(--ink);
     }
     .bar #bPause::before{content:'⏸';}
     .bar #bPause.on::before{content:'▶';}
@@ -641,7 +643,7 @@
   @media (max-width:1024px) and (min-width:600px) and (orientation:portrait),
          ((hover: none) and (pointer: coarse) and (min-width:600px) and (orientation:portrait)){
     :root{--mob-dock-h:176px;}
-    .dock{padding-bottom:max(52px, env(safe-area-inset-bottom, 52px));}
+    .dock{bottom:max(52px, env(safe-area-inset-bottom, 52px)); padding-bottom:10px;}
     .tools{padding:8px 14px 6px;}
     .bar{padding:8px 14px 0;}
   }
@@ -738,7 +740,7 @@
 </div>
 
 <div class="bar" role="toolbar" aria-label="Simulation controls">
-  <button id="bPause" title="Pause / resume (Space)" aria-label="Pause game"><span class="bar-glyph">⏸</span><span class="bar-txt"> Pause</span></button>
+  <button id="bPause" title="Pause / resume (Space)" aria-label="Pause game"><span class="bar-glyph" aria-hidden="true">⏸</span><span class="bar-txt" aria-hidden="true"> Pause</span></button>
   <span class="sep"></span>
   <button class="spd on" data-s="1">1×</button>
   <button class="spd" data-s="2">2×</button>
@@ -754,8 +756,7 @@
   <button id="bSave" title="Save game to this device">💾 Save</button>
   <button id="bLoad" title="Load a saved game file">📂 Load</button>
   <button id="bFs" title="Full screen (F)">⛶</button>
-  <button id="bYou" title="Find or track a walker" aria-label="Open people panel"><span class="bar-glyph">👥</span><span class="bar-txt"> People</span></button>
-</div>
+  <button id="bYou" title="Find or track a walker" aria-label="Open people panel"><span class="bar-glyph" aria-hidden="true">👥</span><span class="bar-txt" aria-hidden="true"> People</span></button>
 </div>
 </div>
 
@@ -851,6 +852,18 @@
 
 <script>
 'use strict';
+(function(){
+  var V='5',k='csc-ui';
+  try{
+    if(localStorage.getItem(k)===V) return;
+    localStorage.setItem(k,V);
+    var u=new URL(location.href);
+    if(u.searchParams.get('ui')!==V){
+      u.searchParams.set('ui',V);
+      location.replace(u.pathname+u.search+u.hash);
+    }
+  }catch(e){}
+})();
 /* ============================ ASTER BAY v0.2 ============================
    Playable isometric city builder. Vanilla JS, one file, zero deps.
    Systems: dynamic road graph, traffic lights, pedestrians, day/night,
@@ -3985,8 +3998,9 @@ function syncMobDockH(){
   if(!mqCompact.matches) return;
   const dock=document.querySelector('.dock');
   if(!dock) return;
-  const h=dock.getBoundingClientRect().height;
-  if(h>0) document.documentElement.style.setProperty('--mob-dock-h', Math.ceil(h)+'px');
+  const rect=dock.getBoundingClientRect();
+  const fromBottom=window.innerHeight-rect.top;
+  if(fromBottom>0) document.documentElement.style.setProperty('--mob-dock-h', Math.ceil(fromBottom)+'px');
 }
 function syncTouchUi(){
   if(!document.body) return;
