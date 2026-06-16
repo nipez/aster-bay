@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=9">
+<link rel="manifest" href="manifest.webmanifest?v=10">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -745,7 +745,7 @@
   <button class="tool" data-t="tree"><span class="ico">🌳</span><span class="lbl">Tree<small>plant anywhere</small></span></button>
   <button class="tool" data-t="block"><span class="ico">🧱</span><span class="lbl">Blocks<small>tap to stack</small></span></button>
   <button class="tool" data-t="dozer"><span class="ico">💥</span><span class="lbl">Bulldoze<small>clear one thing</small></span></button>
-  <button class="tool" data-t="expand" title="Add district — tap a glowing zone"><span class="ico">➕</span><span class="lbl">District<small>edge or road link</small></span></button>
+  <button class="tool" data-t="expand" title="Add district — tap tool, then tap a golden zone"><span class="ico">➕</span><span class="lbl">District<small>road link · tap zone</small></span></button>
   <button type="button" id="bBigCity" title="Big city — 10 districts"><span class="ico">🏙️</span><span class="lbl">Big city<small>10 districts · road-linked</small></span></button>
   <div class="gap adv"></div>
   <button id="bEvents" class="adv"><span class="ico">🔥</span><span class="lbl" id="evLbl">Fires: on<small>random events</small></span></button>
@@ -876,7 +876,7 @@
 <script>
 'use strict';
 (function(){
-  var V='9',k='csc-ui';
+  var V='10',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
@@ -3124,7 +3124,7 @@ function tryPlace(x,y){
     else if(tool==='water') toast('Tap grass or meadow — not roads or sidewalks','err');
     else if(tool==='dozer') toast('Nothing to clear here (roads are permanent — ordinance 12)','err');
     else if(tool==='block') toast('Blocks need open ground (max '+MAX_STACK+' high)','err');
-    else if(tool==='expand') toast('Pave roads to a glowing zone first, then tap it','err');
+    else if(tool==='expand') toast('Tap a glowing golden zone — or pave roads to a marked slot first','err');
     else toast('Can\u2019t build there','err');
     return;
   }
@@ -3294,6 +3294,8 @@ function tryPlace(x,y){
           if(mode!=='creative') es.refund=COST.expand;
           pushUndo(es);
         }
+      } else {
+        toast('Tap a glowing golden zone','err');
       }
       break;
     }
@@ -3943,8 +3945,26 @@ function render(animT){
   if(tool==='expand'){
     const pulse=(Math.sin(animT*3)+1)*0.5;
     const districtLbl='4×4 · tap to add';
+    const availKeys=new Set(availableExpansions().map(e=>e.k));
     ctx.font='700 10px ui-rounded, "Segoe UI", sans-serif';
     ctx.textAlign='center';
+    for(const c of districtCandidates()){
+      if(availKeys.has(c.k)) continue;
+      const b=distBounds(c.dgx,c.dgy);
+      for(let x=b.x0;x<=b.x1;x++){
+        diamond(x,b.y0,0,'rgba(255,206,107,0.05)');
+        diamond(x,b.y1,0,'rgba(255,206,107,0.05)');
+      }
+      for(let y=b.y0;y<=b.y1;y++){
+        diamond(b.x0,y,0,'rgba(255,206,107,0.05)');
+        diamond(b.x1,y,0,'rgba(255,206,107,0.05)');
+      }
+      const c=iso((b.x0+b.x1)/2+0.5,(b.y0+b.y1)/2+0.5,0);
+      ctx.fillStyle='rgba(18,21,38,.78)';
+      ctx.fillText('district slot', c.x, c.y-2);
+      ctx.fillStyle='rgba(180,176,166,.9)';
+      ctx.fillText('🛣️ pave roads here first', c.x, c.y+10);
+    }
     for(const e of availableExpansions()){
       const b=distBounds(e.dgx,e.dgy);
       for(let x=b.x0;x<=b.x1;x++){
@@ -4542,9 +4562,11 @@ function setTool(t){
     updateFindPanel();
     toast('Thumb pad bottom-left · tap tiles or ✓ Place','ok');
   } else updateFindPanel();
-  if(t==='expand'&&!expandToolHinted){
-    expandToolHinted=true;
-    toast('Pave roads to a glowing zone — beside the city or at a road end','ok');
+  if(t==='expand'){
+    const n=availableExpansions().length;
+    toast(n
+      ? '➕ Tap a golden zone on the map to add a district'
+      : '➕ Pave roads toward the map edge — slots are marked until they glow gold','ok');
   }
   if(t==='road'&&!roadToolHinted){
     roadToolHinted=true;
@@ -4570,9 +4592,19 @@ const TOOL_HINTS={
   water:'tap open ground for a pond',
   tree:'tap open ground to plant',
   block:'tap to stack colored blocks',
-  expand:'pave roads to a glowing zone, then tap it',
+  expand:'build roads to the edge, then tap a golden zone',
   dozer:'tap to remove one thing'
 };
+function syncExpandCap(){
+  const cap=$('mobCap');
+  if(!cap || tool!=='expand' || interior) return false;
+  const n=availableExpansions().length;
+  cap.textContent=n
+    ? '➕ District tool — tap a glowing golden zone'
+    : '➕ District tool — pave roads to a marked slot first';
+  cap.classList.add('show');
+  return true;
+}
 function updateMobUI(){
   syncMobCursor();
   const showCtrl=showMobBuildUI() && UX.mobStick;
@@ -4583,6 +4615,7 @@ function updateMobUI(){
   const clearBtn=$('mobClear');
   if(clearBtn) clearBtn.style.display=interior?'block':(tool==='dozer'?'block':'none');
   if(!mobCap){ return; }
+  if(syncExpandCap()) return;
   if(!UX.mobStick){ mobCap.classList.remove('show'); return; }
   if(interior){
     const rt=ROOM_TYPES[roomType];
