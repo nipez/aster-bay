@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=5">
+<link rel="manifest" href="manifest.webmanifest?v=6">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -564,11 +564,11 @@
     body.no-money .tools .gap.adv{display:none!important;}
     .dock{
       display:flex; flex-direction:column; align-items:stretch; gap:0;
-      position:fixed; left:0; right:0;
-      bottom:max(44px, env(safe-area-inset-bottom, 44px));
-      transform:none; width:100%; max-width:100%; z-index:25;
+      position:fixed; left:0; right:0; bottom:0;
+      transform:none; width:100%; max-width:100vw; z-index:25;
       pointer-events:none;
-      padding-bottom:8px;
+      box-sizing:border-box;
+      padding:0 env(safe-area-inset-right, 0px) max(28px, env(safe-area-inset-bottom, 28px)) env(safe-area-inset-left, 0px);
       background:var(--panel);
       border-top:1px solid #ffffff18;
       box-shadow:0 -6px 28px #000a;
@@ -578,11 +578,12 @@
     .tools{
       position:static; top:auto; left:auto; bottom:auto;
       transform:none; flex-direction:row; width:100%; max-width:100%;
-      overflow-x:auto; overscroll-behavior:contain; padding:8px 10px 4px; gap:8px;
+      overflow-x:auto; overscroll-behavior:contain; padding:10px 12px 6px; gap:10px;
       flex-wrap:nowrap; -webkit-overflow-scrolling:touch;
       border:none; border-radius:0; box-shadow:none; background:transparent;
-      max-height:none;
+      max-height:none; scrollbar-width:none;
     }
+    .tools::-webkit-scrollbar{display:none;}
     .tools button{
       min-width:52px; width:52px; height:52px; padding:0; flex-shrink:0;
       justify-content:center; border-radius:14px; touch-action:manipulation;
@@ -591,14 +592,16 @@
     .tools button .lbl,.tools button small{display:none;}
     .bar{
       position:static; bottom:auto; left:auto; transform:none;
-      padding:6px 10px 8px; flex-shrink:0; width:100%; max-width:100%;
-      overflow-x:auto; overscroll-behavior:contain; flex-wrap:nowrap;
-      -webkit-overflow-scrolling:touch; justify-content:center; gap:8px;
+      padding:4px 8px 2px; flex-shrink:0; width:100%; max-width:100%;
+      overflow:visible; flex-wrap:nowrap;
+      justify-content:space-evenly; gap:4px;
       border:none; border-radius:0; box-shadow:none; background:transparent;
       align-items:center;
+      border-top:1px solid #ffffff12;
     }
     .bar button{
-      min-width:52px; width:52px; height:52px; max-height:52px; padding:0; flex-shrink:0;
+      min-width:48px; width:auto; flex:1 1 0; max-width:72px; height:52px; max-height:52px;
+      padding:0; flex-shrink:1;
       font-size:26px; line-height:1; border-radius:14px; touch-action:manipulation;
       display:inline-flex; align-items:center; justify-content:center;
       white-space:nowrap; overflow:hidden;
@@ -639,13 +642,14 @@
       bottom:calc(var(--mob-dock-h) + 8px + env(safe-area-inset-bottom));
     }
   }
-  /* iPad / tablet portrait — extra clearance for home indicator (Safari often reports 0 inset) */
+  /* iPad / tablet portrait — full-width dock, generous home-indicator clearance */
   @media (max-width:1024px) and (min-width:600px) and (orientation:portrait),
          ((hover: none) and (pointer: coarse) and (min-width:600px) and (orientation:portrait)){
-    :root{--mob-dock-h:176px;}
-    .dock{bottom:max(52px, env(safe-area-inset-bottom, 52px)); padding-bottom:10px;}
-    .tools{padding:8px 14px 6px;}
-    .bar{padding:8px 14px 0;}
+    :root{--mob-dock-h:168px;}
+    .dock{padding-bottom:max(34px, env(safe-area-inset-bottom, 34px));}
+    .tools{padding:10px 16px 8px; gap:12px;}
+    .bar{padding:6px 12px 4px; gap:6px;}
+    .bar button{max-width:80px; height:54px; max-height:54px;}
   }
 </style>
 </head>
@@ -853,7 +857,7 @@
 <script>
 'use strict';
 (function(){
-  var V='5',k='csc-ui';
+  var V='6',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
