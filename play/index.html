@@ -8,7 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
-<link rel="manifest" href="manifest.webmanifest?v=3">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<link rel="manifest" href="manifest.webmanifest?v=4">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -565,7 +567,7 @@
       position:fixed; left:0; right:0; bottom:0;
       transform:none; width:100%; max-width:100%; z-index:25;
       pointer-events:none;
-      padding-bottom:max(34px, env(safe-area-inset-bottom, 0px));
+      padding-bottom:max(44px, env(safe-area-inset-bottom, 44px));
       background:var(--panel);
       border-top:1px solid #ffffff18;
       box-shadow:0 -6px 28px #000a;
@@ -601,7 +603,20 @@
       white-space:nowrap; overflow:hidden;
     }
     .bar .bar-txt{display:none!important;}
-    .bar .bar-glyph{display:block; font-size:26px; line-height:1;}
+    .bar .bar-glyph{display:none!important;}
+    /* Icon-only bar controls — CSS pseudo-elements survive cached JS overwriting textContent */
+    .bar #bPause,
+    .bar #bYou{
+      font-size:0!important; color:transparent; position:relative;
+    }
+    .bar #bPause::before,
+    .bar #bYou::before{
+      font-size:26px; line-height:1; color:var(--ink);
+    }
+    .bar #bPause::before{content:'⏸';}
+    .bar #bPause.on::before{content:'▶';}
+    .bar #bYou::before{content:'👥';}
+    .bar #bYou.on::before{content:'📍';}
     #bUndo{font-size:0;}
     #bUndo::after{content:'↩'; font-size:24px;}
     .mob-actions{flex-direction:row;}
@@ -625,10 +640,10 @@
   /* iPad / tablet portrait — extra clearance for home indicator (Safari often reports 0 inset) */
   @media (max-width:1024px) and (min-width:600px) and (orientation:portrait),
          ((hover: none) and (pointer: coarse) and (min-width:600px) and (orientation:portrait)){
-    :root{--mob-dock-h:168px;}
-    .dock{padding-bottom:max(40px, env(safe-area-inset-bottom, 0px));}
+    :root{--mob-dock-h:176px;}
+    .dock{padding-bottom:max(52px, env(safe-area-inset-bottom, 52px));}
     .tools{padding:8px 14px 6px;}
-    .bar{padding:6px 14px 4px;}
+    .bar{padding:8px 14px 0;}
   }
 </style>
 </head>
@@ -2353,8 +2368,6 @@ function syncTrackBtn(){
   btn.disabled=false;
   btn.classList.toggle('on', !!w);
   if(mqCompact.matches){
-    if(glyph) glyph.textContent='👥';
-    if(txt) txt.textContent='';
     btn.title=w ? 'Tracking '+w.name : 'People & walkers';
     btn.setAttribute('aria-label', w ? 'Tracking '+w.name : 'Open people panel');
   } else {
@@ -4419,20 +4432,17 @@ $('youList').addEventListener('click', e=>{
 const bPause=$('bPause');
 function syncPauseBtn(){
   if(!bPause) return;
+  if(mqCompact.matches){
+    bPause.setAttribute?.('aria-label', paused?'Resume game':'Pause game');
+    return;
+  }
   const glyph=bPause.querySelector?.('.bar-glyph');
   const txt=bPause.querySelector?.('.bar-txt');
-  if(mqCompact.matches){
-    const sym=paused?'▶':'⏸';
-    if(glyph){ glyph.textContent=sym; if(txt) txt.textContent=''; }
-    else bPause.textContent=sym;
-    bPause.setAttribute?.('aria-label', paused?'Resume game':'Pause game');
-  } else {
-    const sym=paused?'▶':'⏸';
-    const label=paused?' Resume':' Pause';
-    if(glyph){ glyph.textContent=sym; if(txt) txt.textContent=label; }
-    else bPause.textContent=sym+label.trim();
-    bPause.removeAttribute?.('aria-label');
-  }
+  const sym=paused?'▶':'⏸';
+  const label=paused?' Resume':' Pause';
+  if(glyph){ glyph.textContent=sym; if(txt) txt.textContent=label; }
+  else bPause.textContent=sym+label.trim();
+  bPause.removeAttribute?.('aria-label');
 }
 function setPause(v){
   paused=v;
