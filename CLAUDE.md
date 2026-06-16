@@ -39,12 +39,21 @@ Everything lives in one `<script>`. Sections are delimited by `// ---------- nam
 
 1. **Phase 2 — Vite split**: `src/sim/` (tiles, agents, economy, fires — pure logic, no DOM), `src/render/`, `src/ui/`. Port tests to import sim modules directly. Keep a built single-file artifact as a deliverable.
 2. **Supabase integration** (`supabase/schema.sql` is ready): magic-link auth, replace export/import with `cities` upsert/select, autosave every game day, `scores` upsert for the leaderboard. Env vars via `.env` (never commit keys).
-3. **Traffic congestion**: per-road-tile rolling occupancy count; congested tiles slow cars and subtract happiness — makes road layout matter.
+3. **Traffic congestion polish**: `roadCong` / `congestionPenalty` exist — finish tuning so congested tiles clearly slow cars and subtract happiness.
 4. **Land value / pollution**: shops + traffic emit, parks absorb; value gates building height.
-5. **Offline progression** (Railway cron) and shareable read-only city links.
-6. ~~"Aster Bay Jr." config flag~~ — shipped as Creative mode in v0.5. Next: boot-time `?mode=creative` URL param so Calm Corner Games can deep-link straight into the sandbox.
-7. **Block undo stack**: last-20-actions undo for creative mode (kids expect it).
-8. **Bridges**: allow road placement on water at 3× cost with piling visuals.
+5. **Offline progression** (Railway cron) — “your city earned while you were away”.
+6. **Product naming / domain** — optional rebrand to “Calm City Builder”; keep calmsafecity.com as redirect (discussion only, not shipped).
+7. ~~Creative mode / Aster Bay Jr.~~ — shipped.
+8. ~~`?mode=creative` boot param~~ — shipped (`applyBootParams`).
+9. ~~Block undo stack (20 actions)~~ — shipped in creative mode.
+10. ~~Bridges on water~~ — shipped (road on water → bridge).
+11. ~~Big city spread layout~~ — shipped (`startBigCity`, `?city=big`).
+12. ~~View-only share links~~ — shipped (`?view=1#city=…`).
+13. ~~Parent calm controls~~ — shipped (`csc-parent-v1` in localStorage).
+14. ~~Water build tool~~ — shipped.
+15. ~~Hide player-facing pricing~~ — shipped (`UX.money=false`).
+
+Handoff docs: `PROJECT.md`, `AGENTS.md`, `.cursorrules`, `README.md` — update when status changes materially.
 
 ## Conventions
 

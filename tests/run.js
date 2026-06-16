@@ -295,18 +295,21 @@ H.clearWalkers();
 H.addWalker('Nora');
 A(H.parseWalkerCommand('Nora go to fire station').dest.includes('fire'), 'parses go-to phrasing');
 H.clearWalkers();
-H.addWalker('Nora');
-H.setMode('creative');
-H.setTool('fire');
-let firePlaced = false;
-outer5: for (let x = 8; x < 24; x++) for (let y = 8; y < 24; y++)
-  if (H.canPlace('fire', x, y)) { H.tryPlace(x, y); firePlaced = true; break outer5; }
-A(firePlaced, 'fire station ready for walker command');
+let nora = null, routeReady = false;
+for (let attempt = 0; attempt < 24 && !routeReady; attempt++) {
+  H.clearWalkers();
+  H.addWalker('Nora');
+  nora = H.getWalkers()[0];
+  if (attempt) run(20);
+  routeReady = !!H.resolveWalkerGoal('fire station', nora.fx, nora.fy);
+}
+A(routeReady, 'fire station reachable for walker command');
 A(H.instructWalker('Nora - go to fire station'), 'command to fire station accepted');
-A(H.getWalkers()[0].goalLabel === 'fire station', 'fire station goal set');
+A(H.getWalkers().find(w => w.name === 'Nora').goalLabel === 'fire station', 'fire station goal set');
 let arriveSteps = 0;
-while (H.getWalkers()[0].path && arriveSteps < 2500) { run(1); arriveSteps++; }
-A(!H.getWalkers()[0].path, 'walker finishes route');
+const noraW = H.getWalkers().find(w => w.name === 'Nora');
+while (noraW.path && arriveSteps < 2500) { run(1); arriveSteps++; }
+A(!noraW.path, 'walker finishes route');
 
 // ---------- camera rotation ----------
 console.log('\ncamera rotation');

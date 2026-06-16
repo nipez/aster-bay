@@ -1,0 +1,44 @@
+# Calm Safe City (Aster Bay) — Cursor rules
+
+Read in order: PROJECT.md → AGENTS.md → CLAUDE.md → README.md
+
+## Project
+
+Browser isometric city builder for kids/families. Game: play/index.html (single file, zero deps). Marketing: index.html. Live: calmsafecity.com. Tests: node tests/run.js (must pass).
+
+## Agent branches
+
+Use cursor/<name>-cd86 off main. Push with git push -u origin <branch>. PR base: main.
+
+## Hard constraints
+
+- Do not start Phase 2 Vite split unless explicitly requested.
+- Keep play/index.html self-contained — no external scripts/fonts/CDNs.
+- Save format v4 (sparse edits). Bump v + migration on schema change; never break import silently.
+- No localStorage for game saves (parent settings csc-parent-v1 excepted).
+- Kid-safe: creative/calm must fully disable random fires.
+- Randomness: R() or hash() only — never Math.random().
+- Mutate tiles via setTile/clearTile; buildings/trees via registry helpers; recompute() after world changes.
+- Use shade() for all world colors.
+
+## Code map
+
+play/index.html sections marked // ---------- name ---------- — see CLAUDE.md for full list.
+
+Key areas: UX toggles (~849), parent/calm/share (~867), canPlace/tryPlace (~2639/3031), applyBootParams (~4103), buildExportData save v4 (~962).
+
+## Testing
+
+Extend tests/run.js hooks (global.__h), not the game file. Run node tests/run.js before every commit.
+
+## URLs
+
+Relative links only (play/ not /play/) for GitHub Pages + custom domain. Family link: play/?mode=creative&calm=1
+
+## Status snapshot (2026-06-12, main @ c9c4e5a)
+
+Shipped: water tool, bridges, big city, creative undo, mobile dock, parent settings, view-only share, hidden pricing, find game, walkers. Next backlog: Vite split, Supabase, congestion polish, land value/pollution, offline progression. See PROJECT.md for details.
+
+## Style
+
+Vanilla JS, 2-space indent, semicolons. Minimal diff. Toast player-facing changes. Match surrounding code.
