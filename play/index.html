@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=11">
+<link rel="manifest" href="manifest.webmanifest?v=12">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -867,6 +867,7 @@
         <label class="parent-toggle"><input type="checkbox" id="parentDusk" checked> Dusk “Save &amp; rest” reminder</label>
         <label class="parent-toggle"><input type="checkbox" id="parentCreative"> Lock to creative mode</label>
         <label class="parent-toggle"><input type="checkbox" id="parentFiresOff" checked> Start with fires off</label>
+        <label class="parent-toggle"><input type="checkbox" id="parentCool" checked> Cool &amp; quiet mode (saves battery · iPad/iPhone)</label>
       </div>
       <div class="parent-row" style="margin-top:12px">
         <label for="parentPinSet">Optional 4-digit PIN</label>
@@ -896,7 +897,7 @@
 <script>
 'use strict';
 (function(){
-  var V='11',k='csc-ui';
+  var V='12',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
@@ -917,8 +918,15 @@
 // ---------- canvas ----------
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let DPR = 1, CW = 0, CH = 0;
+let coolModeEnabled = true;
+function isTouchLayout(){
+  if(typeof window.matchMedia!=='function') return false;
+  return window.matchMedia('(max-width:1024px), ((hover: none) and (pointer: coarse))').matches;
+}
+function coolModeOn(){ return coolModeEnabled && isTouchLayout(); }
 function resize(){
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const maxDpr=coolModeOn()?1.5:2;
+  DPR = Math.min(window.devicePixelRatio || 1, maxDpr);
   const vp=window.visualViewport;
   CW=Math.round(vp?vp.width:window.innerWidth);
   CH=Math.round(vp?vp.height:window.innerHeight);
@@ -954,7 +962,7 @@ if(document.body){
 // ---------- parent / calm / share ----------
 const PARENT_STORE='csc-parent-v1';
 const SHARE_MAX_URL=12000;
-const DEFAULT_PARENT={pin:'', sessionMins:30, sessionWarnMins:5, duskRest:true, creativeLock:false, firesOffDefault:true};
+const DEFAULT_PARENT={pin:'', sessionMins:30, sessionWarnMins:5, duskRest:true, creativeLock:false, firesOffDefault:true, coolMode:true};
 let parentSettings={...DEFAULT_PARENT};
 let sessionStart=performance.now();
 let sessionWarned=false;
@@ -969,16 +977,18 @@ function loadParentSettings(){
     if(raw) parentSettings={...DEFAULT_PARENT, ...JSON.parse(raw)};
   }catch{}
   parentUnlocked=!parentSettings.pin;
+  coolModeEnabled=parentSettings.coolMode!==false;
 }
 function saveParentSettings(){
   try{ localStorage.setItem(PARENT_STORE, JSON.stringify(parentSettings)); }catch{}
 }
 function syncParentForm(){
-  const s=$('parentSession'), d=$('parentDusk'), c=$('parentCreative'), f=$('parentFiresOff'), p=$('parentPinSet');
+  const s=$('parentSession'), d=$('parentDusk'), c=$('parentCreative'), f=$('parentFiresOff'), cm=$('parentCool'), p=$('parentPinSet');
   if(s) s.value=String(parentSettings.sessionMins|0);
   if(d) d.checked=!!parentSettings.duskRest;
   if(c) c.checked=!!parentSettings.creativeLock;
   if(f) f.checked=!!parentSettings.firesOffDefault;
+  if(cm) cm.checked=parentSettings.coolMode!==false;
   if(p) p.value='';
   if(document.body) document.body.classList.toggle('creative-lock', !!parentSettings.creativeLock);
 }
@@ -987,6 +997,8 @@ function readParentForm(){
   parentSettings.duskRest=!!$('parentDusk')?.checked;
   parentSettings.creativeLock=!!$('parentCreative')?.checked;
   parentSettings.firesOffDefault=!!$('parentFiresOff')?.checked;
+  parentSettings.coolMode=!!$('parentCool')?.checked;
+  coolModeEnabled=parentSettings.coolMode;
   const pin=$('parentPinSet')?.value?.trim()||'';
   if(pin){
     if(!/^\d{4}$/.test(pin)){ toast('PIN must be 4 digits','err'); return false; }
@@ -1000,6 +1012,8 @@ function readParentForm(){
   sessionEnded=false;
   if(parentSettings.creativeLock) setMode('creative');
   if(parentSettings.firesOffDefault) setEvents(false);
+  resize();
+  adjustAgents();
   toast('Parent settings saved','ok');
   return true;
 }
@@ -2617,8 +2631,10 @@ function roadCount(){
   return n;
 }
 function adjustAgents(){
-  const pt=clamp(Math.round(stats.pop/12),18,240);
-  const ct=clamp(Math.round(stats.pop/45),8,70);
+  const pedMax=coolModeOn()?120:240;
+  const carMax=coolModeOn()?40:70;
+  const pt=clamp(Math.round(stats.pop/12),18,pedMax);
+  const ct=clamp(Math.round(stats.pop/45),8,carMax);
   while(peds.length<pt) if(!spawnPed()) break;
   while(peds.length>pt) peds.pop();
   while(cars.length<ct) if(!spawnCar()) break;
@@ -3513,8 +3529,9 @@ function visibleRange(){
   let x1=Math.ceil (Math.max(c[0].x,c[1].x,c[2].x,c[3].x))+12;
   let y0=Math.floor(Math.min(c[0].y,c[1].y,c[2].y,c[3].y))-3;
   let y1=Math.ceil (Math.max(c[0].y,c[1].y,c[2].y,c[3].y))+12;
-  if(x1-x0>150){ const m=(x0+x1)/2; x0=Math.floor(m-75); x1=Math.ceil(m+75); }
-  if(y1-y0>150){ const m=(y0+y1)/2; y0=Math.floor(m-75); y1=Math.ceil(m+75); }
+  const cap=coolModeOn()?120:150, half=cap/2;
+  if(x1-x0>cap){ const m=(x0+x1)/2; x0=Math.floor(m-half); x1=Math.ceil(m+half); }
+  if(y1-y0>cap){ const m=(y0+y1)/2; y0=Math.floor(m-half); y1=Math.ceil(m+half); }
   return {x0,x1,y0,y1};
 }
 function drawBridgeTile(x,y,animT){
@@ -4820,8 +4837,22 @@ $('restDone')?.addEventListener('click', ()=>{
 renderWalkerList();
 if(mode==='creative' && UX.money) toast('🎨 Creative mode — build anything · ↩ Undo is ready', 'ok');
 updateUndoBtn();
-let prev=performance.now(), animT=0, hudTick=0;
+let prev=performance.now(), animT=0, hudTick=0, lastDrawT=0, rafId=0;
+let pageHidden=false, hiddenPaused=false;
+const COOL_FPS_PLAY=30, COOL_FPS_IDLE=12;
+function frameMinGap(){
+  if(!coolModeOn()) return paused?50:0;
+  return paused?1000/COOL_FPS_IDLE:1000/COOL_FPS_PLAY;
+}
+function scheduleFrame(){
+  if(pageHidden) return;
+  rafId=requestAnimationFrame(frame);
+}
 function frame(now){
+  if(pageHidden) return;
+  const gap=frameMinGap();
+  if(gap>0 && now-lastDrawT<gap){ scheduleFrame(); return; }
+  lastDrawT=now;
   let dt=Math.min((now-prev)/1000,0.05); prev=now;
   animT+=dt;
   if(walkerPulseT>0) walkerPulseT=Math.max(0, walkerPulseT-dt);
@@ -4851,10 +4882,22 @@ function frame(now){
   render(animT);
   hudTick+=dt;
   if(hudTick>0.25){ hudTick=0; updateHUD(); }
-  requestAnimationFrame(frame);
+  scheduleFrame();
 }
 updateHUD();
-requestAnimationFrame(frame);
+document.addEventListener('visibilitychange', ()=>{
+  pageHidden=!!document.hidden;
+  if(pageHidden){
+    if(rafId){ cancelAnimationFrame(rafId); rafId=0; }
+    if(!paused){ hiddenPaused=true; setPause(true); }
+    return;
+  }
+  prev=performance.now();
+  lastDrawT=0;
+  if(hiddenPaused){ hiddenPaused=false; setPause(false); }
+  scheduleFrame();
+}, {passive:true});
+scheduleFrame();
 </script>
 </body>
 </html>
