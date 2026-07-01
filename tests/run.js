@@ -47,8 +47,11 @@ global.localStorage = { _data: {}, getItem(k){ return this._data[k] ?? null; }, 
 global.btoa = s => Buffer.from(s, 'binary').toString('base64');
 global.atob = s => Buffer.from(s, 'base64').toString('binary');
 global.FileReader = class { readAsText() {} };
-let rafCb = null;
-global.requestAnimationFrame = cb => { rafCb = cb; };
+// queue callbacks like a real browser: one-shot rAF users (e.g. setImmersive's
+// scroll nudge) must not clobber the main frame loop's callback
+let rafQ = [];
+global.requestAnimationFrame = cb => { rafQ.push(cb); return rafQ.length; };
+global.cancelAnimationFrame = () => {};
 
 // ---------- load game script with test hooks ----------
 const html = fs.readFileSync(path.join(__dirname, '..', 'play', 'index.html'), 'utf8');
@@ -77,7 +80,9 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   setDockCollapsed,getDockCollapsed:()=>dockCollapsed,
   setTool,getTool:()=>tool,markFound,getFindScore:()=>findScore(),getFindGoals:()=>findGoals,
   getFindHidden:()=>findHidden,rebuildFindGoals,importFindFound,showFindHint,findGoalLocation,
-  getFindHintPulse:()=>findHintPulse};`;
+  getFindHintPulse:()=>findHintPulse,
+  setPause,getRenderCount:()=>renderCount,getGroundBuilds:()=>groundCache.builds,
+  markPaint:()=>{paintDirty=true;},stopPanAnim:()=>{panAnimating=false;}};`;
 const tmp = path.join(os.tmpdir(), 'aster-bay-test-' + Date.now() + '.js');
 fs.writeFileSync(tmp, js + hooks);
 require(tmp);
@@ -85,7 +90,7 @@ const H = global.__h;
 
 // ---------- helpers ----------
 let t = Date.now();
-const run = n => { for (let i = 0; i < n; i++) { t += 33; if (rafCb) { const cb = rafCb; rafCb = null; cb(t); } } };
+const run = n => { for (let i = 0; i < n; i++) { t += 33; const q = rafQ; rafQ = []; for (const cb of q) cb(t); } };
 let failures = 0;
 const A = (cond, msg) => {
   if (cond) console.log('  ✓ ' + msg);
@@ -551,6 +556,36 @@ A(H.getDistrictCount() === 10, 'big city seeds ten districts');
 A(H.getDistricts().has('3,0') && H.getDistricts().has('-3,0'), 'big city spans spread east and west hubs');
 A(H.getDistricts().has('-2,-2') && H.getDistricts().has('1,-4'), 'big city includes isolated districts');
 A(H.computeRoadReach().size > 20, 'road spine links the main districts');
+
+// ---------- render performance: ground cache & idle skip ----------
+console.log('\nrender performance');
+H.setTrackWalker(null);
+H.stopPanAnim();
+H.resetCam();
+H.setTool('inspect');
+H.setPause(false);
+run(3);
+const gb0 = H.getGroundBuilds();
+A(gb0 > 0, 'ground cache built at least once');
+run(5);
+const gb1 = H.getGroundBuilds();
+A(gb1 - gb0 <= 2, 'ground cache reused across static frames');
+H.setTile(2, 2, 'grass');
+run(1);
+A(H.getGroundBuilds() > gb1, 'world edit invalidates ground cache');
+H.setPause(true);
+run(4); // flush any pending dirty repaint
+const rc0 = H.getRenderCount();
+run(8);
+A(H.getRenderCount() === rc0, 'paused idle frames skip repainting');
+H.markPaint();
+run(4);
+A(H.getRenderCount() > rc0, 'input wakes repaint while paused');
+H.setPause(false);
+run(4);
+const rc1 = H.getRenderCount();
+run(4);
+A(H.getRenderCount() > rc1, 'unpausing resumes continuous rendering');
 
 console.log('\n' + (failures ? `${failures} FAILURE(S)` : 'ALL TESTS PASSED (v0.5)'));
 process.exit(failures ? 1 : 0);
