@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Calm Safe City">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="manifest" href="manifest.webmanifest?v=13">
+<link rel="manifest" href="manifest.webmanifest?v=14">
 <title>Calm Safe City — Play</title>
 <style>
   :root{
@@ -477,6 +477,14 @@
   .parent-actions button.primary{background:var(--accent);color:#23201a;border-color:transparent;}
   .parent-actions button:active{transform:scale(.98);}
   .parent-note{font-size:11px;color:var(--dim);line-height:1.45;margin-top:10px;}
+  .share-prev{margin-top:12px;}
+  .share-prev textarea{
+    width:100%; background:#ffffff08; color:var(--ink); border:1px solid #ffffff22;
+    border-radius:10px; padding:8px 10px; font:600 11px ui-monospace,Menlo,Consolas,monospace;
+    resize:none; word-break:break-all; line-height:1.4;
+    -webkit-user-select:text; user-select:text;
+  }
+  .share-prev .parent-actions{margin-top:8px;}
   .parent-pin-gate{display:grid;gap:8px;margin-bottom:12px;}
   .view-banner{
     display:none;position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
@@ -875,8 +883,16 @@
       </div>
       <div class="parent-actions">
         <button type="button" class="primary" id="parentSave">Save settings</button>
-        <button type="button" id="parentShare">Copy view-only link</button>
-        <button type="button" id="parentCalmLink">Copy family-safe link</button>
+        <button type="button" id="parentShare">Share view-only link…</button>
+        <button type="button" id="parentCalmLink">Share family-safe link…</button>
+      </div>
+      <div id="sharePrev" class="parent-row share-prev" hidden>
+        <label id="sharePrevLabel" for="sharePrevText">Preview</label>
+        <textarea id="sharePrevText" readonly rows="5" spellcheck="false"></textarea>
+        <div class="parent-actions">
+          <button type="button" class="primary" id="sharePrevCopy">Copy to clipboard</button>
+          <button type="button" id="sharePrevClose">Close preview</button>
+        </div>
       </div>
       <p class="parent-note">Family-safe link opens creative mode with fires off and a gentle session timer. View-only links let grandparents watch — no building, no chat, no strangers.</p>
     </div>
@@ -897,7 +913,7 @@
 <script>
 'use strict';
 (function(){
-  var V='13',k='csc-ui';
+  var V='14',k='csc-ui';
   try{
     if(localStorage.getItem(k)===V) return;
     localStorage.setItem(k,V);
@@ -966,7 +982,9 @@ if(document.body){
 
 // ---------- parent / calm / share ----------
 const PARENT_STORE='csc-parent-v1';
-const SHARE_MAX_URL=12000;
+// share data rides in the #fragment (never sent to a server) — the cap only
+// guards against browser URL limits; 120k stays inside what Safari handles
+const SHARE_MAX_URL=120000;
 const DEFAULT_PARENT={pin:'', sessionMins:30, sessionWarnMins:5, duskRest:true, creativeLock:false, firesOffDefault:true, coolMode:true};
 let parentSettings={...DEFAULT_PARENT};
 let sessionStart=performance.now();
@@ -1028,6 +1046,7 @@ function showParentPanel(open){
   if(!panel) return;
   panel.classList.toggle('show', open);
   panel.setAttribute('aria-hidden', open?'false':'true');
+  hideSharePreview();
   if(!open) return;
   syncParentForm();
   const locked=parentNeedsPin();
@@ -1100,18 +1119,41 @@ function copyText(text){
   ta.remove();
   return Promise.resolve();
 }
+// share preview: show exactly what will be copied before touching the clipboard
+let sharePrevValue='';
+function showSharePreview(label, text){
+  sharePrevValue=text;
+  const box=$('sharePrev');
+  if(!box){ copyText(text).then(()=> toast('Link copied','ok')); return; }
+  const lbl=$('sharePrevLabel'), ta=$('sharePrevText');
+  if(lbl) lbl.textContent=label;
+  if(ta) ta.value=text;
+  box.hidden=false;
+}
+function hideSharePreview(){
+  sharePrevValue='';
+  const box=$('sharePrev');
+  if(box) box.hidden=true;
+}
+function copySharePreview(){
+  if(!sharePrevValue) return;
+  copyText(sharePrevValue).then(()=> toast('Copied — paste it anywhere','ok'));
+}
+function calmLinkUrl(){
+  let path=location.pathname;
+  if(!path.includes('/play')) path=path.replace(/\/?$/,'/')+'play/';
+  else if(!path.endsWith('/')) path=path.replace(/\/[^/]*$/,'/')||path+'/';
+  return location.origin+path+'?mode=creative&calm=1';
+}
 function copyViewLink(){
   if(viewOnly){ toast('Already viewing a shared city','err'); return; }
   const url=shareViewUrl(buildExportData());
   if(url.length>SHARE_MAX_URL){ toast('City too big for a link — use Save file instead','err'); return; }
-  copyText(url).then(()=> toast('View-only link copied','ok'));
+  const kb=Math.max(1,Math.round(url.length/1024));
+  showSharePreview('View-only link · watch only \u2014 long link ('+kb+' KB), best pasted into email or notes', url);
 }
 function copyCalmLink(){
-  let path=location.pathname;
-  if(!path.includes('/play')) path=path.replace(/\/?$/,'/')+'play/';
-  else if(!path.endsWith('/')) path=path.replace(/\/[^/]*$/,'/')||path+'/';
-  const link=location.origin+path+'?mode=creative&calm=1';
-  copyText(link).then(()=> toast('Family-safe link copied','ok'));
+  showSharePreview('Family-safe link \u2014 creative mode, fires off, session timer', calmLinkUrl());
 }
 function loadShareFromHash(){
   const hash=location.hash||'';
@@ -4924,6 +4966,8 @@ $('parentPinIn')?.addEventListener('keydown', e=>{ if(e.key==='Enter') tryParent
 $('parentSave')?.addEventListener('click', ()=>{ if(readParentForm()) showParentPanel(false); });
 $('parentShare')?.addEventListener('click', copyViewLink);
 $('parentCalmLink')?.addEventListener('click', copyCalmLink);
+$('sharePrevCopy')?.addEventListener('click', copySharePreview);
+$('sharePrevClose')?.addEventListener('click', hideSharePreview);
 $('restChip')?.addEventListener('click', ()=> saveAndRest('Nice building today — your city is saved!'));
 $('restSave')?.addEventListener('click', ()=> exportCity());
 $('restDone')?.addEventListener('click', ()=>{

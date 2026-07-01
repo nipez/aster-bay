@@ -63,6 +63,7 @@ const hooks = `\n;global.__h={tryPlace,canPlace,setTool,getCash:()=>cash,buildin
   tileAt,setTile,edits,terrainAt,hasProcTree,blocks,blockMap,setMode,getMode:()=>mode,setMoneyEnabled,setUxInterior,
   setBlockColor:c=>{blockColor=c;},applyBootParams,applyCalmProfile,getEventsOn:()=>eventsOn,
   isViewOnly,setViewOnly,buildExportData,encodeShare,decodeShare,shareViewUrl,tickSessionTimer,
+  calmLinkUrl,copyCalmLink,copyViewLink,hideSharePreview,getSharePreview:()=>sharePrevValue,
   saveAndRest,getParentSettings:()=>parentSettings,
   joinCity,addWalker,removeWalker,clearWalkers,leaveCity,getWalkers:()=>walkers,
   getTrackedWalker,getTrackWalkerId:()=>trackWalkerId,setTrackWalker,toggleTrackWalker,goToWalker,
@@ -254,6 +255,14 @@ H.setViewOnly(true);
 A(H.isViewOnly(), 'view-only mode');
 A(!H.tryPlace(10, 10), 'view-only blocks building');
 H.setViewOnly(false);
+A(H.calmLinkUrl() === 'http://test/play/?mode=creative&calm=1', 'family-safe link composed');
+H.copyCalmLink();
+A(H.getSharePreview() === H.calmLinkUrl(), 'share preview holds exactly what will be copied');
+H.copyViewLink();
+A(H.getSharePreview().includes('view=1') && H.getSharePreview().includes('#city='),
+  'view-only link previewed before copying');
+H.hideSharePreview();
+A(H.getSharePreview() === '', 'closing preview clears pending copy text');
 
 // ---------- player walker ----------
 console.log('\nplayer walker');
